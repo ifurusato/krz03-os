@@ -5,15 +5,16 @@ KRZOS: Operating System for the KRZ03 Robot
 **KRZOS** provides the core functionality of the *KRZ03 Robot*, a Raspberry
 Pi-based robot OS written in Python 3.
 
-(This document is a work-in-progress and does not reflect the actual project.)
+Note: this document is a work-in-progress and does not necessarily reflect the
+current state of the project.
 
-.. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/KRZ02.jpg
-   :width: 620px
+.. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03.jpg
+   :width: 1200px
    :align: center
-   :height: 540px
-   :alt: The KRZ03 Robot (Phase 1)
+   :height: 760px
+   :alt: The KRZ03 Robot
 
-   A 3D model of the MR01 Robot.
+   The KRZ03 Robot.
 
 |
 
