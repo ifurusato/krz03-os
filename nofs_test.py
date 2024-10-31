@@ -48,6 +48,8 @@ Press Ctrl+C to exit!
         time.sleep(0.01)
 
 except KeyboardInterrupt:
+    print('\n')
+    _log.info('caught Ctrl-C: exiting…')
     pass
 
 #EOF

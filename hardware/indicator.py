@@ -102,6 +102,7 @@ class Indicator(Component):
                 self.set(False)
                 time.sleep(delay_sec)
         except KeyboardInterrupt:
+            print('\n')
             self._log.info('Ctrl-C caught; exiting…')
         except Exception as e:
             self._log.error('error in loop: {}\n{}'.format(e, traceback.format_exc()))

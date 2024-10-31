@@ -118,6 +118,7 @@ def main():
             time.sleep(DELAY_TIME_SEC)
 
     except KeyboardInterrupt:
+        print('\n')
         print('Ctrl-C caught, exiting...')
         sys.exit(0)
 

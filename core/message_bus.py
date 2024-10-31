@@ -123,6 +123,7 @@ class MessageBus(Component):
                     if _task is not asyncio.current_task() and ( include_hidden or not _task.get_name().startswith('__')):
                         _tasks.append(_task)
             except KeyboardInterrupt:
+                print('\n')
                 self._log.error('Ctrl-C caught; exiting…')
             except RuntimeError as e:
                 self._log.debug('cannot get task list: {}'.format(e))
@@ -389,6 +390,7 @@ class MessageBus(Component):
                     await subscriber.consume()
             self._log.info('completed consume loop.')
         except KeyboardInterrupt:
+            print('\n')
             self._log.error('Ctrl-C caught; exiting…')
         finally:
             self._log.info('finally: completed consume loop.')
@@ -539,6 +541,7 @@ class MessageBus(Component):
             else:
                 self._log.warning('no message bus event loop!')
         except KeyboardInterrupt:
+            print('\n')
             self._log.error('Ctrl-C caught; exiting…')
         except Exception as e:
             self._log.error('error stopping event loop: {}'.format(e))
@@ -557,6 +560,7 @@ class MessageBus(Component):
                 if _task.get_name() == name:
                     return _task
         except KeyboardInterrupt:
+            print('\n')
             self._log.error('Ctrl-C caught; exiting…')
         except RuntimeError as e:
             self._log.error('unable to get task: {}'.format(e))

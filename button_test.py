@@ -51,8 +51,8 @@ def test_pushbutton():
             time.sleep(0.1)
 
     except KeyboardInterrupt:
+        print('\n')
         print('Ctrl-C caught, exiting...')
-        sys.exit(0)
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def main():

@@ -27,5 +27,6 @@ try:
     print("Listening for encoder signals. Press Ctrl+C to exit.")
     pause()  # Keep the script running
 except KeyboardInterrupt:
-    print("Exiting...")
+    print('\n')
+    print("Ctrl-C caught, exiting…")
 

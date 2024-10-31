@@ -84,6 +84,7 @@ def test_digital_potentiometer():
             _rate.wait()
     
     except KeyboardInterrupt:
+        print('\n')
         _log.info('Ctrl-C caught; exiting...')
     except DeviceNotFound as e:
         _log.error('no potentiometer found, exiting.')

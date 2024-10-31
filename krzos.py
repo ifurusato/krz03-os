@@ -891,6 +891,7 @@ def main(argv):
                 _krzos.start()
             # krzos is now running…
     except KeyboardInterrupt:
+        print('\n')
         print(Style.BRIGHT + 'caught Ctrl-C; exiting…' + Style.RESET_ALL)
     except Exception:
         print(Fore.RED + Style.BRIGHT + 'error starting krzos: {}'.format(traceback.format_exc()) + Style.RESET_ALL)

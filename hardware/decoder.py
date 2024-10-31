@@ -43,6 +43,7 @@ def is_pigpiod_running():
     return False
 
 from core.logger import Logger
+from core.orientation import Orientation
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Decoder(object):
@@ -67,7 +68,7 @@ class Decoder(object):
     '''
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def __init__(self, config, orientation, gpio_a, gpio_b, callback, level):
+    def __init__(self, config, orientation, callback, level):
         '''
         Instantiate the class with the pi and gpios connected to
         rotary encoder contacts A and B. The common contact should
@@ -124,8 +125,10 @@ class Decoder(object):
         self._use_pigpiod  = _cfg.get('use_pigpiod') 
         self._use_gpiozero = _cfg.get('use_gpiozero') 
         self._use_rpigpio  = _cfg.get('use_rpigpio') 
+        _implementation    = "unknown"
         try:
             if self._use_pigpiod and is_pigpiod_running():
+                _implementation = "pigpio"
                 self._log.info('using ' + Fore.WHITE + 'pigpiod' + Fore.CYAN + ' for motor encoders…')
 
                 import pigpio
@@ -148,6 +151,7 @@ class Decoder(object):
                 self._log.info('configured {} motor encoder with channel A on pin {}, channel B on pin {}, using pigpiod.'.format(orientation.name, self._encoder_a, self._encoder_b))
 
             elif self._use_gpiozero:
+                _implementation = "gpiozero"
                 self._log.info('using ' + Fore.WHITE + 'gpiozero' + Fore.CYAN + ' for motor encoders…')
    
                 from gpiozero import DigitalInputDevice
@@ -162,6 +166,7 @@ class Decoder(object):
                 self._encoder_b.when_deactivated = self._active_b
 
             elif self._use_rpigpio:
+                _implementation = "rpi.gpio"
                 self._log.info('using ' + Fore.WHITE + 'RPi.GPIO' + Fore.CYAN + ' for motor encoders…')
     
                 import RPi.GPIO as GPIO
@@ -188,7 +193,10 @@ class Decoder(object):
             raise ModuleNotFoundError('pigpio not installed.')
         except Exception as e:
             self._log.error('{} thrown configuring decoder: {}\n{}'.format(type(e), e, traceback.format_exc()))
-            raise Exception('unable to configure decoder.')
+            if self._use_pigpiod:
+                raise Exception('unable to configure decoder using pigpio implementation; is the daemeon started?')
+            else:
+                raise Exception('unable to configure decoder using {} implementation.'.format(_implementation))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def set_reversed(self):

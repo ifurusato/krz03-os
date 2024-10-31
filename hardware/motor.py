@@ -160,11 +160,13 @@ class Motor(Component):
         self._step_timestamps.append(dt.now())
         # check if steps are counting up or down based on the last steps count
         _fore = Fore.GREEN
+        _multiplier = 1
         if self._steps > self._last_steps:
 #           self._steps += 1 # increment step count for forward
             pass
         else:
             _fore = Fore.MAGENTA
+            _multiplier = -1
 #           self._steps -= 1 # decrement step count for reverse
             pass
         self._last_steps = self._steps # Update the last step count
@@ -177,12 +179,13 @@ class Motor(Component):
             # calculate average frequency if there are multiple intervals
             avg_interval = sum(intervals) / len(intervals)
             freq_hz = 1 / avg_interval
-            self._rpm = (freq_hz / self._steps_per_rotation) * 60
+            self._rpm = _multiplier * (freq_hz / self._steps_per_rotation) * 60
             self._max_rpm = max(self._max_rpm, self._rpm)
             self._rotations = self._steps / self._steps_per_rotation
             if next(self._counter) % 10 == 0:
-                self._log.info(_fore + '{: >5d} steps; {: >4.2f} rotations; freq: {: >4d}Hz; speed: {: >3d} rpm; max: {: >3d} rpm; target speed: {:d}'.format(
-                        self._steps, self._rotations, int(freq_hz), int(self._rpm), int(self._max_rpm), int(self._slew_limiter.target_speed)))
+                self._log.info(Fore.YELLOW + '{: >5d} steps; {: >4.2f} rotations; freq: {: >4d}Hz; '.format(self._steps, self._rotations, int(freq_hz))
+                        + _fore + 'speed: {: >3d} rpm; '.format(int(self._rpm))
+                        + Fore.WHITE + 'max: {: >3d} rpm; target speed: {:d}'.format(int(self._max_rpm), int(self._slew_limiter.target_speed)))
             # keep only the latest timestamps based on the limit
             if len(self._step_timestamps) > self._timestamp_limit:
                 self._step_timestamps = self._step_timestamps[-self._timestamp_limit:]

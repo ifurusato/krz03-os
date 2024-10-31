@@ -18,7 +18,6 @@ from core.orientation import Orientation
 from core.rate import Rate
 from hardware.color import Color
 #from hardware.slew_limiter import SlewLimiter
-from hardware.irq_clock import IrqClock
 from hardware.i2c_scanner import I2CScanner, DeviceNotFound
 from hardware.motor_controller import MotorController
 #from hardware.motor_configurer import MotorConfigurer
@@ -62,7 +61,6 @@ def main():
         _btn.add_callback(button_pushed, bouncetime_ms=300)
 
         _log.info('creating IRQ clock…')
-        _irq_clock = IrqClock(_config, level=Level.INFO)
 
         _counter = itertools.count()
 
@@ -97,9 +95,10 @@ def main():
             _rate.wait()
 
     except KeyboardInterrupt:
-        _log.info(Fore.CYAN + Style.BRIGHT + 'B. motor test complete.')
+        print('\n')
+        _log.info(Fore.CYAN + Style.BRIGHT + 'Ctrl-C captured: exiting test…')
     except Exception as e:
-        _log.info(Fore.RED + Style.BRIGHT + 'error in PID controller: {}'.format(e))
+        _log.info(Fore.RED + Style.BRIGHT + '{} raised by PID tuner: {}'.format(type(e), e))
         traceback.print_exc(file=sys.stdout)
     finally:
         _log.info('finally.')

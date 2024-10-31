@@ -203,6 +203,7 @@ class RgbMatrix(object):
                 rgbmatrix5x5.show()
                 time.sleep(0.2)
             except KeyboardInterrupt:
+                print('\n')
                 self._clear(rgbmatrix5x5)
                 self._log.info('cpu ended.')
                 sys.exit(0)

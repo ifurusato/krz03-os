@@ -173,6 +173,7 @@ def test_rgbmatrix():
         _log.info('test complete.')
         
     except KeyboardInterrupt:
+        print('\n')
         print('rgbmatrix_test    :' + Fore.YELLOW + ' INFO  : Ctrl-C caught: exiting...' + Style.RESET_ALL)
     finally:
         if _rgbmatrix:

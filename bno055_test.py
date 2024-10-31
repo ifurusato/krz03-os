@@ -56,6 +56,7 @@ def test_bno08x():
             time.sleep(1.0)
 
     except KeyboardInterrupt:
+        print('\n')
         _log.info('Ctrl-C caught; exiting…')
     except Exception as e:
         _log.error('{} encountered, exiting: {}\n{}'.format(type(e), e, traceback.format_exc()))
