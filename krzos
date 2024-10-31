@@ -1,0 +1,4 @@
+#!/bin/sh
+
+krzos.py -s -g
+
