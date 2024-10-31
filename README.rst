@@ -11,7 +11,6 @@ current state of the project.
 .. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03.jpg
    :width: 1200px
    :align: center
-   :height: 760px
    :alt: The KRZ03 Robot
 
    The KRZ03 Robot.
