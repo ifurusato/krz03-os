@@ -53,7 +53,7 @@ class PIDController(Component):
         Component.__init__(self, self._log, suppressed=suppressed, enabled=enabled)
         self._counter = itertools.count() # TEMP
         # PID configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        _cfg = config['mros'].get('motor').get('pid_controller')
+        _cfg = config['krzos'].get('motor').get('pid_controller')
         _kp         = _cfg.get('kp') # proportional gain
         _ki         = _cfg.get('ki') # integral gain
         _kd         = _cfg.get('kd') # derivative gain

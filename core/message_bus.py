@@ -63,7 +63,7 @@ class MessageBus(Component):
             logging.basicConfig(level=logging.DEBUG)
         self._queue = PeekableQueue(level)
         self._arbitrator = Arbitrator(level)
-        _cfg = config['mros'].get('message_bus')
+        _cfg = config['krzos'].get('message_bus')
         self._max_age_ms             = _cfg.get('max_age_ms') # was: 20.0ms
         self._publish_delay_sec      = _cfg.get('publish_delay_sec') # was: 0.01 sec
         self._publishers             = []

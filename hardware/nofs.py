@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-10-26
-# modified: 2024-10-26
+# modified: 2024-10-31
 #
 
 from pmw3901 import BG_CS_FRONT_BCM, PAA5100
@@ -45,7 +45,7 @@ class NearOpticalFlowSensor(Component):
         self._log = Logger('ofs', level)
         Component.__init__(self, self._log, suppressed=False, enabled=False)
         self._log.info('initialising paa5100je…')
-        _cfg = config['mros'].get('hardware').get('paa5100je')
+        _cfg = config['krzos'].get('hardware').get('paa5100je')
         _rotation    = _cfg.get('rotation') # options: 0, 90, 180, 270; rotation of sensor in degrees
         _slot        = BG_CS_FRONT_BCM # front SPI slot
         # the class for the specified breakout (PWM3901 or PAA5100)

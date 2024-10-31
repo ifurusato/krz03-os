@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-10-05
-# modified: 2024-05-17
+# modified: 2024-10-31
 #
 # Tests the digital potentiometer.
 #

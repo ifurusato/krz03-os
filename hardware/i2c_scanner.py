@@ -7,7 +7,7 @@
 #
 # author:   altheim
 # created:  2020-02-14
-# modified: 2021-08-11
+# modified: 2024-10-31
 #
 #  Scans the I²C bus, returning a list of devices.
 #

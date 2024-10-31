@@ -7,9 +7,9 @@
 #
 # author:   Murray Altheim
 # created:  2019-12-23
-# modified: 2024-05-18
+# modified: 2024-10-31
 #
-# The MR01 Robot Operating System (MROS), including its command line
+# The KRZ03 Robot Operating System (KRZOS), including its command line
 # interface (CLI).
 #
 #        1         2         3         4         5         6         7         8         9         C
@@ -89,10 +89,10 @@ from hardware.tinyfx_controller import TinyFxController
 #from experimental.experiment_mgr import ExperimentManager
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class MROS(Component, FiniteStateMachine):
+class KRZOS(Component, FiniteStateMachine):
     '''
     Extends Component and Finite State Machine (FSM) as a basis of a K-Series
-    Robot Operating System (MROS) or behaviour-based system (BBS), including
+    Robot Operating System (KRZOS) or behaviour-based system (BBS), including
     spawning the various tasks and starting up the Subsumption Architecture,
     used for communication between Components over a common message bus.
 
@@ -101,14 +101,14 @@ class MROS(Component, FiniteStateMachine):
     to determine the highest priority action to execute for that task cycle,
     by passing it on to the Controller.
 
-    There is also a mrosd linux daemon, which can be used to start, enable and
-    disable mros.
+    There is also a krzosd linux daemon, which can be used to start, enable and
+    disable krzos.
     '''
     def __init__(self, level=Level.INFO):
         '''
-        This initialises MROS and calls the YAML configurer.
+        This initialises KRZOS and calls the YAML configurer.
         '''
-        _name = 'mros'
+        _name = 'krzos'
         self._level = level
         self._log = Logger(_name, self._level)
         self._print_banner()
@@ -117,7 +117,7 @@ class MROS(Component, FiniteStateMachine):
         FiniteStateMachine.__init__(self, self._log, _name)
         self._system             = System(self, level)
         self._system.set_nice()
-        globals.put('mros', self)
+        globals.put('krzos', self)
         # configuration…
         self._config                 = None
         self._component_registry     = None
@@ -157,12 +157,12 @@ class MROS(Component, FiniteStateMachine):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def configure(self, arguments):
         '''
-        Provided with a set of configuration arguments, configures MROS based on
+        Provided with a set of configuration arguments, configures KRZOS based on
         both MR01 hardware as well as optional features, the latter based on
         devices showing up (by address) on the I²C bus. Optional devices are only
         enabled at startup time via registration of their feature availability.
         '''
-        self._log.heading('configuration', 'configuring mros…',
+        self._log.heading('configuration', 'configuring krzos…',
             '[1/2]' if arguments.start else '[1/1]')
         self._log.info('application log level: {}'.format(self._log.level.name))
 
@@ -176,7 +176,7 @@ class MROS(Component, FiniteStateMachine):
 
         # configuration from command line arguments ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-        _args = self._config['mros'].get('arguments')
+        _args = self._config['krzos'].get('arguments')
         # copy argument-based configuration over to _config (changing the names!)
 
 #       self._log.info('argument gamepad:     {}'.format(arguments.gamepad))
@@ -233,17 +233,17 @@ class MROS(Component, FiniteStateMachine):
 
         self._controller = Controller(self._message_bus, self._level)
 
-        self._use_external_clock = self._config['mros'].get('use_external_clock')
+        self._use_external_clock = self._config['krzos'].get('use_external_clock')
         if self._use_external_clock and _pigpio_available:
             self._log.info('creating external clock…')
             self._irq_clock = IrqClock(self._config, level=self._level)
         else:
             self._irq_clock = None
 
-        self._use_slow_irq_clock = self._config['mros'].get('use_slow_external_clock')
+        self._use_slow_irq_clock = self._config['krzos'].get('use_slow_external_clock')
         if self._use_slow_irq_clock and _pigpio_available:
             self._log.info('creating slow external clock…')
-            _clock_pin = self._config['mros'].get('hardware').get('irq_clock').get('slow_pin') # pin 23
+            _clock_pin = self._config['krzos'].get('hardware').get('irq_clock').get('slow_pin') # pin 23
             self._slow_irq_clock = IrqClock(self._config, pin=_clock_pin, level=self._level)
         else:
             self._slow_irq_clock = None
@@ -255,7 +255,7 @@ class MROS(Component, FiniteStateMachine):
 
         # create components ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-        _cfg = self._config['mros'].get('component')
+        _cfg = self._config['krzos'].get('component')
         self._component_registry = globals.get('component-registry')
 
         # basic hardware ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -305,7 +305,7 @@ class MROS(Component, FiniteStateMachine):
 #           self._macro_publisher.set_macro_library(_library)
 
         # include monitor display
-        if self._config['mros'].get('enable_monitor') and not Util.already_running('monitor_exec.py'):
+        if self._config['krzos'].get('enable_monitor') and not Util.already_running('monitor_exec.py'):
             self._monitor = Monitor(self._config, level=self._level)
 
         _enable_imu_publisher = _cfg.get('enable_imu_publisher')
@@ -372,7 +372,7 @@ class MROS(Component, FiniteStateMachine):
         # and finally, the garbage collector:
         self._garbage_collector = GarbageCollector(self._config, self._message_bus, level=self._level)
 
-#       _use_experiment_manager = self._config['mros'].get('component').get('enable_experimental') or Util.is_true(arguments.experimental)
+#       _use_experiment_manager = self._config['krzos'].get('component').get('enable_experimental') or Util.is_true(arguments.experimental)
 #       if _use_experiment_manager:
 #           self._experiment_mgr = ExperimentManager(self._config, level=self._level)
 #           self._log.info(Fore.YELLOW + 'enabled experiment manager.')
@@ -384,7 +384,7 @@ class MROS(Component, FiniteStateMachine):
             self._behaviour_mgr = BehaviourManager(self._config, self._message_bus, self._level) # a specialised subscriber
             self._log.info(Style.BRIGHT + 'behaviour manager enabled.')
 
-            _bcfg = self._config['mros'].get('behaviour')
+            _bcfg = self._config['krzos'].get('behaviour')
             # create and register behaviours (listed in priority order)
             if _bcfg.get('enable_avoid_behaviour'):
                 self._avoid  = Avoid(self._config, self._message_bus, self._message_factory, self._motor_controller,
@@ -420,7 +420,7 @@ class MROS(Component, FiniteStateMachine):
         arbitrator, controller, enables the set of features, then starts the main
         OS loop.
         '''
-        self._log.heading('starting', 'starting m-series robot operating system (mros)…', '[2/2]' )
+        self._log.heading('starting', 'starting m-series robot operating system (krzos)…', '[2/2]' )
         FiniteStateMachine.start(self)
 
 #       self._screen.disable()
@@ -654,7 +654,7 @@ class MROS(Component, FiniteStateMachine):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
         '''
-        This permanently disables the MROS.
+        This permanently disables the KRZOS.
         '''
         if self.closed:
             self._log.warning('already closed.')
@@ -689,7 +689,7 @@ class MROS(Component, FiniteStateMachine):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
         '''
-        This closes MROS and sets the robot to a passive, stable state
+        This closes KRZOS and sets the robot to a passive, stable state
         following a session.
         '''
         if self.closed:
@@ -704,7 +704,7 @@ class MROS(Component, FiniteStateMachine):
                 _registry = self._component_registry.get_registry()
                 if self._irq_clock and not self._irq_clock.closed:
                     self._irq_clock.close()
-                # closes all components that are not a publisher, subscriber, the message bus or mros itself…
+                # closes all components that are not a publisher, subscriber, the message bus or krzos itself…
                 while len(_registry) > 0:
                     _name, _component = _registry.popitem(last=True)
                     if not isinstance(_component, Publisher) and not isinstance(_component, Subscriber) \
@@ -713,7 +713,7 @@ class MROS(Component, FiniteStateMachine):
                         _component.close()
                 time.sleep(0.1)
                 if self._message_bus and not self._message_bus.closed:
-                    self._log.info('closing message bus from mros…')
+                    self._log.info('closing message bus from krzos…')
                     self._message_bus.close()
                     self._log.info('message bus closed.')
                 while not Component.close(self): # will call disable()
@@ -742,7 +742,7 @@ class MROS(Component, FiniteStateMachine):
         self._log.info('exporting configuration to file…')
         _loader.export(self._config, comments=[ \
             '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈', \
-            '      YAML configuration for K-Series Robot Operating System (MROS)           ', \
+            '      YAML configuration for K-Series Robot Operating System (KRZOS)          ', \
             '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈', \
             '', \
             'exported: {}'.format(Util.get_timestamp()) ])
@@ -754,19 +754,19 @@ class MROS(Component, FiniteStateMachine):
         '''
         self._log.info(' ')
         self._log.info(' ')
-        self._log.info('      ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ')
-        self._log.info('      ┃                                                        ┃ ')
-        self._log.info('      ┃    █▒▒      █▒▒  █▒▒▒▒▒▒▒    █▒▒▒▒▒▒    █▒▒▒▒▒▒   █▒▒  ┃ ')
-        self._log.info('      ┃    █▒▒▒▒   █▒▒▒  █▒▒   █▒▒  █▒▒   █▒▒  █▒▒        █▒▒  ┃ ')
-        self._log.info('      ┃    █▒▒█▒▒█▒▒▒▒▒  █▒▒▒▒▒▒▒   █▒▒   █▒▒   █▒▒▒▒▒▒   █▒▒  ┃ ')
-        self._log.info('      ┃    █▒▒  █▒▒ █▒▒  █▒▒   █▒▒  █▒▒   █▒▒        █▒▒       ┃ ')
-        self._log.info('      ┃    █▒▒      █▒▒  █▒▒    █▒▒  █▒▒▒▒▒▒    █▒▒▒▒▒▒   █▒▒  ┃ ')
-        self._log.info('      ┃                                                        ┃ ')
-        self._log.info('      ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ ')
+        self._log.info('      ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ')
+        self._log.info('      ┃                                                                 ┃ ')
+        self._log.info('      ┃    █▒▒    █▒▒  █▒▒▒▒▒▒▒    █▒▒▒▒▒▒▒   █▒▒▒▒▒▒    █▒▒▒▒▒▒   █▒▒  ┃ ')
+        self._log.info('      ┃    █▒▒  █▒▒    █▒▒   █▒▒       █▒▒   █▒▒   █▒▒  █▒▒        █▒▒  ┃ ')
+        self._log.info('      ┃    █▒▒▒▒▒▒     █▒▒▒▒▒▒▒      █▒▒     █▒▒   █▒▒   █▒▒▒▒▒▒   █▒▒  ┃ ')
+        self._log.info('      ┃    █▒▒  █▒▒    █▒▒   █▒▒    █▒▒      █▒▒   █▒▒        █▒▒       ┃ ')
+        self._log.info('      ┃    █▒▒    █▒▒  █▒▒    █▒▒  █▒▒▒▒▒▒▒   █▒▒▒▒▒▒    █▒▒▒▒▒▒   █▒▒  ┃ ')
+        self._log.info('      ┃                                                                 ┃ ')
+        self._log.info('      ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ ')
         self._log.info(' ')
         self._log.info(' ')
 
-    # end of MROS class  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # end of KRZOS class  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -805,11 +805,11 @@ def parse_args(passed_args=None):
     formatter = lambda prog: argparse.RawTextHelpFormatter(prog)
     parser = argparse.ArgumentParser(formatter_class=formatter,
             description='Provides command line control of the K-Series Robot OS application.',
-            epilog='This script may be executed by mrosd (mros daemon) or run directly from the command line.')
+            epilog='This script may be executed by krzosd (krzos daemon) or run directly from the command line.')
 
     parser.add_argument('--docs',         '-d', action='store_true', help='show the documentation message and exit')
     parser.add_argument('--configure',    '-c', action='store_true', help='run configuration (included by -s)')
-    parser.add_argument('--start',        '-s', action='store_true', help='start mros')
+    parser.add_argument('--start',        '-s', action='store_true', help='start krzos')
     parser.add_argument('--experimental', '-x', action='store_true', help='enable experiment manager')
     parser.add_argument('--json',         '-j', action='store_true', help='dump YAML configuration as JSON file')
     parser.add_argument('--no-motors',    '-n', action='store_true', help='disable motors (uses mock)')
@@ -853,20 +853,20 @@ def parse_args(passed_args=None):
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-_mros = None
+_krzos = None
 
 # execution handler ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def signal_handler(signal, frame):
     print('\nsignal handler    :' + Fore.MAGENTA + Style.BRIGHT + ' INFO  : Ctrl-C caught: exiting…' + Style.RESET_ALL)
-    if _mros and not ( _mros.closing or _mros.closed ):
-        _mros.close()
+    if _krzos and not ( _krzos.closing or _krzos.closed ):
+        _krzos.close()
     print(Fore.MAGENTA + 'exit.' + Style.RESET_ALL)
 #   sys.stderr = DevNull()
     sys.exit(0)
 
 # main ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def main(argv):
-    global _mros
+    global _krzos
     signal.signal(signal.SIGINT, signal_handler)
     _suppress = False
     _log = Logger("main", Level.INFO)
@@ -882,21 +882,21 @@ def main(argv):
             _level = Level.from_string(_args.level) if _args.level != None else Level.INFO
             _log.level = _level
             _log.debug('arguments: {}'.format(_args))
-            _mros = MROS(level=_level)
+            _krzos = KRZOS(level=_level)
             if _args.configure or _args.start:
-                _mros.configure(_args)
+                _krzos.configure(_args)
                 if not _args.start:
-                    _log.info('configure only: ' + Fore.YELLOW + 'specify the -s argument to start mros.')
+                    _log.info('configure only: ' + Fore.YELLOW + 'specify the -s argument to start krzos.')
             if _args.start:
-                _mros.start()
-            # mros is now running…
+                _krzos.start()
+            # krzos is now running…
     except KeyboardInterrupt:
         print(Style.BRIGHT + 'caught Ctrl-C; exiting…' + Style.RESET_ALL)
     except Exception:
-        print(Fore.RED + Style.BRIGHT + 'error starting mros: {}'.format(traceback.format_exc()) + Style.RESET_ALL)
+        print(Fore.RED + Style.BRIGHT + 'error starting krzos: {}'.format(traceback.format_exc()) + Style.RESET_ALL)
     finally:
-        if _mros and not _mros.closed:
-            _mros.close()
+        if _krzos and not _krzos.closed:
+            _krzos.close()
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 if __name__== "__main__":

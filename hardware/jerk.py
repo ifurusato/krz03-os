@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-04-27
-# modified: 2024-05-19
+# modified: 2024-10-31
 #
 # A jerk limiter that limits the rate of acceleration of a motor power.
 #
@@ -41,9 +41,9 @@ class JerkLimiter(Component):
     def __init__(self, config, orientation, suppressed=False, enabled=True, level=Level.INFO):
         self._log = Logger('jerk:{}'.format(orientation.label), level)
         Component.__init__(self, self._log, suppressed=suppressed, enabled=enabled)
-        _maximum_output = config['mros'].get('motor').get('motor_power_limit') # power limit to motor
+        _maximum_output = config['krzos'].get('motor').get('motor_power_limit') # power limit to motor
         _minimum_output = _maximum_output * -1
-        _cfg = config['mros'].get('motor').get('jerk_limiter')
+        _cfg = config['krzos'].get('motor').get('jerk_limiter')
         _jerk_tolerance_pc = _cfg.get('jerk_tolerance') # expressed as percent (0-100)
         if _jerk_tolerance_pc < 0 or _jerk_tolerance_pc > 100:
             raise ValueError('jerk tolerance must be expressed as a percentage value (0-100).')

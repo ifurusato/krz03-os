@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-28
-# modified: 2024-09-08
+# modified: 2024-10-31
 #
 # This uses 2 pins of an IO Expander interface to interface to control three
 # channels of the Tiny FX LED controller, using the Tiny FX's SDA and SCL pins
@@ -46,7 +46,7 @@ class TinyFxController(Component):
             raise ValueError('null config argument.')
         self._log = Logger('tinyfx', level)
         Component.__init__(self, self._log, suppressed=False, enabled=True)
-        _cfg = config['mros'].get('hardware').get('tinyfx-controller')
+        _cfg = config['krzos'].get('hardware').get('tinyfx-controller')
         self._pin1 = _cfg.get('pin_1')
         self._pin2 = _cfg.get('pin_2')
         _i2c_address = _cfg.get('i2c_address') # aft 0x18

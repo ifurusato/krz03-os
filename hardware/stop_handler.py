@@ -49,8 +49,8 @@ class StopHandler(Component):
         self._all_motors = self._motor_controller.get_motors()
         # configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         # slew limiters are on motors, not here
-        self._slew_limiter_enabled = config['mros'].get('motor').get('enable_slew_limiter')
-        _cfg = config['mros'].get('stop_handler')
+        self._slew_limiter_enabled = config['krzos'].get('motor').get('enable_slew_limiter')
+        _cfg = config['krzos'].get('stop_handler')
         self._brake_ratio = _cfg.get('brake_ratio')
         self._halt_ratio  = _cfg.get('halt_ratio')
         self._stop_ratio  = _cfg.get('stop_ratio')

@@ -7,7 +7,7 @@
 #
 # author:   altheim
 # created:  2020-01-18
-# modified: 2020-02-06
+# modified: 2024-10-31
 #
 # This script displays the GPIO pins of the Raspberry Pi 3 B+ and hilights
 # any whose input value is high or low (depending on setting).

@@ -7,7 +7,7 @@
 #
 # author:   altheim
 # created:  2020-01-18
-# modified: 2024-05-25
+# modified: 2024-10-31
 #
 # An integrated sensor array, including front bumper, oblique (front-facing)
 # IR distance sensors, and wheel-based IR proximity sensors. Rather than
@@ -78,7 +78,7 @@ class SensorArray(Publisher):
         if config is None:
             raise ValueError('no configuration provided.')
 #       self._queue_publisher = queue_publisher
-        _cfg = config['mros'].get('publisher').get('sensor_array')
+        _cfg = config['krzos'].get('publisher').get('sensor_array')
         self._fwd_i2c_address = _cfg.get('fwd_i2c_address')
         self._aft_i2c_address = _cfg.get('aft_i2c_address')
         # fwd IOE pins ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

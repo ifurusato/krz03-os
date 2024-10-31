@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-09-26
-# modified: 2021-07-14
+# modified: 2024-10-31
 #
 # This class and the PIDController class were derived from ideas gleaned
 # from libraries by both Martin Lundberg and Brett Beauregard, as well as

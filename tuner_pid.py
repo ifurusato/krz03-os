@@ -100,7 +100,7 @@ def main():
         _pid_ctrl = _motor.pid_controller
         
         # pid ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        _pid_config = _config['mros'].get('motor').get('pid_controller')
+        _pid_config = _config['krzos'].get('motor').get('pid_controller')
         
         _pid = _pid_ctrl.pid
         

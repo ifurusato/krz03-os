@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-04-02
-# modified: 2024-04-06
+# modified: 2024-10-31
 #
 # Description:
 #
@@ -68,7 +68,7 @@ class RangingToF(Component):
         if config is None:
             raise ValueError('no configuration provided.')
         self._log.info('configuring time-of-flight sensor...')
-        _config = config['mros'].get('hardware').get('rtof')
+        _config = config['krzos'].get('hardware').get('rtof')
         _enabled = _config.get('enabled')
         self._log.info('enabled: {}'.format(_enabled))
         # set up VL53L5CX

@@ -57,7 +57,7 @@ class ClockPublisher(Publisher):
             raise Exception('queue publisher is not available.')
         # configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._irq_clock    = irq_clock
-        _cfg = config['mros'].get('publisher').get('clock')
+        _cfg = config['krzos'].get('publisher').get('clock')
         self._divider      = _cfg.get('divider')
         self._log.info('clock divider:\t{:d}'.format(self._divider))
         self._counter      = itertools.count()

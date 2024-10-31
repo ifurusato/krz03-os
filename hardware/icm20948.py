@@ -78,7 +78,7 @@ class Icm20948(Component):
         if not isinstance(config, dict):
             raise ValueError('wrong type for config argument: {}'.format(type(name)))
         # configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        _cfg = config['mros'].get('hardware').get('icm20948')
+        _cfg = config['krzos'].get('hardware').get('icm20948')
         self._verbose            = _cfg.get('verbose')
         self._adjust_trim        = _cfg.get('adjust_trim')
         self._show_console       = _cfg.get('show_console')

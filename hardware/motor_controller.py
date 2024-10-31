@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-10-05
-# modified: 2024-06-02
+# modified: 2024-10-31
 #
 
 import sys, traceback
@@ -50,7 +50,7 @@ class MotorController(Component):
         Component.__init__(self, self._log, suppressed, enabled)
         if config is None:
             raise ValueError('no configuration provided.')
-        _cfg = config['mros'].get('motor_controller')
+        _cfg = config['krzos'].get('motor_controller')
         # config ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._loop_freq_hz   = _cfg.get('loop_freq_hz') # main loop frequency
         self._loop_delay_sec = 1 / self._loop_freq_hz
@@ -62,10 +62,10 @@ class MotorController(Component):
         self._fwd_pz.initialise()
         self._aft_pz = PiconZero(orientation=Orientation.AFT)
         self._aft_pz.initialise()
-        self._pfwd_motor     = Motor(self._fwd_pz, Orientation.PFWD, level=Level.INFO)
-        self._sfwd_motor     = Motor(self._fwd_pz, Orientation.SFWD, level=Level.INFO)
-        self._paft_motor     = Motor(self._aft_pz, Orientation.PAFT, level=Level.INFO)
-        self._saft_motor     = Motor(self._aft_pz, Orientation.SAFT, level=Level.INFO)
+        self._pfwd_motor     = Motor(config, self._fwd_pz, Orientation.PFWD, level=Level.INFO)
+        self._sfwd_motor     = Motor(config, self._fwd_pz, Orientation.SFWD, level=Level.INFO)
+        self._paft_motor     = Motor(config, self._aft_pz, Orientation.PAFT, level=Level.INFO)
+        self._saft_motor     = Motor(config, self._aft_pz, Orientation.SAFT, level=Level.INFO)
         self._all_motors     = self._get_motors()
         # finish up…
         self._log.info('ready with {} motors.'.format(len(self._all_motors)))

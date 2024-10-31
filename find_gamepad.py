@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-08-05
-# modified: 2024-05-06
+# modified: 2024-10-31
 #
 # This class interprets the signals arriving from the 8BitDo N30 Pro gamepad,
 # a paired Bluetooth device.
@@ -38,7 +38,7 @@ from core.config_loader import ConfigLoader
        changed to determine this, it isn't always the highest number.
     3. set the value of gamepad:device_path in the config.yaml file to the
        value of your gamepad device.
-    4. be sure your gamepad is paired prior to starting mros.
+    4. be sure your gamepad is paired prior to starting krzos.
 
     If everything seems all wired up but you're not getting a response from
     your gamepad, you may have configured a connection to the wrong device.
@@ -105,7 +105,7 @@ class GamepadFinder(object):
             raise ValueError('no configuration provided.')
         self._config = config
         self._log.info('initialising...')
-        _config = self._config['mros'].get('hardware').get('gamepad')
+        _config = self._config['krzos'].get('hardware').get('gamepad')
         _loop_freq_hz = _config.get('loop_freq_hz')
 #       _loop_freq_hz = 20
         self._device_path     = _config.get('device_path')

@@ -6,7 +6,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-10-29
-# modified: 2024-10-30
+# modified: 2024-10-31
 #
 
 from math import isclose
@@ -20,15 +20,31 @@ class SlewLimiter(Component):
     The slew limiter for this Motor is much simplified from previous
     versions, as it simply uses the step counter to resolve the
     difference between the current speed and the target speed.
+
+    :param config:  the application configuration
+    :param motor:   the Motor being slewed
+    :param level:   the Logger level
+  
     '''
-    def __init__(self, motor, rate=100.0, level=Level.INFO):
+    def __init__(self, config, motor, level=Level.INFO):
         self._log = Logger('slew:{}'.format(motor.orientation.label), level)
         Component.__init__(self, self._log, suppressed=False, enabled=True)
-        self._motor = motor
-        self.rate  = rate
+        self._motor          = motor
+        _cfg = config['krzos'].get('motor').get('slew_limiter')
+        self._default_rate   = _cfg.get('default_rate')
+        self._braking_rate   = _cfg.get('braking_rate')
+        self.rate            = self._default_rate
         self._target_speed   = 0.0  # target speed at high resolution (float)
         self._internal_speed = 0.0  # Internal speed at high resolution (float)
         self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def reset(self):
+        self.rate   = self._default_rate
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def braking(self):
+        self.rate   = self._braking_rate
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property

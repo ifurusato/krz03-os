@@ -7,7 +7,7 @@
 #
 # author:   altheim
 # created:  2020-01-18
-# modified: 2024-05-25
+# modified: 2024-10-31
 #
 # An integrated sensor array, including front bumper, oblique (front-facing)
 # IR distance sensors, and wheel-based IR proximity sensors. Rather than
@@ -56,7 +56,7 @@ class SystemPublisher(Publisher):
         if system is None:
             raise ValueError('no system sensor provided.')
         self._system = system
-        _cfg = config['mros'].get('publisher').get('system')
+        _cfg = config['krzos'].get('publisher').get('system')
         # config ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._publish_delay_sec = _cfg.get('publish_delay_sec')
         self._current_threshold = _cfg.get('current_threshold')

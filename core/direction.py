@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2021-07-29
-# modified: 2024-05-19
+# modified: 2024-10-31
 #
 # Note that stopped, clockwise and counter-clockwise are descriptive, not prescriptive.
 #

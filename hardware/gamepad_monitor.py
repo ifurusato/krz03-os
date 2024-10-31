@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-09-06
-# modified: 2024-09-06
+# modified: 2024-10-31
 #
 # Monitors the device path for the Gamepad, and if it goes null, puts a
 # DISAPPEARED message into the queue publisher to signal a system shutdown.

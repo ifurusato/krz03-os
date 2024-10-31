@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-09-19
-# modified: 2024-05-19
+# modified: 2024-10-31
 #
 
 import sys, colorsys, traceback
@@ -45,7 +45,7 @@ class DigitalPotentiometer(Component):
 #       super().__init__()
         if config is None:
             raise ValueError('no configuration provided.')
-        _cfg = config['mros'].get('hardware').get('digital_potentiometer')
+        _cfg = config['krzos'].get('hardware').get('digital_potentiometer')
         # 0x18 for IO Expander, 0x0E for the potentiometer breakout
 #       self._i2c_addr = 0x0E
         if i2c_address is not None:

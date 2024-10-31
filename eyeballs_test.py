@@ -6,8 +6,8 @@
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
-# created:  2021-02-09
-# modified: 2021-09-05
+# created:  2024-10-23
+# modified: 2024-10-31
 #
 
 import pytest
@@ -26,7 +26,6 @@ from hardware.eyeballs import Eyeballs
 def eyeballs_test():
 
     _wait_for_button = True
-    _button_pin = 25
     _eyeballs = None
 
     try:
@@ -36,7 +35,7 @@ def eyeballs_test():
 
         if _wait_for_button:
             _config = ConfigLoader(Level.INFO).configure()
-            _btn = Button(_config, pin=_button_pin, level=Level.INFO)
+            _btn = Button(_config, level=Level.INFO)
             _count = 0
             while not _btn.pushed():
                 if _count % 10 == 0:

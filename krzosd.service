@@ -5,9 +5,9 @@
 #
 # author:   Murray Altheim
 # created:  2020-08-01
-# modified: 2024-09-04
+# modified: 2024-10-31
 #
-# This mrosd service configuration file should be copied to:
+# This krzosd service configuration file should be copied to:
 #
 #  /lib/systemd/system/
 #
@@ -17,13 +17,13 @@
 #
 # and to enable its use upon each startup:
 #
-#  % sudo systemctl enable mrosd
+#  % sudo systemctl enable krzosd
 #
 # You can then use it like service, e.g.,
 #
-#  % sudo systemctl status mrosd
-#  % sudo systemctl start mrosd
-#  % sudo systemctl stop mrosd
+#  % sudo systemctl status krzosd
+#  % sudo systemctl start krzosd
+#  % sudo systemctl stop krzosd
 #
 # This requires use of the python-daemon library, which can be installed via:
 #
@@ -34,17 +34,17 @@
 # ..............................................................................
 
 [Unit]
-Description=MROS Daemon Service
+Description=KRZOS Daemon Service
 After=multi-user.target
 
 [Service]
-#WorkingDirectory=/home/pi/mros
-WorkingDirectory=/home/pi/workspaces/workspace-mros/mros
+#WorkingDirectory=/home/pi/krzos
+WorkingDirectory=/home/pi/workspaces/workspace-krzos/krzos
 User=pi
 Type=simple
-ExecStart=/usr/bin/python3 /home/pi/workspaces/workspace-mros/mros/mrosd.py &> /dev/null
+ExecStart=/usr/bin/python3 /home/pi/workspaces/workspace-krzos/krzos/krzosd.py &> /dev/null
 Restart=on-success
-#PidFile=/home/pi/ros/.mrosd.pid
+#PidFile=/home/pi/ros/.krzosd.pid
 
 [Install]
 WantedBy=multi-user.target

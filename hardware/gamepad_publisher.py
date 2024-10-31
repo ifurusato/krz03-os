@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-05-19
-# modified: 2021-11-17
+# modified: 2024-10-31
 #
 # This class interprets the signals arriving from the 8BitDo N30 Pro Gamepad,
 # a paired Bluetooth device.
@@ -39,8 +39,8 @@ class GamepadPublisher(Publisher):
     def __init__(self, config, message_bus, message_factory, exit_on_complete=True, level=Level.INFO):
         Publisher.__init__(self, 'gamepad', config, message_bus, message_factory, suppressed=False, level=level)
         self._level             = level
-        self._play_sound        = self._config['mros'].get('play_sound')
-        _cfg = self._config['mros'].get('publisher').get('gamepad')
+        self._play_sound        = self._config['krzos'].get('play_sound')
+        _cfg = self._config['krzos'].get('publisher').get('gamepad')
         self._publish_delay_sec = _cfg.get('publish_delay_sec')
         self._gamepad           = None
         self._monitor           = None

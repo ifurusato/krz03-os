@@ -7,11 +7,13 @@
 #
 # author:   Murray Altheim
 # created:  2020-03-27
-# modified: 2024-05-23 #
+# modified: 2024-10-31
+#
 # https://www.adafruit.com/product/4754
 # https://learn.adafruit.com/adafruit-9-dof-orientation-imu-fusion-breakout-bno085
 # https://learn.adafruit.com/adafruit-9-dof-orientation-imu-fusion-breakout-bno085/report-types
 #
+
 import pytest
 import sys, time, traceback
 from colorama import init, Fore, Style
@@ -33,15 +35,15 @@ def test_bno08x():
         _level = Level.INFO
         _log = Logger('bno055-test', _level)
         _config = ConfigLoader(Level.INFO).configure()
-    
+
         _enable_port = False
         _enable_stbd = True
         _rgbmatrix = RgbMatrix(_enable_port, _enable_stbd, _level)
         _stbd_rgbmatrix = _rgbmatrix.get_rgbmatrix(Orientation.STBD)
-    
+
         _bno055 = BNO055_IMU(_config, _stbd_rgbmatrix, _level)
         _bno055.calibrate()
-    
+
         while True:
             _bno055_result = _bno055.read()
             _calibration = _bno055_result[0]

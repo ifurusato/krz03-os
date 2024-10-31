@@ -137,7 +137,7 @@ class Logger(object):
                     except OSError as e:
                         raise Exception('could not create ./log directory: {}'.format(e))
                 _ts = dt.utcfromtimestamp(dt.utcnow().timestamp()).isoformat().replace(':','_').replace('-','_').replace('.','_')
-                _filename = './log/mros-{}.csv'.format(_ts)
+                _filename = './log/krzos-{}.csv'.format(_ts)
                 self.info("logging to file: {}".format(_filename))
                 # do we already have a file handler?
                 if globals.has('log-file-handler'): # use existing file handler

@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-10
-# modified: 2024-05-31
+# modified: 2024-10-31
 #
 # Turns off the screen and both of the ThunderBorg LEDs, checking for the
 # existence of a set of expected I2C devices.

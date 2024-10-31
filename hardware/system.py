@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2021-07-13
-# modified: 2024-05-19
+# modified: 2024-10-31
 #
 
 import sys, platform
@@ -23,16 +23,15 @@ class System(object):
     '''
     A collection of system control/info/statistical methods.
     '''
-    def __init__(self, mros, level=Level.INFO):
-        global _mros
+    def __init__(self, krzos, level=Level.INFO):
+        global _krzos
         self._log = Logger('system', level)
-        self._mros = mros
-        _mros = mros
+        self._krzos = krzos
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def set_nice(self):
-        # set MROS as high priority process
+        # set KRZOS as high priority process
         self._log.info('setting process as high priority...')
         proc = psutil.Process(os.getpid())
         proc.nice(10)
@@ -82,8 +81,8 @@ class System(object):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def print_sys_info(self):
-        self._log.info('mros:  state: ' + Fore.YELLOW + '{}  \t'.format(self._mros.state.name) \
-                + Fore.CYAN + 'enabled: ' + Fore.YELLOW + '{}'.format(self._mros.enabled))
+        self._log.info('krzos:  state: ' + Fore.YELLOW + '{}  \t'.format(self._krzos.state.name) \
+                + Fore.CYAN + 'enabled: ' + Fore.YELLOW + '{}'.format(self._krzos.enabled))
         # disk space ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._log.info('root file system:')
         _rootfs = psutil.disk_usage('/')

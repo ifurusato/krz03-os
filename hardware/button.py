@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-22
-# modified: 2024-10-23
+# modified: 2024-10-31
 #
 
 import sys, traceback, time
@@ -32,10 +32,11 @@ class Button(object):
     :param level:         the log level
     '''
     def __init__(self, config, pin=None, impl=None, level=Level.INFO):
-        _cfg = config['mros'].get('hardware').get('button')
+        _cfg = config['krzos'].get('hardware').get('button')
         self._pin = _cfg.get('pin') if pin is None else pin
         self._log = Logger('button:{}'.format(self._pin), level)
         self._impl = impl if impl is not None else  _cfg.get('impl') # either 'gpio' or 'ioe' or 'gpiozero'
+        self._ioe = None
         if self._impl == 'gpio':
 
             import RPi.GPIO as GPIO
@@ -45,7 +46,6 @@ class Button(object):
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(self._pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 #           GPIO.setup(self._pin, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
-            self._ioe = None
             self._log.info('ready: pushbutton on GPIO pin {:d}'.format(self._pin))
 
         elif self._impl == 'ioe':
@@ -56,13 +56,14 @@ class Button(object):
             self._ioe = io.IOE(i2c_addr=_i2c_address)
             self._ioe.set_mode(self._pin, io.IN_PU)
             self._log.info('ready: pushbutton on IO Expander pin {:d}'.format(self._pin))
+
         elif self._impl == 'gpiozero':
 
             from gpiozero import Button
 
-            self.button = Button(self._pin)  # create a Button object for the specified pin
+            self._button = Button(self._pin, pull_up=True)  # create a Button object for the specified pin
             self._callbacks = []             # list to store callback functions
-            self.button.when_pressed = self._button_pressed  # set the internal callback
+            self._button.when_pressed = self._button_pressed  # set the internal callback
             self._log.info('ready: pushbutton on GPIO pin {:d} using gpiozero.'.format(self._pin))
 
         else:
@@ -110,12 +111,15 @@ class Button(object):
         '''
         Returns True if the button is pushed (low).
         '''
-        if self._ioe:
-            return self._ioe.input(self._pin) == 0
-        else:
+        if self._impl == 'gpio':
             _value = not GPIO.input(self._pin)
             time.sleep(0.1)
             return _value
+        elif self._impl == 'ioe':
+            return self._ioe.input(self._pin) == 0
+        elif self._impl == 'gpiozero':
+            print('value: {}'.format(self._button.value))
+            return self._button.is_pressed
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):

@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-03-27
-# modified: 2024-05-28
+# modified: 2024-10-31
 #
 
 import sys, time
@@ -89,7 +89,7 @@ class BNO055_IMU:
                 raise ValueError('wrong type for RGB matrix argument: {}'.format(type(self._rgbmatrix)))
         # config ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._config = config
-        _cfg = self._config['mros'].get('hardware').get('bno055')
+        _cfg = self._config['krzos'].get('hardware').get('bno055')
         self._bno_mode           = BNO055Mode.from_name(_cfg.get('mode'))
         self._poll_rate_hz       = _cfg.get('poll_rate_hz')
         self._pitch_trim         = _cfg.get('pitch_trim')

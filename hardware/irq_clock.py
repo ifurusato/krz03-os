@@ -49,7 +49,7 @@ class IrqClock(Component):
         Component.__init__(self, self._log, suppressed=False, enabled=True)
         if config is None:
             raise ValueError('no configuration provided.')
-        _cfg = config['mros'].get('hardware').get('irq_clock')
+        _cfg = config['krzos'].get('hardware').get('irq_clock')
         self._initd         = False
         self._counter       = itertools.count()
         self.__callbacks    = []

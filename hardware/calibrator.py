@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-08-22
-# modified: 2021-08-22
+# modified: 2024-10-31
 #
 
 import time
@@ -50,8 +50,8 @@ class Calibrator(object):
             raise ValueError('wrong type for level argument: {}'.format(type(level)))
         self._log = Logger('calibrator', level)
         self._motion_controller = motion_controller
-        self._play_sound = config['mros'].get('play_sound')
-        _cfg = config.get('mros').get('calibrator')
+        self._play_sound = config['krzos'].get('play_sound')
+        _cfg = config.get('krzos').get('calibrator')
         self._step_limit = _cfg.get('step_limit') # roughly one rotation
         self._break_time_ms = _cfg.get('break_time_ms')
         if self._motion_controller.imu is None:

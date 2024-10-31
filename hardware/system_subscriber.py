@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2021-07-19
-# modified: 2024-05-19
+# modified: 2024-10-31
 #
 
 from colorama import init, Fore, Style
@@ -26,13 +26,14 @@ class SystemSubscriber(Subscriber):
     to dire events.
 
     :param config:       the application configuration
+    :param krzos:        the KRZOS instance
     :param message_bus:  the message bus
     :param level:        the logging level
     '''
-    def __init__(self, config, mros, message_bus, level=Level.INFO):
+    def __init__(self, config, krzos, message_bus, level=Level.INFO):
         Subscriber.__init__(self, 'system', config, message_bus=message_bus, suppressed=False, enabled=True, level=level)
-        _cfg = config['mros'].get('subscriber').get('system')
-        self._mros = mros
+        _cfg = config['krzos'].get('subscriber').get('system')
+        self._krzos = krzos
         self._message_bus = message_bus
         self._exit_on_dire_event = _cfg.get('exit_on_dire_event')
         self.add_events(Event.by_group(Group.SYSTEM))
@@ -80,7 +81,7 @@ class SystemSubscriber(Subscriber):
         self._log.info('🍞 processing payload event {}'.format(payload.event.name))
 #       if not self._gamepad_checked and payload.event is Event.TICK:
 #           # check to see if gamepad is still connected
-#           _gamepad_publisher = self._mros.get_gamepad_publisher()
+#           _gamepad_publisher = self._krzos.get_gamepad_publisher()
 #           if _gamepad_publisher:
 #               _gamepad = _gamepad_publisher.gamepad
 #               if _gamepad and _gamepad.has_connection():
@@ -89,21 +90,21 @@ class SystemSubscriber(Subscriber):
 #                   if self._exit_on_dire_event:
 #                       self._log.critical('no gamepad found: shutting down MROS…')
 #                       # ideally, brake or halt rather than emergency_stop.
-#                       self._mros.shutdown()
+#                       self._krzos.shutdown()
 #                   else:
 #                       self._log.warning('no gamepad found.')
 #           self._gamepad_checked = True
 
         if payload.event is Event.SHUTDOWN:
             self._log.info('shut down requested.')
-            self._mros.shutdown()
+            self._krzos.shutdown()
 
         elif payload.event is Event.HIGH_TEMPERATURE:
             Player.instance().play(Sound.KLAXON)
             self._log.critical('high temperature encountered! {}'.format(payload.value))
             if self._exit_on_dire_event:
                 self._log.critical('shutting down MROS…')
-                self._mros.shutdown()
+                self._krzos.shutdown()
             else:
                 self._log.critical('WARNING! WARNING! WARNING! high temperature encountered! Time to go into idle mode.')
                 # TODO
@@ -113,7 +114,7 @@ class SystemSubscriber(Subscriber):
             self._log.critical('over current encountered! {}'.format(payload.value))
             if self._exit_on_dire_event:
                 self._log.critical('shutting down MROS…')
-                self._mros.shutdown()
+                self._krzos.shutdown()
             else:
                 self._log.critical('WARNING! WARNING! WARNING! over current! Stop everything now.')
                 # TODO
@@ -123,7 +124,7 @@ class SystemSubscriber(Subscriber):
             self._log.critical('battery voltage too low! {}'.format(payload.value))
             if self._exit_on_dire_event:
                 self._log.critical('shutting down MROS…')
-                self._mros.shutdown()
+                self._krzos.shutdown()
             else:
                 self._log.critical('WARNING! WARNING! WARNING! battery voltage low! Time to shut down MROS.')
             pass
@@ -133,7 +134,7 @@ class SystemSubscriber(Subscriber):
             self._log.critical('5V regulator voltage too low! {}'.format(payload.value))
             if self._exit_on_dire_event:
                 self._log.critical('shutting down MROS…')
-                self._mros.shutdown()
+                self._krzos.shutdown()
             else:
                 self._log.critical('WARNING! WARNING! WARNING! 5V regulator voltage low! Time to shut down MROS.')
             pass
@@ -143,7 +144,7 @@ class SystemSubscriber(Subscriber):
             self._log.critical('3.3V regulator voltage too low! {}'.format(payload.value))
             if self._exit_on_dire_event:
                 self._log.critical('shutting down MROS…')
-                self._mros.shutdown()
+                self._krzos.shutdown()
             else:
                 self._log.critical('WARNING! WARNING! WARNING! 3.3V regulator voltage low! Time to shut down MROS.')
             pass
@@ -153,7 +154,7 @@ class SystemSubscriber(Subscriber):
             self._log.critical('gamepad is disconnected.')
             if self._exit_on_dire_event:
                 self._log.critical('shutting down MROS…')
-                self._mros.shutdown()
+                self._krzos.shutdown()
             else:
                 self._log.critical('WARNING! WARNING! WARNING! Gamepad disconnected! Time to shut down MROS.')
             pass

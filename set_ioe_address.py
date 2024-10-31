@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-04-30
-# modified: 2020-05-24
+# modified: 2024-10-31
 #
 # Sets the I2C address of an IO Expander (whose default is 0x0E) to a new address.
 #

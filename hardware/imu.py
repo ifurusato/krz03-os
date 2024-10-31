@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-05-19
-# modified: 2024-05-27
+# modified: 2024-10-31
 #
 # _Getch at bottom.
 #
@@ -44,7 +44,7 @@ class IMU(Publisher):
         self._icm20948 = icm20948
         Publisher.__init__(self, IMU.CLASS_NAME, config, message_bus, message_factory, level=self._level)
         # configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        _cfg = config['mros'].get('publisher').get('imu')
+        _cfg = config['krzos'].get('publisher').get('imu')
         _loop_freq_hz         = _cfg.get('loop_freq_hz')
         self._publish_delay_sec = 1.0 / _loop_freq_hz
         self._pitch_threshold = _cfg.get('pitch_threshold')

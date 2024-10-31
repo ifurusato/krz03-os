@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-09-13
-# modified: 2021-08-07
+# modified: 2024-10-31
 #
 # This class' configuration involves the physical geometry of the robot and
 # the specifics of the motor encoders. Unconfigured it always returns 0.0,
@@ -27,7 +27,7 @@ from core.orientation import Orientation
 class Velocity(object):
     '''
     NOTE: the following regards the KR01 robot and has not been updated
-    for the MR01 Mars rover.
+    for the KRZ03 robot.
 
     Velocity is a property of a motor, and therefore this class is meant
     to be instantiated on a motor. It is used to calculate velocity by
@@ -112,11 +112,11 @@ class Velocity(object):
         # add callback from motor's update method
 #       self._motor.add_callback(self.tick)
         # establish sample frequency
-        self._freq_hz = config['mros'].get('motor').get('pid_controller').get('sample_freq_hz')
+        self._freq_hz = config['krzos'].get('motor').get('pid_controller').get('sample_freq_hz')
         self._period_ms = 1000.0 / self._freq_hz
         self._log.info('sample frequency:   \t{:d}Hz ({:>5.2f}ms)'.format(self._freq_hz, self._period_ms))
         # now calculate some geometry-based conversions
-        _cfg = config['mros'].get('geometry')
+        _cfg = config['krzos'].get('geometry')
         self._steps_per_rotation  = _cfg.get('steps_per_rotation') # 494 encoder steps per wheel rotation
         self._log.info('encoder steps/rotation:\t{:7.2f}'.format(self._steps_per_rotation))
         self._wheel_diameter      = _cfg.get('wheel_diameter') # 68.0mm

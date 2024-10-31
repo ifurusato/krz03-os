@@ -6,7 +6,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-01-18
-# modified: 2021-06-29
+# modified: 2024-10-31
 #
 
 import itertools
@@ -34,13 +34,17 @@ class Motor(Component):
     With the given wheel size, there are 6.63 rotations per meter, or
     461 steps per meter.
 
+    :param config:      the YAML based application configuration
     :param picon_zero:  reference to the PiconZero motor controller
     :param orientation: motor orientation
     :param level:       log level
     '''
-    def __init__(self, picon_zero, orientation, level=Level.INFO):
+    def __init__(self, config, picon_zero, orientation, level=Level.INFO):
         if picon_zero is None:
             raise ValueError('null picon zero argument.')
+        if config is None:
+            raise ValueError('no configuration provided.')
+        _cfg = config['krzos'].get('motor')
         self._picon_zero = picon_zero
         self._orientation = orientation
         if self._orientation.side is Orientation.PORT:
@@ -63,26 +67,10 @@ class Motor(Component):
         self._max_rpm    = 0.0
         self._rotations  = 0.0
         self._timestamp_limit = 10 # the maximum number of timestamps to keep
-        if orientation is Orientation.PFWD:
-            _encoder_a   = 16 # C1
-            _encoder_b   = 26 # C2
-        elif orientation is Orientation.SFWD:
-            _encoder_a   = 21 # C1
-            _encoder_b   = 20 # C2
-        elif orientation is Orientation.PAFT:
-            _encoder_a   =  5 # C1
-            _encoder_b   = 12 # C2
-        elif orientation is Orientation.SAFT:
-            _encoder_a   = 13 # C1
-            _encoder_b   =  6 # C2
-        else:
-            raise Exception('unexpected motor orientation.')
-        self._decoder = Decoder(orientation, _encoder_a, _encoder_b, self._callback_step_count, self._log.level)
+        self._decoder = Decoder(config, orientation, self._callback_step_count, self._log.level)
         # slew limiter ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        self._use_slew_limiter  = False
-        self._default_slew_rate = 100
-        self._braking_scale     = 80
-        self._slew_limiter      = SlewLimiter(self, rate=self._default_slew_rate, level=self._log.level)
+        self._enable_slew_limiter = _cfg.get('enable_slew_limiter')
+        self._slew_limiter     = SlewLimiter(config, self, level=self._log.level)
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -118,7 +106,7 @@ class Motor(Component):
         Resets the step counters and other variables related to historical
         movement, as well as resetting the slew limiter to its default rate.
         '''
-        self._slew_limiter.rate = self._default_slew_rate
+        self._slew_limiter.reset()
         # as well as other detritus
         self._steps      = 0 # step counter
         self._last_steps = 0 # last step count for direction detection
@@ -157,7 +145,7 @@ class Motor(Component):
 #           self._log.info(Fore.GREEN + Style.DIM + '{} motor: {:d} steps.'.format(self._orientation, self._steps))
             pass
         self._calculate_rpm()
-        if self._use_slew_limiter:
+        if self._enable_slew_limiter:
             _speed = self._slew_limiter()
             if _speed:
                 self._picon_zero.set_motor(self._channel, _speed)
@@ -204,7 +192,7 @@ class Motor(Component):
         '''
         Set the speed of this motor to the provided value.
         '''
-        if self._use_slew_limiter:
+        if self._enable_slew_limiter:
             if self._slew_limiter.current_speed != speed:
                 self._slew_limiter.target_speed = speed
             for _ in range(20):
@@ -222,7 +210,7 @@ class Motor(Component):
         This changes the slew rate, so following brake you should reset the
         slew rate to its default.
         '''
-        self._slew_limiter.scale = self._braking_scale
+        self._slew_limiter.braking()
         self.set_speed(0)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

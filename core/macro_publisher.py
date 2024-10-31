@@ -57,7 +57,7 @@ class MacroPublisher(Publisher):
         self._level             = level
         Publisher.__init__(self, MacroPublisher.CLASS_NAME, config, message_bus, message_factory, level=self._level)
         self._queue_publisher   = queue_publisher
-        _cfg = config['mros'].get('publisher').get('macro')
+        _cfg = config['krzos'].get('publisher').get('macro')
         _loop_freq_hz           = _cfg.get('loop_freq_hz')
         self._loop_delay_sec = 1.0 / _loop_freq_hz
         self._log.info('loop frequency: {} Hz.'.format(_loop_freq_hz))

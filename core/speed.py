@@ -197,9 +197,9 @@ class Speed(Enum):
         A static method that imports astern and ahead values from the provided
         YAML-sourced configuration.
 
-        This imports from 'mros:motor:speed'
+        This imports from 'krzos:motor:speed'
         '''
-        _entries = config['mros'].get('motor').get('speed')
+        _entries = config['krzos'].get('motor').get('speed')
         _astern_speeds = _entries.get('astern')
         _ahead_speeds  = _entries.get('ahead')
         for _speed in Speed:

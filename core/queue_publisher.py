@@ -46,7 +46,7 @@ class QueuePublisher(Publisher):
     '''
     def __init__(self, config, message_bus, message_factory, level=Level.INFO):
         Publisher.__init__(self, 'queue', config, message_bus, message_factory, suppressed=False, level=level)
-        _cfg = self._config['mros'].get('publisher').get('queue')
+        _cfg = self._config['krzos'].get('publisher').get('queue')
         _loop_freq_hz  = _cfg.get('loop_freq_hz')
         self._log.info('queue publisher loop frequency: {:d}Hz'.format(_loop_freq_hz))
         self._publish_delay_sec = 1.0 / _loop_freq_hz
