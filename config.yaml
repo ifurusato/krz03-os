@@ -31,13 +31,12 @@ krzos:
             motor_encoder_saft_a:            13            # stbd aft A channel
             motor_encoder_saft_b:             6            # stbd aft B channel
         pid_controller:
-            kp:                               0.05000      # proportional gain
-            ki:                               0.00500      # integral gain
-            kd:                               0.00000      # derivative gain
-            minimum_output:                 -10.0          # lower output limit
-            maximum_output:                  10.0          # upper output limit
+            kp:                               0.23000      # proportional gain (Ku * 0.6)
+            ki:                               0.03000      # integral gain     (Ku * 0.1)
+            kd:                               0.01000      # derivative gain   (Ku * 0.05)
+            minimum_output:                -100.0          # lower output limit
+            maximum_output:                 100.0          # upper output limit
             sample_freq_hz:                  20            # 20Hz equiv to 50ms/0.05s
-            hyst_queue_len:                  20            # size of queue used for running average for hysteresis
         slew_limiter:
             minimum_output:                  -1.0          # lower limit of permitted speed output values
             maximum_output:                   1.0          # upper limit, both should match motor_controller:scale_factor
@@ -74,6 +73,28 @@ krzos:
             pin_red:                          1            # red pin
             pin_green:                        7            # green pin
             pin_blue:                         2            # blue pin
+        icm20948:
+            i2c_address:                   0x69            # I2C address (default 0x68)
+            poll_rate_hz:                   150            # how often the IMU is polled
+            bench_calibrate:              False            # if true, calibrate the IMU manually while on the rotating bench
+            motion_calibrate:             False            # if true, calibrate the IMU by the robot rotating in place
+            show_console:                  True            # if true, show data on console (same as verbose)
+            show_rgbmatrix5x5:             True            # if true, show heading as color
+            show_rgbmatrix11x7:            True            # if true, show heading as number
+            adjust_trim:                  False            # if true, use pot for trim, otherwise used fixed value
+            pitch_trim:                    0.0             # pitch trim for level
+            roll_trim:                     4.0             # roll trim for level
+            heading_trim:                 -1.51            # heading trim adjustment (in radians) to set north (was 0.15 on MR01)
+            queue_length:                   100            # length of heading data queue
+            stability_threshold:              5.0          # max standard deviation to determine stability
+            cardinal_tolerance:               0.0698132    # tolerance to cardinal points (4° in radians)
+#           cardinal_tolerance:               0.0523599    # tolerance to cardinal points (3° in radians)
+            include_accel_gyro:            True            # if true, poll heading data
+            include_heading:               True            # if true, poll accelerometer and gyroscope data
+            play_sound:                   False            # if True, play sound to indicate calibration
+        vl53l1cx:
+            i2c_address:                   0x28            # I2C address (default 0x29)
+            range:                            3            # range/distance mode: 1 = Short | 2 = Medium | or 3 = Long
 
 # older ................................................................................................................
 #
@@ -135,25 +156,6 @@ krzos:
             roll_trim:                        0.00         # trim adjustment on roll
             euler_heading_trim:              90.00         # trim adjustment on Euler heading
             quat_heading_trim:               90.00         # trim adjustment on Quaternion heading
-            play_sound:                   False            # if True, play sound to indicate calibration
-        icm20948:
-            i2c_address:                   0x69            # I2C address (default 0x68)
-            poll_rate_hz:                   150            # how often the IMU is polled
-            bench_calibrate:              False            # if true, calibrate the IMU manually while on the rotating bench
-            motion_calibrate:             False            # if true, calibrate the IMU by the robot rotating in place
-            show_console:                  True            # if true, show data on console (same as verbose)
-            show_rgbmatrix5x5:             True            # if true, show heading as color
-            show_rgbmatrix11x7:            True            # if true, show heading as number
-            adjust_trim:                  False            # if true, use pot for trim, otherwise used fixed value
-            pitch_trim:                    0.0             # pitch trim for level
-            roll_trim:                     4.0             # roll trim for level
-            heading_trim:                 -1.51            # heading trim adjustment (in radians) to set north (was 0.15 on MR01)
-            queue_length:                   100            # length of heading data queue
-            stability_threshold:              5.0          # max standard deviation to determine stability
-            cardinal_tolerance:               0.0698132    # tolerance to cardinal points (4° in radians)
-#           cardinal_tolerance:               0.0523599    # tolerance to cardinal points (3° in radians)
-            include_accel_gyro:            True            # if true, poll heading data
-            include_heading:               True            # if true, poll accelerometer and gyroscope data
             play_sound:                   False            # if True, play sound to indicate calibration
         irq_clock:
             pin:                             18            # GPIO pin connected to an external clock source

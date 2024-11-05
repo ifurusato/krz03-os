@@ -119,6 +119,15 @@ The original PiconZero library has been included and significantly refactored as
 a Python class, so it is not an external dependency.
 
 
+Activity LED
+************
+
+The Raspberry Pi's activity LED has been mapped to GPIO 8 via this addition to
+/boot/firmware/config.txt::
+
+    dtoverlay=act-led,gpio=17
+
+
 Status
 ******
 

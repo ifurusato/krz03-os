@@ -71,8 +71,8 @@ try:
     if CALIBRATE:
         if not _icm20948.is_calibrated:
             _icm20948.calibrate()
-    _icm20948.include_heading(HEADING_TEST)
-    _icm20948.set_poll_rate_hz(2)
+#   _icm20948.include_heading(HEADING_TEST)
+#   _icm20948.set_poll_rate_hz(2)
 
     # just scan continually...
     _icm20948.scan(enabled=True, callback=None)

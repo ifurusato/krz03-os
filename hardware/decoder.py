@@ -42,8 +42,10 @@ def is_pigpiod_running():
             return True
     return False
 
+
 from core.logger import Logger
 from core.orientation import Orientation
+from hardware.pigpiod_util import PigpiodUtility
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Decoder(object):
@@ -127,9 +129,13 @@ class Decoder(object):
         self._use_rpigpio  = _cfg.get('use_rpigpio') 
         _implementation    = "unknown"
         try:
-            if self._use_pigpiod and is_pigpiod_running():
+            if self._use_pigpiod:
                 _implementation = "pigpio"
                 self._log.info('using ' + Fore.WHITE + 'pigpiod' + Fore.CYAN + ' for motor encoders…')
+
+                if not PigpiodUtility.is_running():
+                    _pigpiod_util = PigpiodUtility()
+                    _pigpiod_util.ensure_running()
 
                 import pigpio
 
@@ -194,7 +200,7 @@ class Decoder(object):
         except Exception as e:
             self._log.error('{} thrown configuring decoder: {}\n{}'.format(type(e), e, traceback.format_exc()))
             if self._use_pigpiod:
-                raise Exception('unable to configure decoder using pigpio implementation; is the daemeon started?')
+                raise Exception('unable to configure decoder using pigpio implementation; is the daemon started?\nStart with:\n\n  sudo systemctl start pigpiod\n')
             else:
                 raise Exception('unable to configure decoder using {} implementation.'.format(_implementation))
 
@@ -222,20 +228,22 @@ class Decoder(object):
     # gpiozero ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
     def _active_a(self, device):
+        print('_active_a')
         self._level_a = self._encoder_a.value
 #       if self._level_a == 1 and self._level_b == 1:
         if self._level_a == self._level_b:
-            self._log.info(Fore.MAGENTA + '[+] A({}); level: {}; level_b: {}'.format(device.pin, self._level_a, self._level_b))
+            self._log.info(Fore.MAGENTA + '[+] active A({}); level: {}; level_b: {}'.format(device.pin, self._level_a, self._level_b))
             self._callback(self._increment) # COUNT UP
         else:
             self._log.info(Fore.MAGENTA + Style.DIM + '[+] A({}); level: {}; level_b: {}'.format(device.pin, self._level_a, self._level_b))
             pass
 
     def _active_b(self, device):
+        print('_active_b')
         self._level_b = self._encoder_b.value
 #       if self._level_b == 1 and self._level_a == 1:
         if self._level_b == self._level_a:
-            self._log.info(Fore.GREEN + '[-] B({}); level: {}; level_a: {}'.format(device.pin, self._level_b, self._level_a))
+            self._log.info(Fore.GREEN + '[-] active B({}); level: {}; level_a: {}'.format(device.pin, self._level_b, self._level_a))
             self._callback(-1 * self._increment) # COUNT DOWN
         else:
             self._log.info(Fore.GREEN + Style.DIM + '[-] B({}); level: {}; level_a: {}'.format(device.pin, self._level_b, self._level_a))

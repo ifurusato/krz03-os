@@ -14,6 +14,7 @@ import sys, traceback
 import time
 import statistics
 import itertools
+from typing import List, Optional, Union
 from math import isclose
 from threading import Thread
 from colorama import init, Fore, Style
@@ -43,7 +44,7 @@ class MotorController(Component):
     :param enabled            if True the controller is enabled upon instantiation
     :param level:             the logging Level
     '''
-    def __init__(self, config, suppressed=False, enabled=True, level=Level.INFO):
+    def __init__(self, config, suppressed=False, enabled=False, level=Level.INFO):
         if not isinstance(level, Level):
             raise ValueError('wrong type for log level argument: {}'.format(type(level)))
         self._log = Logger("motor-ctrl", level)
@@ -67,32 +68,32 @@ class MotorController(Component):
         self._paft_motor     = Motor(config, self._aft_pz, Orientation.PAFT, level=Level.INFO)
         self._saft_motor     = Motor(config, self._aft_pz, Orientation.SAFT, level=Level.INFO)
         self._all_motors     = self._get_motors()
+        self._is_daemon      = True
+        self._loop_thread    = None
+        self._external_clock = None
         # finish up…
         self._log.info('ready with {} motors.'.format(len(self._all_motors)))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_motors(self):
         '''
-        Returns a list containing all instantiated motors.
-        This includes only instantiated motors.
+        Returns a dictionary containing all instantiated motors, keyed by
+        Orientation.
         '''
         return self._all_motors
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _get_motors(self):
         '''
-        Returns a list of all extant motors.
+        Returns a dictionary of all extant motors.
         '''
-        _list = []
-        if self._pfwd_motor:
-            _list.append(self._pfwd_motor)
-        if self._sfwd_motor:
-            _list.append(self._sfwd_motor)
-        if self._paft_motor:
-            _list.append(self._paft_motor)
-        if self._saft_motor:
-            _list.append(self._saft_motor)
-        return _list
+        _all_motors = {
+            Orientation.PFWD:  self._pfwd_motor,
+            Orientation.SFWD:  self._sfwd_motor,
+            Orientation.PAFT:  self._paft_motor,
+            Orientation.SAFT:  self._saft_motor,
+        }
+        return _all_motors
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_motor(self, orientation):
@@ -120,76 +121,144 @@ class MotorController(Component):
             self._log.warning('already enabled.')
         else:
             Component.enable(self)
+            self.stop() # default
             if self._external_clock:
                 self._external_clock.add_callback(self.external_callback_method)
-                for _motor in self._all_motors:
+                for _motor in self._all_motors.values():
                     _motor.enable()
+            else:
+                self._loop_enabled = True
+                self._loop_thread = Thread(name='motor_loop', target=MotorController._motor_loop, args=[self, lambda: self._loop_enabled], daemon=self._is_daemon)
+                self._loop_thread.start()
+                self._log.info(Fore.WHITE + 'motor loop enabled.')
             self._log.info('enabled.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _motor_loop(self, f_is_enabled):
+        '''
+        The motors loop, which executes while the flag argument lambda is True.
+        '''
+        self._log.info('loop start.')
+        try:
+            while f_is_enabled():
+                # execute any callback here…
+                for _motor in self._all_motors.values():
+                    _motor.update_speed()
+#               self._state_change_check()
+                self._rate.wait()
+        except Exception as e:
+            self._log.error('error in loop: {}\n{}'.format(e, traceback.format_exc()))
+        finally:
+            self._log.info(Fore.GREEN + 'exited motor control loop.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def stop(self):
         self._log.info('stop.')
+        self._pfwd_motor.stop()
+        self._sfwd_motor.stop()
+        self._paft_motor.stop()
+        self._saft_motor.stop()
         self._fwd_pz.stop()
         self._aft_pz.stop()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def brake(self):
         _brake_scale = 80
-        for _motor in self._all_motors:
+        for _motor in self._all_motors.values():
             _motor.brake()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def reset(self):
-        for _motor in self._all_motors:
+        for _motor in self._all_motors.values():
             _motor.reset()
+
+    # step limits ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+    def set_step_limit(self, orientations: Union[Orientation, List[Orientation]], step_limit: Optional[int]):
+        '''
+        Set the step_limit for the given Orientation. This allows for a
+        single Orientation or a list of Orientations.
+        '''
+        if isinstance(orientations, Orientation):
+            orientations = [orientations]  # convert to list for uniform handling
+        if Orientation.ALL in orientations:
+            # set or clear the step limit for all orientations except ALL itself
+            for orientation in [Orientation.PFWD, Orientation.SFWD, Orientation.PAFT, Orientation.SAFT]:
+                _motor = self._all_motors[orientation]
+                if step_limit is None:
+                    _motor.step_limit = None  # clear step limit
+                else:
+                    _motor.step_limit = step_limit
+        else:
+            for orientation in orientations:
+                if isinstance(orientation, Orientation):
+                    _motor = self._all_motors[orientation]
+                    if step_limit is None:
+                        # clear step limit for this orientation
+                        _motor.step_limit = None
+                    else:
+                        _motor.step_limit = step_limit
+                else:
+                    raise ValueError("Invalid motor orientation provided.")
+    
+    def get_step_limit(self, orientation):
+        '''
+        Return the step limit for the specified motor, or None if the
+        step limit for the motor is undefined.
+        ''' 
+        if orientation in self._all_motors.keys():
+            return self._all_motors[orientation].step_limit
+        return None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def set_direction(self, direction, speed=0):
+        if not self.enabled:
+            raise Exception('motor controller not enabled.')
         if direction is Direction.STOPPED:             # (  0, 'stopped',           'stop', ' ')
             self._log.info('set direction: STOPPED.')
             self.stop()
 
         elif direction is Direction.AHEAD:             # (  1, 'ahead',             'ahed', 'w')
-            self._log.info('set direction: AHEAD.')
-            self._pfwd_motor.set_speed(speed)
-            self._sfwd_motor.set_speed(speed)
-            self._paft_motor.set_speed(speed)
-            self._saft_motor.set_speed(speed)
+            self._log.info('set direction: AHEAD to {}.'.format(speed))
+            self._pfwd_motor.speed = speed
+            self._sfwd_motor.speed = speed
+            self._paft_motor.speed = speed
+            self._saft_motor.speed = speed
 
         elif direction is Direction.ASTERN:            # (  2, 'astern',            'astn', 'z')
             self._log.info('set direction: ASTERN.')
-            self._pfwd_motor.set_speed(-1 * speed)
-            self._sfwd_motor.set_speed(-1 * speed)
-            self._paft_motor.set_speed(-1 * speed)
-            self._saft_motor.set_speed(-1 * speed)
+            self._pfwd_motor.speed = -1 * speed
+            self._sfwd_motor.speed = -1 * speed
+            self._paft_motor.speed = -1 * speed
+            self._saft_motor.speed = -1 * speed
 
         elif direction is Direction.ROTATE_CW:         # (  3, 'rotate-cw',         'rtcw', 's')
             self._log.info('set direction: ROTATE CLOCKWISE.')
-            self._pfwd_motor.set_speed(speed)
-            self._sfwd_motor.set_speed(-1 * speed)
-            self._paft_motor.set_speed(speed)
-            self._saft_motor.set_speed(-1 * speed)
+            self._pfwd_motor.speed = speed
+            self._sfwd_motor.speed = -1 * speed
+            self._paft_motor.speed = speed
+            self._saft_motor.speed = -1 * speed
 
         elif direction is Direction.ROTATE_CCW:        # (  4, 'rotate-ccw',        'rtcc', 'a')
             self._log.info('set direction: ROTATE COUNTER-CLOCKWISE.')
-            self._pfwd_motor.set_speed(-1 * speed)
-            self._sfwd_motor.set_speed(speed)
-            self._paft_motor.set_speed(-1 * speed)
-            self._saft_motor.set_speed(speed)
+            self._pfwd_motor.speed = -1 * speed
+            self._sfwd_motor.speed = speed
+            self._paft_motor.speed = -1 * speed
+            self._saft_motor.speed = speed
 
         elif direction is Direction.CRAB_PORT:         # (  5, 'crab-port',         'crap', 'c')
             self._log.info('set direction: CRAB PORT.')
-            self._pfwd_motor.set_speed(-1 * speed)
-            self._sfwd_motor.set_speed(speed)
-            self._paft_motor.set_speed(speed)
-            self._saft_motor.set_speed(-1 * speed)
+            self._pfwd_motor.speed = -1 * speed
+            self._sfwd_motor.speed = speed
+            self._paft_motor.speed = speed
+            self._saft_motor.speed = -1 * speed
 
         elif direction is Direction.CRAB_STBD:         # (  6, 'crab-stbd',         'cras', 'v')
             self._log.info('set direction: CRAB STBD.')
-            self._pfwd_motor.set_speed(speed)
-            self._sfwd_motor.set_speed(-1 * speed)
-            self._paft_motor.set_speed(-1 * speed)
-            self._saft_motor.set_speed(speed)
+            self._pfwd_motor.speed = speed
+            self._sfwd_motor.speed = -1 * speed
+            self._paft_motor.speed = -1 * speed
+            self._saft_motor.speed = speed
 
         elif direction is Direction.DIAGONAL_PORT:     # (  7, 'diagonal-port',     'diap', 'd')
             self._log.info('set direction: DIAGONAL PORT.')
@@ -198,82 +267,88 @@ class MotorController(Component):
 
         elif direction is Direction.PIVOT_FWD_CW:      # (  9, 'pivot-fwd-cw',      'pfcw', 'p')
             self._log.info('set direction: PIVOT FWD CW.')
-            self._pfwd_motor.set_speed( 1 * speed)
-            self._sfwd_motor.set_speed(-1 * speed)
-            self._paft_motor.set_speed(0)
-            self._saft_motor.set_speed(0)
+            self._pfwd_motor.speed = speed
+            self._sfwd_motor.speed = -1 * speed
+            self._paft_motor.speed = 0
+            self._saft_motor.speed = 0
 
         elif direction is Direction.PIVOT_FWD_CCW:     # ( 10, 'pivot-fwd-ccw',     'pfcc', 'o')
             self._log.info('set direction: PIVOT FWD CCW.')
-            self._pfwd_motor.set_speed(-1 * speed)
-            self._sfwd_motor.set_speed( 1 * speed)
-            self._paft_motor.set_speed(0)
-            self._saft_motor.set_speed(0)
+            self._pfwd_motor.speed = -1 * speed
+            self._sfwd_motor.speed = speed
+            self._paft_motor.speed = 0
+            self._saft_motor.speed = 0
 
         elif direction is Direction.PIVOT_AFT_CW:      # ( 11, 'pivot-aft-cw',      'pacw', 'l')
             self._log.info('set direction: PIVOT AFT.')
-            self._pfwd_motor.set_speed(0)
-            self._sfwd_motor.set_speed(0)
-            self._paft_motor.set_speed(-1 * speed)
-            self._saft_motor.set_speed(-1 * speed)
+            self._pfwd_motor.speed = 0
+            self._sfwd_motor.speed = 0
+            self._paft_motor.speed = -1 * speed
+            self._saft_motor.speed = -1 * speed
 
         elif direction is Direction.PIVOT_PORT_CW:     # ( 13, 'pivot-port-cw',     'ppcw', 'i')
             self._log.info('set direction: PIVOT PORT.')
-            self._pfwd_motor.set_speed(-1 * speed)
-            self._sfwd_motor.set_speed(-1 * speed)
-            self._paft_motor.set_speed(-1 * speed)
-            self._saft_motor.set_speed(-1 * speed)
+            self._pfwd_motor.speed = -1 * speed
+            self._sfwd_motor.speed = -1 * speed
+            self._paft_motor.speed = -1 * speed
+            self._saft_motor.speed = -1 * speed
 
         elif direction is Direction.PIVOT_STBD_CW:      #( 15, 'pivot-stbd-cw',     'pscw', 'j')
             self._log.info('set direction: PIVOT STBD.')
-            self._pfwd_motor.set_speed(-1 * speed)
-            self._sfwd_motor.set_speed(-1 * speed)
-            self._paft_motor.set_speed(-1 * speed)
-            self._saft_motor.set_speed(-1 * speed)
+            self._pfwd_motor.speed = -1 * speed
+            self._sfwd_motor.speed = -1 * speed
+            self._paft_motor.speed = -1 * speed
+            self._saft_motor.speed = -1 * speed
 
         else:                                          # ( 99, 'unknown',           'unkn', '?') # n/a or indeterminate
             self._log.info('set direction: UNKNOWN.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def set_motor_speed(self, orientation, speed):
+    def set_motor_speed(self, orientation, value):
         '''
-        If provided PORT or STBD, sets the speed of all motors associated with 
-        the port or starboard orientation, otherwise sets the speed of the 
-        specified motor.
+        If provided PORT or STBD, sets the speed of all motors associated with
+        the port or starboard orientation, otherwise sets the speed of the
+        specified motor. The "speed" here is either a target RPM if the PID
+        controller is active, or a motor speed value from -100 to 100,
+        effectively the set percentage of motor power.
         '''
         if not self.enabled:
-            self._log.error('motor controller not enabled.')
-            speed = 0.0
-        if isinstance(speed, float):
-            speed = int(speed)
-        elif not isinstance(speed, int):
-            raise ValueError('expected target speed as int, not {}'.format(type(speed)))
-        if orientation is Orientation.PORT:
+            raise Exception('motor controller not enabled.')
+        if not isinstance(value, int):
+            raise ValueError('expected target speed as int, not {}'.format(type(value)))
+        if orientation is Orientation.ALL:
             if self._verbose:
-                self._log.info(Fore.RED + 'set {} motor speed: {:5.2f}'.format(orientation.name, speed))
-            self._pfwd_motor.set_speed(speed)
-            self._paft_motor.set_speed(speed)
+                self._log.info(Fore.MAGENTA + 'set ALL motor speed: {:5.2f}'.format(value))
+            self._pfwd_motor.speed = value
+            self._paft_motor.speed = value
+            self._sfwd_motor.speed = value
+            self._saft_motor.speed = value
+        elif orientation is Orientation.PORT:
+            if self._verbose:
+                self._log.info(Fore.RED + 'set {} motor speed: {:5.2f}'.format(orientation.name, value))
+            self._pfwd_motor.speed = value
+            self._paft_motor.speed = value
         elif orientation is Orientation.STBD:
             if self._verbose:
-                self._log.info(Fore.GREEN + 'set {} motor speed: {:5.2f}'.format(orientation.name, speed))
-            self._sfwd_motor.set_speed(speed)
-            self._saft_motor.set_speed(speed)
+                self._log.info(Fore.GREEN + 'set {} motor speed: {:5.2f}'.format(orientation.name, value))
+            self._sfwd_motor.speed = value
+            self._saft_motor.speed = value
         elif orientation is Orientation.PFWD:
             if self._verbose:
-                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, speed))
-            self._pfwd_motor.set_speed(speed)
+                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, value))
+            self._pfwd_motor.speed = value
         elif orientation is Orientation.SFWD:
             if self._verbose:
-                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, speed))
-            self._sfwd_motor.set_speed(speed)
+                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, value))
+            self._sfwd_motor.speed = value
         elif orientation is Orientation.PAFT:
             if self._verbose:
-                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, speed))
-            self._paft_motor.set_speed(speed)
+                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, value))
+            self._paft_motor.speed = value
         elif orientation is Orientation.SAFT:
             if self._verbose:
-                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, speed))
-            self._saft_motor.set_speed(speed)
+                self._log.info('set {} motor speed: {:5.2f}'.format(orientation.name, value))
+            self._saft_motor.speed = value
         else:
             self._log.warning('expected a motor orientation, not {}'.format(orientation))
 
@@ -282,6 +357,7 @@ class MotorController(Component):
         '''
         Disable the motors.
         '''
+        self.stop()
         if self.enabled:
             Component.disable(self)
             self._log.info('disabled.')

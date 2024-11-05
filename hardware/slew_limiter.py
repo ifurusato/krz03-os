@@ -33,18 +33,18 @@ class SlewLimiter(Component):
         _cfg = config['krzos'].get('motor').get('slew_limiter')
         self._default_rate   = _cfg.get('default_rate')
         self._braking_rate   = _cfg.get('braking_rate')
-        self.rate            = self._default_rate
+        self._rate            = self._default_rate
         self._target_speed   = 0.0  # target speed at high resolution (float)
         self._internal_speed = 0.0  # Internal speed at high resolution (float)
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def reset(self):
-        self.rate   = self._default_rate
+        self._rate = self._default_rate
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def braking(self):
-        self.rate   = self._braking_rate
+        self._rate = self._braking_rate
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -83,7 +83,7 @@ class SlewLimiter(Component):
         return max(-100, min(100, self._internal_speed / 1000.0))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def resolve(self):
+    def _resolve(self):
         '''
         Adjust internal speed by a scaled fraction towards the target speed.
         '''
@@ -108,7 +108,7 @@ class SlewLimiter(Component):
         '''
         Manually update the internal speed without needing the motor to be active.
         '''
-        self.resolve()  # Call the resolve method to adjust internal speed
+        self._resolve()  # Call the resolve method to adjust internal speed
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def stop(self):
@@ -121,6 +121,6 @@ class SlewLimiter(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def __call__(self):
         """Make the class callable to resolve speed each time it's called."""
-        return self.resolve()
+        return self._resolve()
 
 #EOF

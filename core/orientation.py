@@ -34,6 +34,7 @@ class Orientation(Enum):
 
     MAST  = ( 15, "mast",          'NONE',  "mast")
     CAM   = ( 16, "camera",        'NONE',  "cam")
+    ALL   = ( 17, "all",           'NONE',  "all") # all extant orientations
 
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name, side, label):

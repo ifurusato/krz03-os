@@ -7,12 +7,13 @@
 #
 # author:   Murray Altheim
 # created:  2020-03-27
-# modified: 2024-08-26
+# modified: 2024-11-02
 #
 #  A class containing some static IMU-related conversion methods.
 #
 
 import numpy, math
+import colorsys
 from math import pi as π
 from math import tau as τ
 
@@ -263,5 +264,20 @@ class Convert:
         _NUMERATOR = 1000.0
         _distance = pow( _NUMERATOR / value, _EXPONENT ) + _FUDGE_FACTOR
         return _distance
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @staticmethod
+    def value_to_rgb(value):
+        '''
+        Converts a number from 0-100 to an RGB value, returned as a tuple.
+        '''
+        # normalize the value from 0–100 to 0–1
+        normalized_value = value / 100.0
+        # map normalized value to the hue (0 to 1 corresponds to 0 to 360 degrees)
+        hue = normalized_value * 360
+        # convert hue to RGB (colorsys takes hue in the 0–1 range)
+        r, g, b = colorsys.hsv_to_rgb(hue / 360, 1.0, 1.0)
+        # scale the RGB values to 0–255 range
+        return int(r * 255), int(g * 255), int(b * 255)
 
 # EOF
