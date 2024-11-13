@@ -71,9 +71,10 @@ krzos:
                 MAXIMUM:                    100.0
     hardware:
         button:                                            # GPIO or IO Expander-based simple button or switch
-            i2c_address:                   0x18            # I2C address of the IO Expander
+            i2c_address:                   0x18            # I2C address of the IO Expander (if used)
             impl:                     'gpiozero'           # either 'gpio' or 'ioe' or 'gpiozero'
-            pin:                             23            # the GPIO or IO Expander pin used
+            pin:                             23            # GPIO or IO Expander pin used
+            led_pin:                         12            # GPIO pin for LED on wait()
         digital_potentiometer:                             # IO Expander-based RGB Potentiometer board
             i2c_address:                   0x0C            # I²C address for the device
             brightness:                     1.0            # brightness of the RGB LED (0.0-1.0)

@@ -11,6 +11,10 @@
 #
 
 import sys, traceback, time
+import itertools
+import RPi.GPIO as GPIO
+from colorama import init, Fore, Style
+init()
 
 from core.logger import Logger, Level
 
@@ -28,15 +32,27 @@ class Button(object):
 
     :param config:        the application configuration
     :param pin:           the optional pin number (overrides config)
-    :param source:        the optional source
+    :param impl:          the chosen implementation for GPIO handling
+    :param waitable:      if True support wait()
     :param level:         the log level
     '''
-    def __init__(self, config, pin=None, impl=None, level=Level.INFO):
+    def __init__(self, config, pin=None, impl=None, waitable=False, level=Level.INFO):
         _cfg = config['krzos'].get('hardware').get('button')
         self._pin = _cfg.get('pin') if pin is None else pin
         self._log = Logger('button:{}'.format(self._pin), level)
-        self._impl = impl if impl is not None else  _cfg.get('impl') # either 'gpio' or 'ioe' or 'gpiozero'
+        self._impl = impl if impl is not None else _cfg.get('impl') # either 'gpio' or 'ioe' or 'gpiozero'
         self._ioe = None
+        if waitable:
+
+            import RPi.GPIO as GPIO
+
+            # set up flashing LED
+            self._led_pin = _cfg.get('led_pin')
+            GPIO.setwarnings(False)
+            GPIO.setmode(GPIO.BCM)
+            GPIO.setup(self._led_pin, GPIO.OUT)
+            self._counter = itertools.count()
+            self._toggle = itertools.cycle([True, False])
         if self._impl == 'gpio':
 
             import RPi.GPIO as GPIO
@@ -121,7 +137,16 @@ class Button(object):
             return self._button.is_pressed
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def wait(self):
+        self._log.info(Fore.GREEN + 'waiting for button push…')
+        while not self.pushed():
+            if next(self._counter) % 5 == 0:
+                GPIO.output(self._led_pin, GPIO.HIGH if next(self._toggle) else GPIO.LOW )
+            time.sleep(0.1)
+        GPIO.output(self._led_pin, GPIO.LOW)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
-        GPIO.cleanup(_pin)
+        GPIO.cleanup(self._pin)
 
 #EOF

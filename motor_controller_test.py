@@ -35,6 +35,7 @@ from hardware.button import Button
 
 WAIT_FOR_BUTTON   = True
 _motor_controller = None
+_wait_button      = None
 
 _log = Logger('motor-test', Level.INFO)
 
@@ -45,12 +46,9 @@ try:
     _motor_gear_ratio = _cfg.get('gear_ratio')
     _log.info(Fore.GREEN + 'gear ratio: {}'.format(_motor_gear_ratio))
 
-    _btn = Button(_config, level=Level.INFO)
-
     if WAIT_FOR_BUTTON:
-        _log.info(Fore.GREEN + 'waiting for button push…')
-        while not _btn.pushed():
-            time.sleep(0.1)
+        _wait_button = Button(_config, waitable=True)
+        _wait_button.wait()
 
     aft_controller = InventorHATMini(address=0x17, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
     fwd_controller = InventorHATMini(address=0x16, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
@@ -92,5 +90,7 @@ except Exception as e:
 finally:
     if _motor_controller:
         _motor_controller.close()
+    if _wait_button:
+        _wait_button.close()
     
 #EOF
