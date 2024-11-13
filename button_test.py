@@ -18,12 +18,6 @@ import time
 from colorama import init, Fore, Style
 init()
 
-try:
-    import RPi.GPIO as GPIO
-except Exception:
-    print('This script requires the RPi.GPIO module.\nInstall with: sudo pip3 install RPi.GPIO')
-    sys.exit(1)
-
 from core.logger import Level
 from core.config_loader import ConfigLoader
 from hardware.button import Button
@@ -36,8 +30,9 @@ def test_pushbutton():
         print('begin')
 
         _config = ConfigLoader(Level.INFO).configure()
-        _pin = 23
-        _btn = Button(_config, pin=_pin, level=Level.INFO)
+#       _pin = 18
+#       _btn = Button(_config, pin=_pin, level=Level.INFO)
+        _btn = Button(_config, level=Level.INFO)
 
         _old_value = None
         while True:

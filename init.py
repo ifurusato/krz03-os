@@ -7,10 +7,9 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-10
-# modified: 2024-10-31
+# modified: 2024-11-09
 #
-# Turns off the screen and both of the ThunderBorg LEDs, checking for the
-# existence of a set of expected I2C devices.
+# Checks for the existence of a set of expected I2C devices on the KRZ03.
 #
 
 import os, sys, time, traceback
@@ -23,15 +22,15 @@ from core.logger import Logger, Level
 from core.util import Util
 from core.config_loader import ConfigLoader
 from hardware.i2c_scanner import I2CScanner, DeviceNotFound
-from hardware.screen import Screen
-from hardware.monitor import Monitor
-from hardware.irq_clock import IrqClock
-import hardware.ThunderBorg3
-from hardware.ThunderBorg3 import ThunderBorg, ScanForThunderBorg, SetNewAddress
+#from hardware.screen import Screen
+#from hardware.monitor import Monitor
+#from hardware.irq_clock import IrqClock
+#import hardware.ThunderBorg3
+#from hardware.ThunderBorg3 import ThunderBorg, ScanForThunderBorg, SetNewAddress
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-EXPECT_GPS = False
+EXPECT_GPS = True
 
 _tb1 = None
 _tb2 = None
@@ -41,90 +40,104 @@ try:
     _log = Logger('init', Level.INFO)
 
     _log.info("start...")
-
-    _config = ConfigLoader(Level.INFO).configure()
-    _screen = Screen(_config, Level.INFO)
-#   _screen.disable()
-    _i2c_scanner = I2CScanner(_config, level=Level.INFO)
-
-    _log.info("scanning for thunderborgs...")
-    ScanForThunderBorg()
-
-    _tb1 = ThunderBorg(Level.INFO)
-    _tb1.i2cAddress = 0x16
-    _tb1.Init()
-
-    _tb2 = ThunderBorg(Level.INFO)
-    _tb2.i2cAddress = 0x15
-    _tb2.Init()
-
-    # thunderborg 1 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    if _tb1:
-        _tb1.SetLedShowBattery(False)
-        _tb1.SetLeds(0.0, 0.0, 0.0) # black
-        pass
-
-    # thunderborg 2 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    if _tb2:
-        _tb2.SetLedShowBattery(False)
-        _tb2.SetLeds(0.0, 0.0, 0.0) # black
-        pass
+    
+    _devices='''
+    0x0B   Rotary Encoder - stbd    (optional)
+    0x0C   Digital Pot - port       (optional)
+    0x0E   Digital Pot - stbd       (optional)
+    0x0F   Rotary Encoder - port    (optional)
+    0x10   GPS
+    0x16   Inventor HAT - aft
+    0x17   Inventor HAT - fwd
+    0x18   IO Expander
+    0x1D   LSM303D
+    0x29   VL53L5CX
+    0x38   BH1745                   (optional)
+    0x74   RGB LED - stbd
+    0x75   11x7 Matrix LED - stbd
+    0x77   11x7 Matrix LED - port   (conflict)
+    0x77   RGB LED - port
+    0x69   ICM20948
+'''
+    _log.info("devices: \n{}".format(_devices))
 
     # check for expected devices ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-   
-    # I²C address 0x0E: Digital Potentiometer: Panel
+
+    _config = ConfigLoader(Level.INFO).configure()
+    _i2c_scanner = I2CScanner(_config, level=Level.INFO)
+
+#   0x0B   Rotary Encoder - stbd    (optional)
+#   0x0C   Digital Pot - port       (optional)
+    if not _i2c_scanner.has_hex_address(['0x0C']):
+        _log.info('Digital Potentiometer not found at address 0x0C.')
+    else:
+        _log.info(Fore.GREEN + 'Digital Potentiometer found at address 0x0C.')
+#   0x0E   Digital Pot - stbd       (optional)
     if not _i2c_scanner.has_hex_address(['0x0E']):
-        raise DeviceNotFound('Digital Potentiometer not found at address 0x0E.')
-    # I²C address 0x0F: Digital Encoder
+        _log.info('Digital Potentiometer not found at address 0x0E.')
+    else:
+        _log.info(Fore.GREEN + 'Digital Potentiometer found at address 0x0E.')
+#   0x0F   Rotary Encoder - port    (optional)
     if not _i2c_scanner.has_hex_address(['0x0F']):
-        raise DeviceNotFound('Digital Encoder not found at address 0x0F.')
+        _log.info(Style.DIM + 'Digital Encoder not found at address 0x0F.')
+    else:
+        _log.info(Fore.GREEN + 'Digital Encoder found at address 0x0F.')
     # I²C address 0x10: PA1010D GPS
-    if EXPECT_GPS and not _i2c_scanner.has_hex_address(['0x10']):
-        raise DeviceNotFound('PA1010D GPS not found at address 0x10.')
-    # I²C address 0x15: ThunderBorg: Fwd
-    if not _i2c_scanner.has_hex_address(['0x15']):
-        raise DeviceNotFound('Forward ThunderBorg not found at address 0x15.')
-    # I²C address 0x16: ThunderBorg: Aft
+    if not _i2c_scanner.has_hex_address(['0x10']):
+        _log.info(Style.DIM + 'PA1010D GPS not found at address 0x10.')
+    else:
+        _log.info(Fore.GREEN + 'PA1010D GPS found at address 0x10.')
+#   0x16   Inventor HAT - aft
     if not _i2c_scanner.has_hex_address(['0x16']):
-        raise DeviceNotFound('Aft ThunderBorg not found at address 0x16.')
-    # I²C address 0x19: IO Expander: Fwd
-    if not _i2c_scanner.has_hex_address(['0x19']):
-        raise DeviceNotFound('Forward IO Expander not found at address 0x19.')
-    # I²C address 0x18: IO Expander: Aft
+        raise DeviceNotFound('Aft Inventor HAT not found at address 0x16.')
+    else:
+        _log.info(Fore.GREEN + 'Aft Inventor HAT found at address 0x16.')
+#   0x17   Inventor HAT - fwd
+    if not _i2c_scanner.has_hex_address(['0x17']):
+        raise DeviceNotFound('Fwd Inventor HAT not found at address 0x17.')
+    else:
+        _log.info(Fore.GREEN + 'Fwd Inventor HAT found at address 0x17.')
+#   0x18   IO Expander
     if not _i2c_scanner.has_hex_address(['0x18']):
-        raise DeviceNotFound('Aft IO Expander not found at address 0x18.')
-    # I²C address 0x29: VL53L1X/VL53L5X
+        raise DeviceNotFound('IO Expander not found at address 0x18.')
+    else:
+        _log.info(Fore.GREEN + 'IO Expander found at address 0x18.')
+#   0x1D   LSM303D
+    if not _i2c_scanner.has_hex_address(['0x1D']):
+        _log.info(Style.DIM + 'LM303D not found at address 0x1D.')
+    else:
+        _log.info(Fore.GREEN + 'LM303D found at address 0x1D.')
+#   0x29   VL53L5CX
     if not _i2c_scanner.has_hex_address(['0x29']):
-        raise DeviceNotFound('VL53L5X not found at address 0x29.')
-    # I²C address 0x40: Servo Bonnet
-    if not _i2c_scanner.has_hex_address(['0x40']):
-        raise DeviceNotFound('Servo Bonnet not found at address 0x40.')
-    # I²C address 0x41: INA260
-    if not _i2c_scanner.has_hex_address(['0x41']):
-        raise DeviceNotFound('INA260 not found at address 0x41.')
-    # I²C address 0x48: ADS1015
-    if not _i2c_scanner.has_hex_address(['0x48']):
-        raise DeviceNotFound('ADS1015 not found at address 0x48.')
-    # I²C address 0x69: ICM20948
+        _log.warning('VL53L5X not found at address 0x29.')
+    else:
+        _log.info(Fore.GREEN + 'VL53L5X found at address 0x29.')
+#   0x38   BH1745                   (optional)
+    if not _i2c_scanner.has_hex_address(['0x38']):
+        _log.info(Style.DIM + 'BH1745 not found at address 0x38.')
+    else:
+        _log.info(Fore.GREEN + 'BH1745 found at address 0x1D.')
+#   0x74   5x5 RGB LED - stbd
+    if not _i2c_scanner.has_hex_address(['0x74']):
+        _log.warning('Starboard 5x5 RGB Matrix not found at address 0x74.')
+    else:
+        _log.info(Fore.GREEN + 'Starboard 5x5 RGB Matrix found at address 0x74.')
+#   0x75   11x7 Matrix LED - stbd
+    if not _i2c_scanner.has_hex_address(['0x75']):
+        _log.warning('11x7 RGB Matrix not found at address 0x75.' + Style.DIM + ' (required by ICM20948)')
+    else:
+        _log.info(Fore.GREEN + '11x7 RGB Matrix found at address 0x75.')
+#   0x77   11x7 Matrix LED - port   (conflict)
+#   0x77   5x5 RGB LED - port
+    if not _i2c_scanner.has_hex_address(['0x77']):
+        _log.warning('Port 5x5 RGB Matrix not found at address 0x77.')
+    else:
+        _log.info(Fore.GREEN + 'Port 5x5 RGB Matrix found at address 0x77.')
+#   0x69   ICM20948
     if not _i2c_scanner.has_hex_address(['0x69']):
         raise DeviceNotFound('ICM20948 not found at address 0x69.')
-    # I²C address 0x74: 5x5 RGB Matrix
-    if not _i2c_scanner.has_hex_address(['0x74']):
-        raise DeviceNotFound('Starboard 5x5 RGB Matrix not found at address 0x74.')
-    # I²C address 0x77: 5x5 RGB Matrix (or 11x7 LED Matrix)
-    if not _i2c_scanner.has_hex_address(['0x77']):
-        raise DeviceNotFound('Port 5x5 RGB Matrix not found at address 0x77.')
-    # I²C address 0x75: 11x7 LED Matrix
-    if not _i2c_scanner.has_hex_address(['0x75']):
-        raise DeviceNotFound('11x7 RGB Matrix not found at address 0x75.')
-
-    # only start monitor if not already running
-    if not Util.already_running('monitor_exec.py'):
-        _path = os.path.abspath("monitor_exec.py") 
-        os.system(_path + ' &')
-        _log.info('started monitor with keepalive.')
     else:
-        _log.info('monitor already running.')
+        _log.info(Fore.GREEN + 'ICM20948 found at address 0x69.')
 
     _log.info("done.")
 

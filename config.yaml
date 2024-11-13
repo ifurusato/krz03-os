@@ -13,9 +13,16 @@ mrosd:
 krzos:
     motor_controller:
         loop_freq_hz:                        20            # main loop delay in hz
+        accel_decel_steps:                   50            # determines rate of acceleration/deceleration
+        coasting_steps:                     300            # determines coasting deceleration
+        braking_steps:                       60            # determines braking deceleration
+        stopping_steps:                      10            # determines stopping deceleration
+        pause:                                0.05         # delay on stepping
+        speed_scale:                          5.4          # scaling to apply to the motor's speed to match its real-world speed
+        enable_pid:                        True            # initial enable state for PID controller, otherwise direct drive
     motor:
+        gear_ratio:                         250            # gear ratio of N20 motors
         motor_voltage:                       12            # the voltage rating of the motor
-        enable_pid_controller:             True            # initial enable state for PID controller, otherwise direct drive
         enable_slew_limiter:              False            # initial enabled state for slew limiter (if disabled, no halt or brake)
         decoder:
             enable_odometry:               True            # if true we enable motor encoders and odometry

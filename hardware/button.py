@@ -118,7 +118,6 @@ class Button(object):
         elif self._impl == 'ioe':
             return self._ioe.input(self._pin) == 0
         elif self._impl == 'gpiozero':
-            print('value: {}'.format(self._button.value))
             return self._button.is_pressed
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

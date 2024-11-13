@@ -13,20 +13,30 @@
 #
 
 import sys
+import time
 try:
     import RPi.GPIO as GPIO
 except Exception:
     print('This script requires the RPi.GPIO module.\nInstall with: sudo pip3 install RPi.GPIO')
     sys.exit(1)
 
-_pin = 25
+_pin = 12
 
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(_pin, GPIO.OUT)
+try:
 
-GPIO.output(_pin, GPIO.LOW)
+    GPIO.setwarnings(False)
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(_pin, GPIO.OUT)
 
-#GPIO.cleanup(_pin)
+    while True:
+        GPIO.output(_pin, GPIO.HIGH)
+        time.sleep(1)
+        GPIO.output(_pin, GPIO.LOW)
+        time.sleep(1)
+
+except KeyboardInterrupt:
+    print('caught Ctrl-C.')
+finally:
+    GPIO.cleanup(_pin)
 
 #EOF
