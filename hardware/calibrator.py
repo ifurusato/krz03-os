@@ -200,7 +200,7 @@ class Calibrator(object):
         self._motion_controller.reposition(SteeringMode.AFRS, self._pop_calibrate_stack)
         self._log.info('recentered.')
         # make sure we're back to normal steering
-        self._motion_controller.rotate(Rotation.STOPPED)
+        self._motion_controller.rotate(Rotation.STOP)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _stabilise_queue(self):

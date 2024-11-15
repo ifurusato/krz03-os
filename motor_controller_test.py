@@ -24,11 +24,11 @@ from ioexpander.common import NORMAL_DIR, REVERSED_DIR
 
 from core.logger import Logger, Level
 from core.util import Util
-from core.direction import Direction
+from core.directive import Directive
 from core.orientation import Orientation
 from core.config_loader import ConfigLoader
 from hardware.motor_controller import MotorController
-from hardware.speed_dto_factory import SpeedDTOFactory
+from hardware.motor_directive_factory import MotorDirectiveFactory
 from hardware.button import Button
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -49,6 +49,7 @@ try:
     if WAIT_FOR_BUTTON:
         _wait_button = Button(_config, waitable=True)
         _wait_button.wait()
+    time.sleep(2)
 
     aft_controller = InventorHATMini(address=0x17, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
     fwd_controller = InventorHATMini(address=0x16, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
@@ -57,30 +58,21 @@ try:
     _log.info('creating motor controller…')
     _motor_controller = MotorController(_config, fwd_controller, aft_controller, enable_pid=_enable_pid, level=Level.INFO)
 
-
-    _log.info('accelerate to 0.7 speed…')
-    _motor_controller.set_motor_speed(SpeedDTOFactory.create(Direction.AHEAD, speed=0.7))
-
-    time.sleep(1)
-
-#   print('brake…')
-#   _motor_controller.brake()
-
-#   _log.info('crab-port to 0.7 speed…')
-#   _motor_controller.set_motor_speed(SpeedDTOFactory.create(Direction.CRAB_PORT, speed=0.7))
-
-    print('coast to stop…')
-    _motor_controller.coast()
-
-#   time.sleep(1)
-
-#   _log.info('accelerate to -0.6 speed…')
-#   _motor_controller.set_motor_speed(SpeedDTOFactory.create(Direction.ASTERN, speed=0.6))
-
-#   time.sleep(1)
-
-#   print('brake…')
-#   _motor_controller.brake()
+    _directives = [
+            MotorDirectiveFactory.create(Directive.AHEAD, speed=0.7), 
+            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.BRAKE), 
+            MotorDirectiveFactory.create(Directive.CRAB_PORT, speed=0.7),
+            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.BRAKE), 
+            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.ASTERN, speed=0.7),
+            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.CRAB_STBD, speed=0.7),
+            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.BRAKE)
+        ]
+    _motor_controller.execute(_directives)
 
 except KeyboardInterrupt:
     print('\n')

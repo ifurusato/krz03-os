@@ -22,7 +22,7 @@ init()
 from core.logger import Logger, Level
 from core.stringbuilder import StringBuilder
 from core.event import Event
-from core.direction import Direction
+from core.directive import Directive
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Message(object):
@@ -284,10 +284,10 @@ class Payload(object):
     def __init__(self, event, value):
         self._event = event
         self._value = value
-#   or a tuple containing a Direction and Speed. If the latter this
+#   or a tuple containing a Directive and Speed. If the latter this
 #   sets the 'is_motor_directive' flag True.
 #       self._is_motor_directive = isinstance(value, tuple) \
-#               and isinstance(value[0], Direction) and isinstance(value[1], Speed)
+#               and isinstance(value[0], Directive) and isinstance(value[1], Speed)
 
     # is motor directive ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -295,7 +295,7 @@ class Payload(object):
 #   def is_motor_directive(self):
 #       '''
 #       Returns True if the arguments to the Payload was a tuple containing
-#       a Direction and Speed.
+#       a Directive and Speed.
 #       '''
 #       return self._is_motor_directive
 
@@ -311,10 +311,10 @@ class Payload(object):
     def event(self):
         return self._event
 
-    # direction ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    # directive ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
     @property
-    def direction(self):
+    def directive(self):
         return self._value[0]
 
     # speed ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

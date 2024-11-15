@@ -20,7 +20,7 @@ from colorama import init, Fore, Style
 init()
 
 from core.logger import Logger, Level
-from core.direction import Direction
+from core.directive import Directive
 from core.orientation import Orientation
 from core.config_loader import ConfigLoader
 from hardware.motor_controller import MotorController
@@ -93,7 +93,7 @@ FORWARD = 1
 REVERSE = 2
 SPIN    = 3
 CRAB    = 4
-_direction = FORWARD
+_directive = FORWARD
 _speed  = 20 # initial speed
 
 
@@ -108,59 +108,59 @@ try:
     while True:
         keyp = readkey()
         _ord = ord(keyp)
-        _dir = Direction.get_direction_for_key(keyp)
+        _dir = Directive.get_directive_for_key(keyp)
         if keyp == '?':
             help()
         elif keyp == 'q':
             print('quit.')
             break
         else:
-            _motor_controller.set_direction(_dir)
+            _motor_controller.set_directive(_dir)
 
         continue
         if keyp == 'w' or _ord == 16:
-            _direction = FORWARD
+            _directive = FORWARD
             _fwd_pz.forward(_speed)
             _aft_pz.forward(_speed)
             _log.info('forward: {}'.format(_speed))
 
         elif keyp == 'z' or _ord == 17:
-            _direction = REVERSE
+            _directive = REVERSE
             _fwd_pz.reverse(_speed)
             _aft_pz.reverse(_speed)
             _log.info('reverse: {}'.format(_speed))
 
         elif keyp == 'c':
 #           Use 'c' for crab-left
-            _direction = CRAB
+            _directive = CRAB
             _fwd_pz.spinLeft(_speed)
             _aft_pz.spinRight(_speed)
 
         elif keyp == 'v':
 #       Use 'v' for crab-right
-            _direction = CRAB
+            _directive = CRAB
             _fwd_pz.spinRight(_speed)
             _aft_pz.spinLeft(_speed)
 
         elif keyp == 's' or _ord == 18:
-            _direction = SPIN
+            _directive = SPIN
             _fwd_pz.spinRight(_speed)
             _aft_pz.spinRight(_speed)
             _log.info('spin right: {}'.format(_speed))
 
         elif keyp == 'a' or _ord == 19:
-            _direction = SPIN
+            _directive = SPIN
             _fwd_pz.spinLeft(_speed)
             _aft_pz.spinLeft(_speed)
             _log.info('spin left: {}'.format(_speed))
 
         elif keyp == '.' or keyp == '>':
             _speed = min(100, _speed+10)
-            if _direction == FORWARD:
+            if _directive == FORWARD:
                 _log.info('increase speed: {} (fwd)'.format(_speed))
                 _fwd_pz.forward(_speed)
                 _aft_pz.forward(_speed)
-            elif _direction == REVERSE:
+            elif _directive == REVERSE:
                 _log.info('increase speed: {} (rev)'.format(_speed))
                 _fwd_pz.reverse(_speed)
                 _aft_pz.reverse(_speed)
@@ -169,11 +169,11 @@ try:
 
         elif keyp == ',' or keyp == '<':
             _speed = max(0, _speed-10)
-            if _direction == FORWARD:
+            if _directive == FORWARD:
                 _log.info('decrease speed: {} (fwd)'.format(_speed))
                 _fwd_pz.forward(_speed)
                 _aft_pz.forward(_speed)
-            elif _direction == REVERSE:
+            elif _directive == REVERSE:
                 _log.info('decrease speed: {} (rev)'.format(_speed))
                 _fwd_pz.reverse(_speed)
                 _aft_pz.reverse(_speed)
@@ -181,7 +181,7 @@ try:
                 _log.info('decrease speed: {}'.format(_speed))
 
         elif keyp == ' ':
-            _direction = STOPPED
+            _directive = STOPPED
             _fwd_pz.stop()
             _aft_pz.stop()
             _log.info('Stop')

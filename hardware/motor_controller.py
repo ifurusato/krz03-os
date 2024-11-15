@@ -30,12 +30,12 @@ import core.globals as globals
 globals.init()
 
 from core.component import Component
-from core.direction import Direction
+from core.directive import Directive
 from core.orientation import Orientation
 from core.rate import Rate
 from core.logger import Logger, Level
 from hardware.motor import Motor
-from hardware.speed_dto_factory import SpeedDTOFactory
+from hardware.motor_directive_factory import MotorDirectiveFactory
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class MotorController(Component):
@@ -242,59 +242,77 @@ class MotorController(Component):
             raise Exception('unsupported orientation.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def coast(self):
+    def stop(self):
         '''
-        Coasts the robot to a stop rather casually.
+        Stops the robot almost immediately.
+
+        This is a convenience method.
         '''
-        self.set_motor_speed(SpeedDTOFactory.create(Direction.NO_CHANGE, speed=0.0), steps=self._coasting_steps)
+        self.execute(MotorDirectiveFactory.create(Directive.STOP))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def brake(self):
         '''
         Stops the robot quickly but not immediately.
+
+        This is a convenience method.
         '''
-        self.set_motor_speed(SpeedDTOFactory.create(Direction.NO_CHANGE, speed=0.0), steps=self._braking_steps)
+        self.execute(MotorDirectiveFactory.create(Directive.BRAKE))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def stop(self):
+    def coast(self):
         '''
-        Stops the robot almost immediately.
+        Coasts the robot to a stop rather casually.
+
+        This is a convenience method.
         '''
-        self.set_motor_speed(SpeedDTOFactory.create(Direction.NO_CHANGE, speed=0.0), steps=self._stopping_steps)
+        self.execute(MotorDirectiveFactory.create(Directive.COAST))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def set_motor_speed(self, dto, steps=None):
-        # coast self.set_speed(orientation, 0.0, steps=self._coasting_steps)
+    def execute(self, directive, steps=None):
         if self._enable_pid:
             raise Exception('pid not supported.')
         else:
-            if steps is None: # then use default
-                steps = self._accel_decel_steps
-            _is_no_change = dto.direction == Direction.NO_CHANGE
-
-            # Flag to indicate when to break out of both loops
-            break_flag = False
-
-            # determine the difference between target and current speed
-            for i in range(steps + 1):
-                for _motor in self._all_motors.values():
-                    _target_speed = dto.get(_motor.orientation)
-                    speed_diff = _target_speed - _motor.current_speed
-                    # calculate the smooth transition using a cosine function
-                    step_speed = 0.5 * (1 - math.cos(math.pi * i / steps)) * speed_diff + _motor.current_speed
-                    if _is_no_change and math.isclose(abs(step_speed), 0.0, abs_tol=1e-2):
-                        self._log.info(Fore.MAGENTA + 'break on step_speed isclose: {:6.3f}'.format(step_speed))
-                        # FIXME use deadzone instead
-                        _motor.speed = 0.0
-                        break_flag = True # break out of both loops
+            match directive:
+                case Directive.STOP:
+                    steps = self._stopping_steps
+                case Directive.BRAKE:
+                    steps = self._braking_steps
+                case Directive.COAST:
+                    steps = self._coasting_steps
+                case _:
+                    if steps is None: # then use default
+                        steps = self._accel_decel_steps
+            # convert single object to list
+            if isinstance(directive, list):
+                directives = directive
+            else:
+                directives = [directive]  
+            break_flag = False # flag to indicate when to break out of both loops
+            for _directive in directives:
+                _is_no_change = _directive.directive == Directive.NO_CHANGE
+                self._log.info(Fore.MAGENTA + "executing directive '" + Style.BRIGHT + '{}'.format(_directive.directive.name) 
+                        + Style.NORMAL + "' for {} steps…".format(steps))
+                # determine the difference between target and current speed
+                for i in range(steps + 1):
+                    for _motor in self._all_motors.values():
+                        _target_speed = _directive.get(_motor.orientation)
+                        speed_diff = _target_speed - _motor.current_speed
+                        # calculate the smooth transition using a cosine function
+                        step_speed = 0.5 * (1 - math.cos(math.pi * i / steps)) * speed_diff + _motor.current_speed
+                        if _is_no_change and math.isclose(abs(step_speed), 0.0, abs_tol=1e-2):
+                            self._log.info(Fore.MAGENTA + 'break on step_speed isclose: {:6.3f}'.format(step_speed))
+                            # FIXME use deadzone instead
+                            _motor.speed = 0.0
+                            break_flag = True # break out of both loops
+                            break
+                        else:
+                            _motor.speed = step_speed
+                        if _is_no_change:
+                            self._log.info(Fore.WHITE + 'adjusting speed: {:.3f}'.format(step_speed))
+                    if break_flag:
                         break
-                    else:
-                        _motor.speed = step_speed
-                    if _is_no_change:
-                        self._log.info(Fore.WHITE + f"adjusting speed: {step_speed:.3f}")
-                if break_flag:
-                    break
-                time.sleep(self._pause)
+                    time.sleep(self._pause)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):

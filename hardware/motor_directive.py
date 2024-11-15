@@ -7,25 +7,32 @@
 #
 # author:   Murray Altheim
 # created:  2024-11-13
-# modified: 2024-11-13
+# modified: 2024-11-15
 #
 
 from enum import Enum
 from colorama import init, Fore, Style
 init()
 
-from core.direction import Direction
+from core.directive import Directive
 from core.orientation import Orientation
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class SpeedDTO:
+class MotorDirective:
     '''
-    A Data Transfer Object for motor target speeds. If only the first 'pfwd'
-    value is provided, it will set all four. This is equivalent to using
-    Orientation.ALL.
+    A Data Transfer Object for motor target speeds and durations. If only
+    the first 'pfwd' value is provided, it will set all four. This is
+    equivalent to using Orientation.ALL. 
+
+    :param directive:   the Directive indicating the action
+    :param pfwd:        the speed of the port-forward motor
+    :param sfwd:        the speed of the starboard-forward motor
+    :param paft:        the speed of the port-aft motor
+    :param saft:        the speed of the starboard-aft motor
+    :param duration:    optional, for Directives related to time (e.g., WAIT)
     '''
-    def __init__(self, direction: Direction, pfwd: float, sfwd: float = None, paft: float = None, saft: float = None):
-        self._direction = direction
+    def __init__(self, directive: Directive, pfwd: float, sfwd: float = None, paft: float = None, saft: float = None, duration: float = None):
+        self._directive = directive
         if pfwd is None or not (-1.0 <= pfwd <= 1.0):
             raise ValueError("pfwd must be provided and between 0.0 and 1.0")
         if sfwd is None and paft is None and saft is None:
@@ -39,11 +46,12 @@ class SpeedDTO:
             self._sfwd = sfwd
             self._paft = paft
             self._saft = saft
+        self._duration  = duration
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
-    def direction(self) -> Direction:
-        return self._direction
+    def directive(self) -> Directive:
+        return self._directive
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -66,6 +74,11 @@ class SpeedDTO:
         return self._saft
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def duration(self) -> float:
+        return self._duration
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get(self, orientation: Orientation) -> float:
         if orientation is Orientation.PFWD:
             return self._pfwd
@@ -80,13 +93,13 @@ class SpeedDTO:
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def __str__(self):
-        return ('SpeedDTO: '
+        return ('MotorDirective: '
                 '{:<10} {:<14}  '
                 '{:<8} {:>5.2f}  '
                 '{:<8} {:>5.2f}  '
                 '{:<8} {:>5.2f}  '
                 '{:<8} {:>5.2f}'.format(
-                    'Direction:', self.direction.name,
+                    'Directive:', self.directive.name,
                     Fore.RED + 'PFWD:', float(self.pfwd),
                     Fore.GREEN + 'SFWD:', float(self.sfwd),
                     Fore.RED + 'PAFT:', float(self.paft),

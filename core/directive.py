@@ -7,34 +7,35 @@
 #
 # author:   Murray Altheim
 # created:  2021-07-29
-# modified: 2024-10-31
-#
-# Note that stopped, clockwise and counter-clockwise are descriptive, not prescriptive.
+# modified: 2024-11-15
 #
 
 from enum import Enum
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Direction(Enum):
-    STOPPED           = (  0, 'stopped',           'stop', ' ')
-    NO_CHANGE         = (  1, 'no-change',         'noch', 'n')
-    AHEAD             = (  2, 'ahead',             'ahed', 'w')
-    ASTERN            = (  3, 'astern',            'astn', 'z')
-    ROTATE_CW         = (  4, 'rotate-cw',         'rtcw', 's')
-    ROTATE_CCW        = (  5, 'rotate-ccw',        'rtcc', 'a')
-    CRAB_PORT         = (  6, 'crab-port',         'crap', 'c')
-    CRAB_STBD         = (  7, 'crab-stbd',         'cras', 'v')
-    DIAGONAL_PORT     = (  8, 'diagonal-port',     'diap', 'd')
-    DIAGONAL_STBD     = (  9, 'diagonal-stbd',     'dias', 'f')
+class Directive(Enum):
+    NO_CHANGE         = (  0, 'no-change',         'noch', 'n')
+    WAIT              = (  1, 'wait',              'wait', 'z')
+    STOP              = (  2, 'stop',              'stop', 's')
+    BRAKE             = (  3, 'brake',             'brak', 'b')
+    COAST             = (  4, 'coast',             'cost', 'c')
+    AHEAD             = (  5, 'ahead',             'ahed', 'w')
+    ASTERN            = (  6, 'astern',            'astn', 'z')
+    ROTATE_CW         = (  7, 'rotate-cw',         'rtcw', 'r')
+    ROTATE_CCW        = (  8, 'rotate-ccw',        'rtcc', 't')
+    CRAB_PORT         = (  9, 'crab-port',         'crap', '<')
+    CRAB_STBD         = ( 10, 'crab-stbd',         'cras', '>')
+    DIAGONAL_PORT     = ( 11, 'diagonal-port',     'diap', 'd')
+    DIAGONAL_STBD     = ( 12, 'diagonal-stbd',     'dias', 'f')
 
-    PIVOT_FWD_CW      = ( 10, 'pivot-fwd-cw',      'pfcw', 'p')
-    PIVOT_FWD_CCW     = ( 11, 'pivot-fwd-ccw',     'pfcc', 'o')
-    PIVOT_AFT_CW      = ( 12, 'pivot-aft-cw',      'pacw', 'l')
-    PIVOT_AFT_CCW     = ( 13, 'pivot-aft-ccw',     'pacc', 'k')
-    PIVOT_PORT_CW     = ( 14, 'pivot-port-cw',     'ppcw', 'i')
-    PIVOT_PORT_CCW    = ( 15, 'pivot-port-ccw',    'ppcc', 'u')
-    PIVOT_STBD_CW     = ( 16, 'pivot-stbd-cw',     'pscw', 'j')
-    PIVOT_STBD_CCW    = ( 17, 'pivot-stbd-ccw',    'pscc', 'h')
+    PIVOT_FWD_CW      = ( 13, 'pivot-fwd-cw',      'pfcw', 'p')
+    PIVOT_FWD_CCW     = ( 14, 'pivot-fwd-ccw',     'pfcc', 'o')
+    PIVOT_AFT_CW      = ( 15, 'pivot-aft-cw',      'pacw', 'l')
+    PIVOT_AFT_CCW     = ( 16, 'pivot-aft-ccw',     'pacc', 'k')
+    PIVOT_PORT_CW     = ( 17, 'pivot-port-cw',     'ppcw', 'i')
+    PIVOT_PORT_CCW    = ( 18, 'pivot-port-ccw',    'ppcc', 'u')
+    PIVOT_STBD_CW     = ( 19, 'pivot-stbd-cw',     'pscw', 'j')
+    PIVOT_STBD_CCW    = ( 20, 'pivot-stbd-ccw',    'pscc', 'h')
 
     UNKNOWN           = ( 99, 'unknown',           'unkn', '?') # n/a or indeterminate
 
@@ -61,35 +62,35 @@ class Direction(Enum):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @staticmethod
-    def get_direction_for(port_velocity, stbd_velocity):
+    def get_directive_for(port_velocity, stbd_velocity):
         '''
         NOTE: Not yet implemented for enums > 4.
         '''
         if port_velocity and stbd_velocity:
             if port_velocity == 0.0 and stbd_velocity == 0.0:
-                return Direction.STOPPED
+                return Directive.STOPPED
             elif port_velocity > 0.0 and stbd_velocity > 0.0:
-                return Direction.AHEAD
+                return Directive.AHEAD
             elif port_velocity < 0.0 and stbd_velocity < 0.0:
-                return Direction.ASTERN
+                return Directive.ASTERN
             elif port_velocity > 0.0 and stbd_velocity <= 0.0:
-                return Direction.CLOCKWISE
+                return Directive.CLOCKWISE
             elif port_velocity <= 0.0 and stbd_velocity > 0.0:
-                return Direction.COUNTER_CLOCKWISE
+                return Directive.COUNTER_CLOCKWISE
             else:
-                raise TypeError('unable to discern direction for port: {}; stbd: {}'.format(port_velocity, stbd_velocity))
+                raise TypeError('unable to discern directive for port: {}; stbd: {}'.format(port_velocity, stbd_velocity))
         else:
-            return Direction.UNKNOWN
+            return Directive.UNKNOWN
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @staticmethod
-    def get_direction_for_key(key):
+    def get_directive_for_key(key):
         '''
         NOTE: Not yet implemented for all enums.
         '''
-        for _direction in Direction:
-            if _direction.key == key:
-                return _direction
-        return Direction.UNKNOWN
+        for _directive in Directive:
+            if _directive.key == key:
+                return _directive
+        return Directive.UNKNOWN
 
 #EOF

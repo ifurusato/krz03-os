@@ -11,7 +11,7 @@
 
 from enum import Enum
 
-from core.direction import Direction
+from core.directive import Directive
 from core.speed import Speed
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -187,23 +187,23 @@ class Event(Enum):
     # chadburn events ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     # the num values here are fixed, and used in ./hardware/motors
     # astern
-#   ASTERN                 = ( 400, "astern",                 100,   Group.CHADBURN, Direction.ASTERN ) # with value
-    FULL_ASTERN            = ( 401, "full astern",            100,   Group.CHADBURN, Direction.ASTERN, Speed.FULL )
-    TWO_THIRDS_ASTERN      = ( 402, "two thids astern",       100,   Group.CHADBURN, Direction.ASTERN, Speed.TWO_THIRDS )
-    HALF_ASTERN            = ( 403, "half astern",            100,   Group.CHADBURN, Direction.ASTERN, Speed.HALF )
-    ONE_THIRD_ASTERN       = ( 404, "one third astern",       100,   Group.CHADBURN, Direction.ASTERN, Speed.ONE_THIRD )
-    SLOW_ASTERN            = ( 405, "slow astern",            100,   Group.CHADBURN, Direction.ASTERN, Speed.SLOW )
-    DEAD_SLOW_ASTERN       = ( 406, "dead slow astern",       100,   Group.CHADBURN, Direction.ASTERN, Speed.DEAD_SLOW )
+#   ASTERN                 = ( 400, "astern",                 100,   Group.CHADBURN, Directive.ASTERN ) # with value
+    FULL_ASTERN            = ( 401, "full astern",            100,   Group.CHADBURN, Directive.ASTERN, Speed.FULL )
+    TWO_THIRDS_ASTERN      = ( 402, "two thids astern",       100,   Group.CHADBURN, Directive.ASTERN, Speed.TWO_THIRDS )
+    HALF_ASTERN            = ( 403, "half astern",            100,   Group.CHADBURN, Directive.ASTERN, Speed.HALF )
+    ONE_THIRD_ASTERN       = ( 404, "one third astern",       100,   Group.CHADBURN, Directive.ASTERN, Speed.ONE_THIRD )
+    SLOW_ASTERN            = ( 405, "slow astern",            100,   Group.CHADBURN, Directive.ASTERN, Speed.SLOW )
+    DEAD_SLOW_ASTERN       = ( 406, "dead slow astern",       100,   Group.CHADBURN, Directive.ASTERN, Speed.DEAD_SLOW )
     # stopped
-    STOPPED                = ( 409, "stop",                   100,   Group.CHADBURN, Direction.STOPPED, Speed.STOP )
+    STOP                   = ( 409, "stop",                   100,   Group.CHADBURN, Directive.STOP,   Speed.STOP )
     # ahead
-#   AHEAD                  = ( 410, "ahead",                  100,   Group.CHADBURN, Direction.AHEAD ) # with value
-    DEAD_SLOW_AHEAD        = ( 411, "dead slow ahead",        100,   Group.CHADBURN, Direction.AHEAD, Speed.DEAD_SLOW )
-    SLOW_AHEAD             = ( 412, "slow ahead",             100,   Group.CHADBURN, Direction.AHEAD, Speed.SLOW )
-    ONE_THIRD_AHEAD        = ( 413, "one third ahead",        100,   Group.CHADBURN, Direction.AHEAD, Speed.ONE_THIRD )
-    HALF_AHEAD             = ( 414, "half ahead",             100,   Group.CHADBURN, Direction.AHEAD, Speed.HALF )
-    TWO_THIRDS_AHEAD       = ( 415, "two thirds ahead",       100,   Group.CHADBURN, Direction.AHEAD, Speed.TWO_THIRDS )
-    FULL_AHEAD             = ( 416, "full ahead",             100,   Group.CHADBURN, Direction.AHEAD, Speed.FULL )
+#   AHEAD                  = ( 410, "ahead",                  100,   Group.CHADBURN, Directive.AHEAD ) # with value
+    DEAD_SLOW_AHEAD        = ( 411, "dead slow ahead",        100,   Group.CHADBURN, Directive.AHEAD, Speed.DEAD_SLOW )
+    SLOW_AHEAD             = ( 412, "slow ahead",             100,   Group.CHADBURN, Directive.AHEAD, Speed.SLOW )
+    ONE_THIRD_AHEAD        = ( 413, "one third ahead",        100,   Group.CHADBURN, Directive.AHEAD, Speed.ONE_THIRD )
+    HALF_AHEAD             = ( 414, "half ahead",             100,   Group.CHADBURN, Directive.AHEAD, Speed.HALF )
+    TWO_THIRDS_AHEAD       = ( 415, "two thirds ahead",       100,   Group.CHADBURN, Directive.AHEAD, Speed.TWO_THIRDS )
+    FULL_AHEAD             = ( 416, "full ahead",             100,   Group.CHADBURN, Directive.AHEAD, Speed.FULL )
 
     # high level behaviours ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     AVOID                  = ( 500, "avoid",                  150,   Group.BEHAVIOUR )
@@ -241,12 +241,12 @@ class Event(Enum):
         return obj
 
     # ignore the first param since it's already set by __new__
-    def __init__(self, num, name, priority, group, direction=None, speed=None):
+    def __init__(self, num, name, priority, group, directive=None, speed=None):
         self._num       = num
         self._name      = name
         self._priority  = priority
         self._group     = group
-        self._direction = direction
+        self._directive = directive
         self._speed     = speed
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -309,8 +309,8 @@ class Event(Enum):
         return self._group
 
     @property
-    def direction(self):
-        return self._direction
+    def directive(self):
+        return self._directive
 
     @property
     def speed(self):
