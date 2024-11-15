@@ -30,6 +30,7 @@ from core.config_loader import ConfigLoader
 from hardware.motor_controller import MotorController
 from hardware.motor_directive_factory import MotorDirectiveFactory
 from hardware.button import Button
+from controllers import*
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -42,17 +43,16 @@ _log = Logger('motor-test', Level.INFO)
 try:
 
     _config = ConfigLoader(Level.INFO).configure()
-    _cfg = _config.get('krzos').get('motor')
-    _motor_gear_ratio = _cfg.get('gear_ratio')
-    _log.info(Fore.GREEN + 'gear ratio: {}'.format(_motor_gear_ratio))
+#   _motor_gear_ratio = _cfg.get('gear_ratio').get('krzos').get('motor').get('gear_ratio')
+#   _log.info(Fore.GREEN + 'gear ratio: {}'.format(_motor_gear_ratio))
 
     if WAIT_FOR_BUTTON:
         _wait_button = Button(_config, waitable=True)
         _wait_button.wait()
     time.sleep(2)
 
-    aft_controller = InventorHATMini(address=0x17, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
-    fwd_controller = InventorHATMini(address=0x16, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
+#   aft_controller = InventorHATMini(address=0x17, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
+#   fwd_controller = InventorHATMini(address=0x16, motor_gear_ratio=_motor_gear_ratio, init_servos=False, init_leds=False)
 
     _enable_pid = False
     _log.info('creating motor controller…')
