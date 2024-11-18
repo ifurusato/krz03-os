@@ -9,6 +9,7 @@
 # created:  2020-01-18
 # modified: 2024-11-11
 #
+# PID class at bottom of file
 
 import itertools
 from math import isclose
@@ -16,9 +17,42 @@ from datetime import datetime as dt
 from colorama import init, Fore, Style
 init()
 
+#from ioexpander.common import PID
+
 from core.logger import Level, Logger
 from core.component import Component
 from core.orientation import Orientation
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+class PID:
+    VEL_KP = 30.0              # velocity proportional (P) gain
+    VEL_KI = 0.0               # velocity integral (I) gain
+    VEL_KD = 0.4               # velocity derivative (D) gain
+    UPDATES = 100              # how many times to update the motor per second
+    UPDATE_RATE = 1 / UPDATES
+    '''
+    A simple class for handling Proportional, Integral & Derivative (PID)
+    control calculations. This is copied from ioexpander.common.
+    '''
+    def __init__(self):
+        self.kp = PID.VEL_KP
+        self.ki = PID.VEL_KI
+        self.kd = PID.VEL_KD
+        self.setpoint     = 0
+        self._error_sum   = 0
+        self._last_value  = 0
+        self._sample_rate = PID.UPDATE_RATE
+
+    def calculate(self, value, value_change=None):
+        print('calculate...')
+        error = self.setpoint - value
+        self._error_sum += error * self._sample_rate
+        if value_change is None:
+            rate_error = (value - self._last_value) / self._sample_rate
+        else:
+            rate_error = value_change
+        self._last_value = value
+        return (error * self.kp) + (self._error_sum * self.ki) - (rate_error * self.kd)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Motor(Component):
@@ -65,92 +99,18 @@ class Motor(Component):
         # encoder/decoder ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._counter = itertools.count()
         self._steps_per_rotation = 693 # TODO encoder steps per wheel rotation
+        # PID controller ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+        if self._enable_pid:
+            # PID values
+            # create PID object for velocity control
+            self._pid = PID()
+        else:
+            self._pid = None
         # step limiter ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._step_limit    = None
         self._step_limit_threshold = 50
         self._last_time = dt.now() # for calculating elapsed time
         self._log.info('ready.')
-
-        _api = '''
-    /usr/local/lib/python3.11/dist-packages/ioexpander/motor.py
-
-    def __init__(self, config, picon_zero, orientation, level=Level.INFO):
-    def pid(self):
-    def orientation(self):
-    def rpm(self):
-    def max_rpm(self):
-    def decoder(self):
-    def decoder(self, decoder):
-    def reset(self):
-    def steps(self):
-    def steps_per_rotation(self):
-    def _apply_rpm_deadband(self, target_rpm):
-    def _apply_slew_limit(self, target_speed):
-    def step_limit(self):
-    def step_limit(self, step_limit):
-    def _update_step_limit(self, pulse):
-    def _gradually_set_speed_to_zero(self, reduction_factor=0.05):
-    def _callback_step_count(self, pulse):
-    def _calculate_rpm(self):
-    def speed(self):
-    def speed(self, speed):
-    def target_speed(self):
-    def update_speed(self):
-    def _set_target_rpm(self, target_rpm=None):
-    def _set_motor_power(self, power=None):
-    def brake(self):
-    def stop(self):
-    def is_enabled(self):
-    def enable(self):
-    def disable(self):
-    def close(self):
-
-IOE Motor:
-
-    def __init__(self, direction=NORMAL_DIR, speed_scale=DEFAULT_SPEED_SCALE, zeropoint=DEFAULT_ZEROPOINT, deadzone=DEFAULT_DEADZONE):
-    def enable_with_return(self):
-    def disable_with_return(self):
-    def is_enabled(self):
-    def get_duty(self):
-    def get_deadzoned_duty(self):
-    def set_duty_with_return(self, duty):
-    def get_speed(self):
-    def set_speed_with_return(self, speed):
-    def stop_with_return(self):
-    def full_negative_with_return(self):
-    def full_positive_with_return(self):
-    def to_percent_with_return(self, input, in_min=ZERO_PERCENT, in_max=ONEHUNDRED_PERCENT, speed_min=None, speed_max=None):
-    def get_direction(self):
-    def set_direction(self, direction):
-    def get_speed_scale(self):
-    def set_speed_scale(self, speed_scale):
-    def get_zeropoint(self):
-    def set_zeropoint(self, zeropoint):
-    def get_deadzone(self):
-    def set_deadzone_with_return(self, deadzone):
-    def duty_to_level(duty, resolution):
-    def __duty_to_speed(duty, zeropoint, scale):
-    def __speed_to_duty(speed, zeropoint, scale):
-    def __apply_duty(self, duty, mode, load, wait_for_load):
-    def __init__(self, ioe, pins, direction=NORMAL_DIR, speed_scale=MotorState.DEFAULT_SPEED_SCALE, zeropoint=MotorState.DEFAULT_ZEROPOINT,
-    def enable(self, load=True, wait_for_load=False):
-    def disable(self, load=True, wait_for_load=False):
-    def is_enabled(self):
-    def duty(self, duty=None, load=True, wait_for_load=False):
-    def frequency(self, freq=None, load=True, wait_for_load=False):
-    def stop(self, load=True, wait_for_load=False):
-    def coast(self, load=True, wait_for_load=False):
-    def brake(self, load=True, wait_for_load=False):
-    def full_negative(self, load=True, wait_for_load=False):
-    def full_positive(self, load=True, wait_for_load=False):
-    def to_percent(self, input, in_min=MotorState.ZERO_PERCENT, in_max=MotorState.ONEHUNDRED_PERCENT, speed_min=None, speed_max=None, load=True, wait_for_load=False):
-    def direction(self, direction=None):
-    def speed_scale(self, speed_scale=None):
-    def zeropoint(self, zeropoint=None):
-    def deadzone(self, deadzone=None, load=True, wait_for_load=False):
-    def decay_mode(self, mode=None, load=True, wait_for_load=False):
-    def load(self, wait_for_load=False):
-'''
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -159,6 +119,21 @@ IOE Motor:
         Returns the orientation of this motor.
         '''
         return self._orientation
+
+    # underlying motor implementation ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def mtr(self):
+        return self._mtr
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def encoder(self):
+        return self._enc
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def pid(self):
+        return self._pid
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property   
@@ -182,13 +157,6 @@ IOE Motor:
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def set_deadband(self, speed):
         pass
-
-    # underlying motor implementation ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def get_motor(self):
-        print('🤖 get_motor() type: {}'.format(type(self._mtr)))
-        return self._mtr
 
     # step limit ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -225,11 +193,8 @@ IOE Motor:
         Sets the motor speed.
         '''
         self._current_speed = value
-        if self._enable_pid:
-#           print(Fore.MAGENTA + 'PID-SET speed: {:4.2f}; enabled? {}'.format(value, self.enabled) + Style.RESET_ALL)
-            pass
-        else:
-#           print(Fore.MAGENTA + 'SET speed: {:4.2f}; enabled? {}'.format(value, self.enabled) + Style.RESET_ALL)
+        if not self._enable_pid:
+            print(Fore.MAGENTA + 'SET speed: {:4.2f}; enabled? {}'.format(value, self.enabled) + Style.RESET_ALL)
             self._mtr.speed(value)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -239,8 +204,8 @@ IOE Motor:
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def update_target_speed(self):
-        self._log.info(Fore.MAGENTA + '💜 update target speed: {:4.2f}'.format(self._current_speed))
-        pass
+#       self._log.info(Fore.MAGENTA + 'update target speed: {:4.2f}'.format(self._current_speed))
+        self._mtr.speed(self._current_speed)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def brake(self):

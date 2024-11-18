@@ -17,6 +17,9 @@ current state of the project.
 
 |
 
+Background
+**********
+
 The *KRZOS* library provides essential support designed as the basis of a
 `Behaviour-Based Systems (BBS) <https://en.wikipedia.org/wiki/Behavior-based_robotics>`_.
 This library is relatively "low-level" and, in theory, could be used for any Python 3 
@@ -44,17 +47,58 @@ whatever the AvoidPort behaviour entails, perhaps stopping, backing up while tur
 clockwise, then proceeding forward again on a new trajectory.
 
 
-Features
-********
+Software Features
+*****************
 
 * message and event handling
 * an asynchronous message bus that forms the basis of a `Subsumption Architecture <https://en.wikipedia.org/wiki/Subsumption_architecture>`_ [#f1]_, with an "exactly-once' message delivery guarantee
 * YAML-based configuration
 * timestamped, multi-level, colorised [#f2]_ logging
-* written in Python 3
+* written in Python 3 (currently 3.11.2)
 
 .. [#f1] Uses finite state machines, an asynchronous message bus, an arbitrator and controller for task prioritisation.
 .. [#f2] Colorised console output tested only on Unix/Linux operating systems.
+
+
+Hardware Features
+*****************
+
+The specific features of the KRZ03 robot's hardware include:
+
+* a Raspberry Pi Zero 2 W as main controller
+* a pair of Pimoroni Inventor HAT Mini boards as motor controllers
+* a Pimoroni Mini Black HAT Hack3r, used to mount the Inventor HATs
+* four Pololu N20 250:1 Micro Metal Gearmotors (HPCB 6V #5197) with built-in encoders
+* four JST SH 6 pin cables to connect the motors to the controllers ("reversed" or "opposite")
+* a Pimoroni Breakout Garden for Raspberry Pi, 6 slots
+* an expansion frame that can alternately hold a Perma-Proto board for an STM32 Pyboard,
+  an UM TinyS3, or a Teensy 4.0. 
+* a UM LOL RGB Shield (connected to the TinyS3)
+* a Pimoroni Tiny FX W for control of audio and LED lights
+* a PIR Stick for Tiny FX
+* a Pimoroni Adhesive Backed Mini Speaker 8Ω (1W)
+* a subminiature SPDT toggle switch to switch between an external supply and the battery
+* a toggle switch, a pushbutton and a lever switch connected to GPIO pins as input devices
+* a chassis made from 3mm black Delrin plastic
+* a set of four Nexus Robot 48mm Steel Mecanum Wheels
+* a Pololu 5V, 5.5A Step-Down Voltage Regulator D36V50F5
+* a Makita 12V 2Ah power tool battery
+* a Makita YL00000003 12V max CXT Power Source (a power clip compatible with the battery)
+* a 19V laptop power supply as an external power supply
+
+Sensors include:
+
+* a trio of Pololu Distance Sensors with Pulse Width Output, 50cm Max (#4064)
+* a PAA5100JE Near Optical Flow SPI Breakout
+* an ICM20948 9DoF Motion Sensor Breakout mounted on a 6x10x140mm Delrin mast
+* a VL53L5CX 8x8 Time of Flight (ToF) Array Sensor Breakout
+* a VL53L1X Time of Flight (ToF) Sensor Breakout
+* a PA1010D GPS Breakout
+* a pair of 5x5 RGB Matrix Breakouts
+* a pair of 11x7 LED Matrix Breakouts
+* a pair of RGB Potentiometer Breakouts
+* a pair of RGB Encoder Breakouts
+* an IO Expander
 
 
 Requirements

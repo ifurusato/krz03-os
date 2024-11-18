@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 import time
 import warnings
 
@@ -150,8 +151,15 @@ class InventorHATMini():
         self.encoders = None
         if self.__init_motors:
             self.motors = [Motor(self.ioe, self.IOE_MOTOR_A_PINS), Motor(self.ioe, self.IOE_MOTOR_B_PINS)]
-            self.encoders = [Encoder(self.ioe, 1, self.IOE_ENCODER_A_PINS, counts_per_rev=self.__cpr, count_microsteps=True),
-                             Encoder(self.ioe, 2, self.IOE_ENCODER_B_PINS, counts_per_rev=self.__cpr, count_microsteps=True)]
+
+            _encoder_1 = Encoder(self.ioe, 1, self.IOE_ENCODER_A_PINS, counts_per_rev=self.__cpr, count_microsteps=True)
+            print('👚 encoder 1: {}'.format(_encoder_1.capture()))
+            _encoder_2 = Encoder(self.ioe, 2, self.IOE_ENCODER_B_PINS, counts_per_rev=self.__cpr, count_microsteps=True)
+            print('👚 encoder 2: {}'.format(_encoder_2.capture()))
+
+            self.encoders = [_encoder_1, _encoder_2]
+#           self.encoders = [Encoder(self.ioe, 1, self.IOE_ENCODER_A_PINS, counts_per_rev=self.__cpr, count_microsteps=True),
+#                            Encoder(self.ioe, 2, self.IOE_ENCODER_B_PINS, counts_per_rev=self.__cpr, count_microsteps=True)]
 
         self.servos = None
         if self.__init_servos:
@@ -160,6 +168,7 @@ class InventorHATMini():
         self.ioe.set_mode(self.IOE_VOLTAGE_SENSE, ADC)
         self.ioe.set_mode(self.IOE_CURRENT_SENSES[0], ADC)
         self.ioe.set_mode(self.IOE_CURRENT_SENSES[1], ADC)
+#       sys.exit(0)
 
     def get_ioe(self):
         return self.ioe

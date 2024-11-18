@@ -58,18 +58,20 @@ try:
     _log.info('creating motor controller…')
     _motor_controller = MotorController(_config, fwd_controller, aft_controller, enable_pid=_enable_pid, level=Level.INFO)
 
+    _speed = 0.9
+    _duration = 1.5
     _directives = [
-            MotorDirectiveFactory.create(Directive.AHEAD, speed=0.7), 
-            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.AHEAD,     speed=_speed), 
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
             MotorDirectiveFactory.create(Directive.BRAKE), 
-            MotorDirectiveFactory.create(Directive.CRAB_PORT, speed=0.7),
-            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.CRAB_PORT, speed=_speed),
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
             MotorDirectiveFactory.create(Directive.BRAKE), 
-            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
-            MotorDirectiveFactory.create(Directive.ASTERN, speed=0.7),
-            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
-            MotorDirectiveFactory.create(Directive.CRAB_STBD, speed=0.7),
-            MotorDirectiveFactory.create(Directive.WAIT, duration=1.0), 
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
+            MotorDirectiveFactory.create(Directive.ASTERN,    speed=_speed),
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
+            MotorDirectiveFactory.create(Directive.CRAB_STBD, speed=_speed),
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
             MotorDirectiveFactory.create(Directive.BRAKE)
         ]
     _motor_controller.execute(_directives)

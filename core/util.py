@@ -241,6 +241,13 @@ class Util(object):
             print('exception: {}'.format(e))
         return False
 
+    # see if pigpiod is running
+    def is_pigpiod_running():
+        for process in psutil.process_iter(['name']):
+            if process.info['name'] == 'pigpiod':
+                return True
+        return False
+
 #   @staticmethod
 #   def clip_alt(n, minimum, maximum):
 #       '''

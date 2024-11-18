@@ -74,7 +74,7 @@ krzos:
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
             impl:                     'gpiozero'           # either 'gpio' or 'ioe' or 'gpiozero'
             pin:                             23            # GPIO or IO Expander pin used
-            led_pin:                         12            # GPIO pin for LED on wait()
+            led_pin:                         13            # GPIO pin for LED on wait()
         digital_potentiometer:                             # IO Expander-based RGB Potentiometer board
             i2c_address:                   0x0C            # I²C address for the device
             brightness:                     1.0            # brightness of the RGB LED (0.0-1.0)
@@ -100,6 +100,10 @@ krzos:
             include_accel_gyro:            True            # if true, poll heading data
             include_heading:               True            # if true, poll accelerometer and gyroscope data
             play_sound:                   False            # if True, play sound to indicate calibration
+        paa5100je:                                         # PAA5100JE Optical Flow Sensor
+            rotation:                       180            # permitted values: 0, 90, 180 or 270 
+            x_trim:                         1.0            # percentage X trim (as a multiplier)
+            y_trim:                         0.92           # percentage Y trim (as a multiplier)
         vl53l1cx:
             i2c_address:                   0x28            # I2C address (default 0x29)
             range:                            3            # range/distance mode: 1 = Short | 2 = Medium | or 3 = Long
@@ -141,10 +145,6 @@ krzos:
         radar:                                             # RCWL-0516 Microwave Radar Motion Sensor
             i2c_address:                   0x19            # I²C address for the device
             pin:                              9            # the IO Expander pin used for the analog pot
-        paa5100je:                                         # PAA5100JE Optical Flow Sensor
-            rotation:                       180            # permitted values: 0, 90, 180 or 270 
-            x_trim:                         1.0            # percentage X trim (as a multiplier)
-            y_trim:                         0.92           # percentage Y trim (as a multiplier)
         rotated:                                           # IR sensor over SAFT servo to determine if rotated
             i2c_address:                   0x18            # I2C address of aft IO Expander
             pin:                              9            # the IO Expander pin used for the analog pot

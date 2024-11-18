@@ -311,7 +311,10 @@ class Matrix(object):
         self._enabled = False # used only for Threaded processes
         self._screens = 0
         self._thread = None
-        self._log.info('ready.')
+        if orientation is Orientation.PORT:
+            self._log.info(Fore.RED   + 'port matrix ready at 0x77.')
+        elif orientation is Orientation.STBD:
+            self._log.info(Fore.GREEN + 'starboard matrix ready at 0x75.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def show(self):
@@ -455,9 +458,21 @@ class Matrix(object):
     def snow(self):
         x = random.randrange(0, self._matrix11x7.width)
         y = random.randrange(0, self._matrix11x7.height)
-        bright = random.random() / 2.0
-        self._matrix11x7.pixel(x, y, bright)
+        brightness = random.random() / 2.0
+        self._matrix11x7.pixel(x, y, brightness)
         self._matrix11x7.show()
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def pixel(self, x, y, brightness, update=False):
+        '''
+        Sets the pixel to the provided brightness. If 'update' is True,
+        clears the display and calls show() after setting the pixel.
+        '''
+        if update:
+            self.clear()
+        self._matrix11x7.pixel(x, y, brightness)
+        if update:
+            self.show()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _matrix(self, rows, cols):

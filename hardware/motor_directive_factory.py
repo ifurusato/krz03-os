@@ -51,6 +51,7 @@ class MotorDirectiveFactory:
                 return MotorDirective( directive, pfwd=speed,  sfwd=speed,  paft=speed,   saft=speed,  duration=duration )
             case Directive.ASTERN:
                 return MotorDirective( directive, pfwd=-speed, sfwd=-speed, paft=-speed,  saft=-speed, duration=duration )
+            # rotate ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
             case Directive.ROTATE_CW:
                 return MotorDirective( directive, pfwd=speed,  sfwd=-speed, paft=speed,   saft=-speed, duration=duration )
             case Directive.ROTATE_CCW:
@@ -63,6 +64,7 @@ class MotorDirectiveFactory:
                 return None #MotorDirective( directive, pfwd=speed,  sfwd=0.0,    paft=speed,   saft=0.0, duration=duration )
             case Directive.DIAGONAL_STBD:
                 return None #MotorDirective( directive, pfwd=speed,  sfwd=0.0,    paft=-speed,  saft=0.0, duration=duration )
+            # pivots ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
             case Directive.PIVOT_FWD_CW:
                 return MotorDirective( directive, pfwd=speed,  sfwd=-speed, paft=0.0,     saft=0.0,    duration=duration )
             case Directive.PIVOT_FWD_CCW:
@@ -79,5 +81,14 @@ class MotorDirectiveFactory:
                 return None #MotorDirective( directive, pfwd=0.0,    sfwd=0.0,    paft=-speed,  saft=speed, duration=duration )
             case Directive.PIVOT_STBD_CCW:
                 return None #MotorDirective( directive, pfwd=0.0,    sfwd=0.0,    paft=speed,   saft=-speed, duration=duration )
+            # single motors ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+            case Directive.PFWD_ONLY:
+                return MotorDirective( directive, pfwd=speed,  sfwd=0.0,    paft=0.0,     saft=0.0,    duration=duration )
+            case Directive.SFWD_ONLY:
+                return MotorDirective( directive, pfwd=0.0,    sfwd=speed,  paft=0.0,     saft=0.0,    duration=duration )
+            case Directive.PAFT_ONLY:
+                return MotorDirective( directive, pfwd=0.0,    sfwd=0.0,    paft=speed,   saft=0.0,    duration=duration )
+            case Directive.SAFT_ONLY:
+                return MotorDirective( directive, pfwd=0.0,    sfwd=0.0,    paft=0.0,     saft=speed,  duration=duration )
 
 #EOF

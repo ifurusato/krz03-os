@@ -35,14 +35,6 @@ import sys, traceback
 from colorama import init, Fore, Style
 init()
 
-# see if pigpiod is running
-def is_pigpiod_running():
-    for process in psutil.process_iter(['name']):
-        if process.info['name'] == 'pigpiod':
-            return True
-    return False
-
-
 from core.logger import Logger
 from core.orientation import Orientation
 from hardware.pigpiod_util import PigpiodUtility

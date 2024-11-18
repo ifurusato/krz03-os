@@ -59,11 +59,11 @@ class MotorController(Component):
     :param enabled:           if True the configurer is enabled upon instantiation
     :param level:             the logging Level
     '''
-    def __init__(self, config, fwd_controller=None, aft_controller=None, enable_pid=None, suppressed=False, enabled=True, level=Level.INFO):
+    def __init__(self, config, fwd_controller=None, aft_controller=None, enable_pid=None, suppressed=False, enabled=False, level=Level.INFO):
         if not isinstance(level, Level):
             raise ValueError('wrong type for log level argument: {}'.format(type(level)))
         self._log = Logger("motor-ctrl", level)
-        Component.__init__(self, self._log, suppressed=False, enabled=True)
+        Component.__init__(self, self._log, suppressed=suppressed, enabled=enabled)
         if config is None:
             raise ValueError('no configuration provided.')
         _cfg = config['krzos'].get('motor_controller')
@@ -269,50 +269,51 @@ class MotorController(Component):
         self.execute(MotorDirectiveFactory.create(Directive.COAST))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def execute(self, directive, steps=None):
-        if self._enable_pid:
-            raise Exception('pid not supported.')
+    def execute(self, motor_directive, steps=None):
+        if isinstance(motor_directive, list):
+            motor_directives = motor_directive
         else:
-            match directive:
+            # convert single object to list
+            motor_directives = [motor_directive]  
+        break_flag = False # flag to indicate when to break out of both loops
+        for _motor_directive in motor_directives:
+            match _motor_directive.directive:
                 case Directive.STOP:
                     steps = self._stopping_steps
                 case Directive.BRAKE:
                     steps = self._braking_steps
                 case Directive.COAST:
                     steps = self._coasting_steps
+                case Directive.WAIT:
+                    _duration_sec = _motor_directive.duration
+                    self._log.info(Fore.WHITE + '💩 directive: waiting {:.3f} seconds…'.format(_duration_sec))
+                    time.sleep(_duration_sec)
+                    continue # next loop iteration
                 case _:
                     if steps is None: # then use default
                         steps = self._accel_decel_steps
-            # convert single object to list
-            if isinstance(directive, list):
-                directives = directive
-            else:
-                directives = [directive]  
-            break_flag = False # flag to indicate when to break out of both loops
-            for _directive in directives:
-                _is_no_change = _directive.directive == Directive.NO_CHANGE
-                self._log.info(Fore.MAGENTA + "executing directive '" + Style.BRIGHT + '{}'.format(_directive.directive.name) 
-                        + Style.NORMAL + "' for {} steps…".format(steps))
-                # determine the difference between target and current speed
-                for i in range(steps + 1):
-                    for _motor in self._all_motors.values():
-                        _target_speed = _directive.get(_motor.orientation)
-                        speed_diff = _target_speed - _motor.current_speed
-                        # calculate the smooth transition using a cosine function
-                        step_speed = 0.5 * (1 - math.cos(math.pi * i / steps)) * speed_diff + _motor.current_speed
-                        if _is_no_change and math.isclose(abs(step_speed), 0.0, abs_tol=1e-2):
-                            self._log.info(Fore.MAGENTA + 'break on step_speed isclose: {:6.3f}'.format(step_speed))
-                            # FIXME use deadzone instead
-                            _motor.speed = 0.0
-                            break_flag = True # break out of both loops
-                            break
-                        else:
-                            _motor.speed = step_speed
-                        if _is_no_change:
-                            self._log.info(Fore.WHITE + 'adjusting speed: {:.3f}'.format(step_speed))
-                    if break_flag:
+            self._log.info(Fore.MAGENTA + "executing directive '" + Style.BRIGHT + '{}'.format(_motor_directive.directive.name) 
+                    + Style.NORMAL + "' for {} steps…".format(steps))
+            _is_no_change = _motor_directive.directive == Directive.NO_CHANGE
+            for i in range(steps + 1):
+                for _motor in self._all_motors.values():
+                    _target_speed = _motor_directive.get(_motor.orientation)
+                    speed_diff = _target_speed - _motor.current_speed
+                    # calculate the smooth transition using a cosine function
+                    step_speed = 0.5 * (1 - math.cos(math.pi * i / steps)) * speed_diff + _motor.current_speed
+                    if _is_no_change and math.isclose(abs(step_speed), 0.0, abs_tol=1e-2):
+                        self._log.info(Fore.MAGENTA + 'break on step_speed isclose: {:6.3f}'.format(step_speed))
+                        # FIXME use deadzone instead
+                        _motor.speed = 0.0
+                        break_flag = True # break out of both loops
                         break
-                    time.sleep(self._pause)
+                    else:
+                        _motor.speed = step_speed
+                    if _is_no_change:
+                        self._log.info(Fore.WHITE + 'adjusting speed: {:.3f}'.format(step_speed))
+                if break_flag:
+                    break
+                time.sleep(self._pause)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
@@ -335,20 +336,96 @@ class MotorController(Component):
 
         If we're using an external clock, calling this method throws an exception.
         '''
-        self._log.info('start motor control loop…')
+        self._log.info(Style.BRIGHT + '🦋 start motor control loop…')
         if not self.enabled:
             raise Exception('not enabled.')
         if self.loop_is_running:
             self._log.warning('loop already running.')
         elif self._loop_thread is None:
-            if self._external_clock:
-                raise Exception('cannot use thread-based loop: external clock enabled.')
             self._loop_enabled = True
             self._loop_thread = Thread(name='motor_loop', target=MotorController._motor_loop, args=[self, lambda: self._loop_enabled], daemon=self._is_daemon)
             self._loop_thread.start()
             self._log.info('loop enabled.')
         else:
             raise Exception('cannot enable loop: thread already exists.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _motor_loop(self, f_is_enabled):
+        '''
+        The motors loop, which executes while the flag argument lambda is True.
+        '''
+        self._log.info('loop start.')
+        self._log.info(Style.BRIGHT + '🦋 loop start.')
+        try:
+
+            UPDATES = 100               # how many times to update the motor per second
+            UPDATE_RATE = 1 / UPDATES
+            TIME_FOR_EACH_MOVE = 1      # the time to travel between each random value, in seconds
+            UPDATES_PER_MOVE = TIME_FOR_EACH_MOVE * UPDATES
+            INTERP_MODE = 2             # the interpolating mode between setpoints. STEP (0), LINEAR (1), COSINE (2)
+
+            _start_value = 0.0
+            _update      = 0
+
+            while f_is_enabled():
+                # execute any callback here…
+                for _motor in self._all_motors.values():
+
+                    _mtr = _motor.mtr
+                    _pid = _motor.pid
+                    _encoder = _motor.encoder
+                    _foo = '''
+                        def count(self):
+                        def delta(self):
+                        def zero(self):
+                        def step(self):
+                        def turn(self):
+                        def revolutions(self):
+                        def degrees(self):
+                        def radians(self):
+                        def direction(self, direction=None):
+                        def counts_per_rev(self, counts_per_rev=None):
+                        def capture(self):
+'''
+                    
+                    # Capture the state of the encoder
+                    capture = _encoder.capture()
+                    
+                    # Calculate how far along this movement to be
+                    percent_along = min(_update / UPDATES_PER_MOVE, 1.0)
+                    
+                    if INTERP_MODE == 0:
+                        # Move the motor instantly to the end value
+                        _pid.setpoint = _motor.current_speed
+                    elif INTERP_MODE == 2: 
+                        # Move the motor between values using cosine
+                        _pid.setpoint = (((-math.cos(percent_along * math.pi) + 1.0) / 2.0) * (_motor.current_speed - _start_value)) + _start_value
+                    else:
+                        # Move the motor linearly between values
+                        _pid.setpoint = (percent_along * (_motor.current_speed - _start_value)) + _start_value
+                        
+                    # Calculate the acceleration to apply to the motor to move it closer to the velocity setpoint
+                    _rps = capture.revolutions_per_second
+                    accel = _pid.calculate(_rps)
+                    
+                    # Accelerate or decelerate the motor
+                    _mtr.speed(_mtr.speed() + (accel * UPDATE_RATE))
+
+                    _update += 1     # Move along in time
+
+                    if _motor.orientation is Orientation.PFWD:
+                        self._log.info('🦋 {} motor speed: {:4.2f}; rps: {}…'.format(_motor.orientation.name, _motor.current_speed, _rps))
+
+                    _motor.update_target_speed()
+
+                self._state_change_check()
+
+
+                self._rate.wait()
+        except Exception as e:
+            self._log.error('error in loop: {}\n{}'.format(e, traceback.format_exc()))
+        finally:
+            self._log.info(Fore.GREEN + 'exited motor control loop.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _stop_loop(self):
@@ -371,26 +448,6 @@ class MotorController(Component):
         return self._loop_enabled and self._loop_thread != None and self._loop_thread.is_alive()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _motor_loop(self, f_is_enabled):
-        '''
-        The motors loop, which executes while the flag argument lambda is True.
-        '''
-        self._log.info('loop start.')
-        self._log.info(Style.BRIGHT + 'loop start.')
-        try:
-            while f_is_enabled():
-                # execute any callback here…
-                for _motor in self._all_motors:
-                    self._log.info('updating {} motor…'.format(_motor.orientation.name))
-                    _motor.update_target_speed()
-                self._state_change_check()
-                self._rate.wait()
-        except Exception as e:
-            self._log.error('error in loop: {}\n{}'.format(e, traceback.format_exc()))
-        finally:
-            self._log.info(Fore.GREEN + 'exited motor control loop.')
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _state_change_check(self):
         '''
         Check if the stopped/moving state has changed since the last call.
@@ -404,6 +461,8 @@ class MotorController(Component):
         '''
         if self.enabled:
             Component.disable(self)
+            self._log.info('disabling by stopping loop…')
+            self._stop_loop()
             self._log.info('disabled.')
         else:
             self._log.debug('already disabled.')

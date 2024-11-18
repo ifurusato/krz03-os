@@ -27,7 +27,6 @@ class Directive(Enum):
     CRAB_STBD         = ( 10, 'crab-stbd',         'cras', '>')
     DIAGONAL_PORT     = ( 11, 'diagonal-port',     'diap', 'd')
     DIAGONAL_STBD     = ( 12, 'diagonal-stbd',     'dias', 'f')
-
     PIVOT_FWD_CW      = ( 13, 'pivot-fwd-cw',      'pfcw', 'p')
     PIVOT_FWD_CCW     = ( 14, 'pivot-fwd-ccw',     'pfcc', 'o')
     PIVOT_AFT_CW      = ( 15, 'pivot-aft-cw',      'pacw', 'l')
@@ -36,7 +35,10 @@ class Directive(Enum):
     PIVOT_PORT_CCW    = ( 18, 'pivot-port-ccw',    'ppcc', 'u')
     PIVOT_STBD_CW     = ( 19, 'pivot-stbd-cw',     'pscw', 'j')
     PIVOT_STBD_CCW    = ( 20, 'pivot-stbd-ccw',    'pscc', 'h')
-
+    PFWD_ONLY         = ( 21, 'pfwd-only',         'pfwd', '1')
+    SFWD_ONLY         = ( 22, 'sfwd-only',         'sfwd', '2')
+    PAFT_ONLY         = ( 23, 'paft-only',         'paft', '3')
+    SAFT_ONLY         = ( 24, 'saft-only',         'saft', '4')
     UNKNOWN           = ( 99, 'unknown',           'unkn', '?') # n/a or indeterminate
 
     # ignore the first param since it's already set by __new__

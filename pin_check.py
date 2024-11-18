@@ -119,7 +119,7 @@ def main():
 
     except KeyboardInterrupt:
         print('\n')
-        print('Ctrl-C caught, exiting...')
+        print('Ctrl-C caught, exiting…')
         sys.exit(0)
 
 if __name__== "__main__":

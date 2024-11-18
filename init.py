@@ -18,6 +18,8 @@ from datetime import datetime as dt
 from colorama import init, Fore, Style
 init()
 
+import RPi.GPIO as GPIO
+
 from core.logger import Logger, Level
 from core.util import Util
 from core.config_loader import ConfigLoader
@@ -27,10 +29,12 @@ from hardware.i2c_scanner import I2CScanner, DeviceNotFound
 #from hardware.irq_clock import IrqClock
 #import hardware.ThunderBorg3
 #from hardware.ThunderBorg3 import ThunderBorg, ScanForThunderBorg, SetNewAddress
+from hardware.pigpiod_util import PigpiodUtility as pig_util
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
 EXPECT_GPS = True
+BLINK_ON_COMPLETE = True
 
 _tb1 = None
 _tb2 = None
@@ -99,7 +103,7 @@ try:
         _log.info(Fore.GREEN + 'Fwd Inventor HAT found at address 0x17.')
 #   0x18   IO Expander
     if not _i2c_scanner.has_hex_address(['0x18']):
-        raise DeviceNotFound('IO Expander not found at address 0x18.')
+        _log.warning('IO Expander not found at address 0x18.')
     else:
         _log.info(Fore.GREEN + 'IO Expander found at address 0x18.')
 #   0x1D   LSM303D
@@ -139,6 +143,19 @@ try:
     else:
         _log.info(Fore.GREEN + 'ICM20948 found at address 0x69.')
 
+    pig_util.ensure_pigpiod_is_running()
+
+    if BLINK_ON_COMPLETE:
+        _pin = 13
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(_pin, GPIO.OUT)
+        for _ in range(7):
+            GPIO.output(_pin, GPIO.HIGH)
+            time.sleep(0.05)
+            GPIO.output(_pin, GPIO.LOW)
+            time.sleep(0.3)
+
     _log.info("done.")
 
 except KeyboardInterrupt:
@@ -146,6 +163,7 @@ except KeyboardInterrupt:
 except Exception as e:
     _log.error('{} thrown in thunderborg test: {}\n{}'.format(type(e), e, traceback.format_exc()))
 finally:
-    pass
+    if BLINK_ON_COMPLETE:
+        GPIO.cleanup(_pin)
 
 #EOF
