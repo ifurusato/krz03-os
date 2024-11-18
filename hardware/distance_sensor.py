@@ -23,18 +23,16 @@ from core.orientation import Orientation
 class DistanceSensor(Component):
     CLASS_NAME = 'dist'
     '''
-    A Publisher of distances obtained from a trio of Pololu PWM-based proximity sensors.
-
+    Provides distance information in millimeters from a Pololu PWM-based
+    infrared proximity sensor.
     '''
     def __init__(self, config, orientation, level=Level.INFO):
         '''
         Initializes the DistanceSensor.
 
-        :param pin (int):              GPIO pin connected to the sensor
-        :param timeout (float):        time in seconds to consider sensor as timed out
-        :param smoothing (bool):       enable smoothing of distance readings
-        :param smoothing_window (int): number of samples to use for smoothing
-        :param loop_interval (float):  interval between distance polling, in seconds
+        :param config:        the application configuration
+        :param orientation:   the Orientation of the sensor
+        :param level:         the logging Level
         '''
         self._log = Logger('dist:{}'.format(orientation.label), level)
         Component.__init__(self, self._log, suppressed=False, enabled=True)
