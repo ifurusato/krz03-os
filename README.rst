@@ -79,7 +79,7 @@ The specific features of the KRZ03 robot's hardware include:
 * a Pimoroni Adhesive Backed Mini Speaker 8Ω (1W)
 * a subminiature SPDT toggle switch to switch between an external supply and the battery
 * a toggle switch, a pushbutton and a lever switch connected to GPIO pins as input devices
-* a chassis made from 3mm black Delrin plastic
+* a chassis made from 3mm black Delrin plastic, using LynxMotion M3 spacers
 * a set of four Nexus Robot 48mm Steel Mecanum Wheels
 * a Pololu 5V, 5.5A Step-Down Voltage Regulator D36V50F5
 * a Makita 12V 2Ah power tool battery

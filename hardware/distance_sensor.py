@@ -10,12 +10,13 @@
 # modified: 2024-11-18
 #
 
-from collections import deque
 import time
+import asyncio
+from collections import deque
 import pigpio
 
 class DistanceSensor:
-    def __init__(self, pin, timeout=1, smoothing=False, smoothing_window=5):
+    def __init__(self, pin, timeout=1, smoothing=False, smoothing_window=5, loop_interval=0.1):
         '''
         Initializes the DistanceSensor.
 
@@ -24,15 +25,21 @@ class DistanceSensor:
             timeout (float): Time in seconds to consider sensor as timed out.
             smoothing (bool): Enable smoothing of distance readings.
             smoothing_window (int): Number of samples to use for smoothing.
+            loop_interval (float): Interval between distance polling, in seconds.
         '''
-        self._pin             = pin
-        self._timeout         = timeout
-        self._pulse_start     = None
-        self._pulse_width_us  = None
-        self._last_read_time  = time.time()
-        self._smoothing       = smoothing
+        self._pin = pin
+        self._timeout = timeout
+        self._pulse_start = None
+        self._pulse_width_us = None
+        self._last_read_time = time.time()
+        self._smoothing = smoothing
         self._window = deque(maxlen=smoothing_window) if smoothing else None
-        # initialize pigpio
+        self._loop_interval = loop_interval
+        self._running = False
+        self._distance = None
+        self._task = None
+
+        # Initialize pigpio
         self._pi = pigpio.pi()
         if not self._pi.connected:
             raise Exception("Failed to connect to pigpio daemon")
@@ -47,41 +54,60 @@ class DistanceSensor:
             self._pulse_start = tick
         elif level == 0:  # Falling edge
             if self._pulse_start is not None:
-                # Correct usage of tickDiff
                 self._pulse_width_us = pigpio.tickDiff(self._pulse_start, tick)
 
-    def get_distance(self):
+    def _compute_distance(self):
         '''
-        Returns the distance calculated from the pulse width.
-        Applies smoothing if enabled.
-        Returns None if the pulse width is out of range.
+        Compute and update the distance based on the current pulse width.
         '''
         if self._pulse_width_us is not None:
             if 1000 <= self._pulse_width_us <= 1850:
-                # Convert pulse width to distance in mm
                 distance_mm = (self._pulse_width_us - 1000) * 3 / 4
-                # Update last valid read time only after a successful read
                 self._last_read_time = time.time()
                 self._pulse_width_us = None  # Reset after processing
 
-                # Apply smoothing if enabled
                 if self._smoothing:
                     self._window.append(distance_mm)
-                    return sum(self._window) / len(self._window)
-                return distance_mm
-        return None
+                    self._distance = sum(self._window) / len(self._window)
+                else:
+                    self._distance = distance_mm
+            else:
+                self._distance = None
+
+    def get_distance(self):
+        '''
+        Get the latest computed distance.
+        '''
+        return self._distance
 
     def check_timeout(self):
         '''
-        Checks for timeout (no pulse received for a while).
+        Check if the sensor has timed out (no pulse received recently).
         '''
         return time.time() - self._last_read_time > self._timeout
 
+    async def _sensor_loop(self):
+        '''
+        Asynchronous loop to continuously compute distances.
+        '''
+        while self._running:
+            self._compute_distance()
+            await asyncio.sleep(self._loop_interval)
+
+    def start(self):
+        '''
+        Start the sensor's asynchronous loop.
+        '''
+        self._running = True
+        self._task = asyncio.create_task(self._sensor_loop())
+
     def stop(self):
         '''
-        Clean up resources before exiting.
+        Stop the sensor's asynchronous loop and clean up resources.
         '''
+        self._running = False
+        if self._task:
+            self._task.cancel()
         self.cb.cancel()
         self._pi.stop()
 
-#EOF
