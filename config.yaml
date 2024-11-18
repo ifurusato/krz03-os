@@ -69,12 +69,23 @@ krzos:
                 THREE_QUARTER:               60.0
                 FULL:                        80.0
                 MAXIMUM:                    100.0
+    publisher:
+        distance_sensors:
+            blah:                         False            # 
     hardware:
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
             impl:                     'gpiozero'           # either 'gpio' or 'ioe' or 'gpiozero'
             pin:                             23            # GPIO or IO Expander pin used
             led_pin:                         13            # GPIO pin for LED on wait()
+        distance_sensor:
+            pin_port:                        16            # the port input pin
+            pin_cntr:                        20            # the center input pin
+            pin_stbd:                        21            # the starboard input pin
+            timeout:                          1            # time in seconds to consider sensor as timed out 
+            smoothing:                     True            # enable smoothing of distance readings
+            smoothing_window:                 5            # number of samples to use for smoothing
+            loop_interval:                  0.1            # interval between distance polling, in seconds
         digital_potentiometer:                             # IO Expander-based RGB Potentiometer board
             i2c_address:                   0x0C            # I²C address for the device
             brightness:                     1.0            # brightness of the RGB LED (0.0-1.0)

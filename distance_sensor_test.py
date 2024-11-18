@@ -13,21 +13,28 @@
 import asyncio
 from hardware.distance_sensor import DistanceSensor
 
-async def main():
-    # GPIO pins for sensors
-    pins = [16, 20, 21]
-    sensors = [DistanceSensor(pin, smoothing=True, smoothing_window=5) for pin in pins]
+from core.logger import Logger, Level
+from core.orientation import Orientation
+from core.config_loader import ConfigLoader
 
-    # Start all sensors
-    for sensor in sensors:
-        sensor.start()
+async def main():
+
+    _config = ConfigLoader(Level.INFO).configure()
+    _port_sensor = DistanceSensor(_config, Orientation.PORT)
+    _cntr_sensor = DistanceSensor(_config, Orientation.CNTR)
+    _stbd_sensor = DistanceSensor(_config, Orientation.STBD)
+    _sensors = [ _port_sensor, _cntr_sensor, _stbd_sensor ]
+
+    # start all sensors
+    for _sensor in _sensors:
+        _sensor.start()
 
     try:
         print("Measuring distances...")
         while True:
             distances = []
-            for sensor in sensors:
-                distance_mm = sensor.get_distance()
+            for _sensor in _sensors:
+                distance_mm = _sensor.get_distance()
                 if distance_mm is not None:
                     distances.append(f"{distance_mm:10.1f}mm")
                 else:
@@ -40,11 +47,11 @@ async def main():
             await asyncio.sleep(0.1)  # Adjust delay as needed
 
     except asyncio.CancelledError:
-        # Handle task cancellation (if needed)
+        # handle task cancellation
         pass
     finally:
-        for sensor in sensors:
-            sensor.stop()
+        for _sensor in _sensors:
+            _sensor.stop()
 
 if __name__ == "__main__":
     try:
