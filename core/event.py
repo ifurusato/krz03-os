@@ -1,4 +1,5 @@
-#!/usr/bin/env python3 # -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # Copyright 2020-2024 by Murray Altheim. All rights reserved. This file is part
 # of the Robot Operating System project, released under the MIT License. Please
@@ -195,7 +196,7 @@ class Event(Enum):
     SLOW_ASTERN            = ( 405, "slow astern",            100,   Group.CHADBURN, Directive.ASTERN, Speed.SLOW )
     DEAD_SLOW_ASTERN       = ( 406, "dead slow astern",       100,   Group.CHADBURN, Directive.ASTERN, Speed.DEAD_SLOW )
     # stopped
-    STOP                   = ( 409, "stop",                   100,   Group.CHADBURN, Directive.STOP,   Speed.STOP )
+    STOPPED                = ( 409, "stopped",                100,   Group.CHADBURN, Directive.STOP,   Speed.STOP )
     # ahead
 #   AHEAD                  = ( 410, "ahead",                  100,   Group.CHADBURN, Directive.AHEAD ) # with value
     DEAD_SLOW_AHEAD        = ( 411, "dead slow ahead",        100,   Group.CHADBURN, Directive.AHEAD, Speed.DEAD_SLOW )

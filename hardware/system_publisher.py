@@ -33,8 +33,8 @@ from core.stringbuilder import StringBuilder
 from core.util import Util
 from core.publisher import Publisher
 from hardware.i2c_scanner import I2CScanner
-from ads1015 import ADS1015
-from hardware.ina260_sensor import Ina260
+#from ads1015 import ADS1015
+#from hardware.ina260_sensor import Ina260
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class SystemPublisher(Publisher):
@@ -72,30 +72,33 @@ class SystemPublisher(Publisher):
 #       self._temperature_threshold = 30.0 # TEST
         self._log.info('thresholds for current: {:3.2f}A; voltage: {:3.2f}V.'.format(self._current_threshold, self._battery_threshold))
         # INA260 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        self._ina260 = Ina260(config, level=self._level)
+#       self._ina260 = Ina260(config, level=self._level)
         # ADS1015 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        self._ads1015 = ADS1015()
-        chip_type = self._ads1015.detect_chip_type()
-        self._log.info('ADS1015 chip type: {}'.format(chip_type))
-        self._ads1015.set_mode("single")
-        self._ads1015.set_programmable_gain(2.048)
-        if chip_type == 'ADS1015':
-            self._ads1015.set_sample_rate(1600)
-        else:
-            self._ads1015.set_sample_rate(860)
-        self._reference = self._ads1015.get_reference_voltage()
-        self._log.info('reference voltage: {:6.3f}v'.format(self._reference))
+#       self._ads1015 = ADS1015()
+#       chip_type = self._ads1015.detect_chip_type()
+#       self._log.info('ADS1015 chip type: {}'.format(chip_type))
+#       self._ads1015.set_mode("single")
+#       self._ads1015.set_programmable_gain(2.048)
+#       if chip_type == 'ADS1015':
+#           self._ads1015.set_sample_rate(1600)
+#       else:
+#           self._ads1015.set_sample_rate(860)
+#       self._reference = self._ads1015.get_reference_voltage()
+#       self._log.info('reference voltage: {:6.3f}v'.format(self._reference))
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_battery(self):
-        return self._ads1015.get_compensated_voltage(channel='in0/ref', reference_voltage=self._reference)
+#       return self._ads1015.get_compensated_voltage(channel='in0/ref', reference_voltage=self._reference)
+        return 0.0
             
     def get_5v_regulator(self):
-        return self._ads1015.get_compensated_voltage(channel='in1/ref', reference_voltage=self._reference)
+#       return self._ads1015.get_compensated_voltage(channel='in1/ref', reference_voltage=self._reference)
+        return 0.0
         
     def get_3v3(self):
-        return self._ads1015.get_compensated_voltage(channel='in2/ref', reference_voltage=self._reference)
+#       return self._ads1015.get_compensated_voltage(channel='in2/ref', reference_voltage=self._reference)
+        return 0.0
 
    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -138,10 +141,10 @@ class SystemPublisher(Publisher):
             _overcurrent       = False
    
             # read values ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-            _ina_battery = self._ina260.voltage
-            _ads_battery = self.get_battery()
-            _current = self._ina260.current
-            _power   = self._ina260.power
+#           _ina_battery = self._ina260.voltage
+#           _ads_battery = self.get_battery()
+#           _current = self._ina260.current
+#           _power   = self._ina260.power
             _5vReg   = self.get_5v_regulator()
             _3v3Reg  = self.get_3v3()
             _temp    = self._system.read_cpu_temperature()

@@ -6,11 +6,27 @@
 #       YAML configuration for M-Series Robot Operating System (MROS)
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-mrosd:
-    application:                          'mros'           # the application to start via daemon ('mros')
+krzosd:
+    application:                         'krzos'           # the application to start via daemon ('krzos')
     toggle_pin:                              10            # Rx=8, Tx=10; the GPIO pin connected to the 'enable' toggle switch
 
 krzos:
+    component:
+        # publishers .......................................
+        enable_queue_publisher:            True            # publishes from globally-available queue
+        enable_distance_sensors:           True            # enable Distance Sensors
+        enable_system_publisher:           True            # enable System Publisher
+        enable_imu_publisher:              True            # enable IMU publisher
+        enable_remote_ctrl_publisher:     False            # enable Remote Control Publisher
+        enable_rtof_publisher:            False            # enable Ranging ToF publisher
+        enable_gamepad_publisher:         False            # enable gamepad support
+        # subscribers ......................................
+        enable_macro_subscriber:          False            # enable macro publisher
+    message_bus:
+        max_age_ms:                        20.0            # maximum age of a message before expiry
+        publish_delay_sec:                 0.05            # publishing delay loop
+        clip_event_list:                  False            # if True clip length of displayed event list
+        clip_length:                         42            # max length of displayed event list
     motor_controller:
         loop_freq_hz:                        20            # main loop delay in hz
         accel_decel_steps:                   50            # determines rate of acceleration/deceleration
@@ -71,7 +87,9 @@ krzos:
                 MAXIMUM:                    100.0
     publisher:
         distance_sensors:
-            blah:                         False            # 
+            loop_freq_hz:                    20            # main loop delay in hz
+            sense_threshold:                150            # threshold in millimeters to react to an obstacle
+            bump_threshold:                  70            # threshold in millimeters to consider as a bump
     hardware:
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
@@ -118,281 +136,5 @@ krzos:
         vl53l1cx:
             i2c_address:                   0x28            # I2C address (default 0x29)
             range:                            3            # range/distance mode: 1 = Short | 2 = Medium | or 3 = Long
-
-# older ................................................................................................................
-#
-    arguments:                                             # CLI arguments are copied here
-        nada:                             False            # nada
-    use_external_clock:                    True            # if True use external clock, ignoring loop delay value
-    use_slow_external_clock:               True            # if True use the slow (5Hz) external clock
-    initial_calibration:                  False            # if True, calibrate the IMU upon starting
-    play_sound:                            True            # if True, play sound to indicate various actions
-    enable_monitor:                        True            # if True use OLED display as monitor
-    component:
-        # publishers .......................................
-        enable_queue_publisher:            True            # publishes from globally-available queue
-        enable_system_publisher:           True            # enable System Publisher
-        enable_clock_publisher:           False            # enable Clock Publisher
-        enable_sensor_array_publisher:     True            # enable SensorArray publisher
-        enable_remote_ctrl_publisher:      True            # enable Remote Control Publisher
-        enable_rtof_publisher:            False            # enable Ranging ToF publisher
-        enable_imu_publisher:              True            # enable IMU publisher
-        # subscribers ......................................
-        enable_remote_ctrl_subscriber:     True            # handle remote control messages
-        enable_system_subscriber:          True            # system events subscriber
-    message_bus:
-        max_age_ms:                        20.0            # maximum age of a message before expiry
-        publish_delay_sec:                 0.05            # publishing delay loop
-        clip_event_list:                  False            # if True clip length of displayed event list
-        clip_length:                         42            # max length of displayed event list
-    experimental:                                          # the list of experimental class names
-        rgb_experiment:         'RgbExperiment'            # experiment 1
-        rgb_random:                 'RgbRandom'            # experiment 2
-        uart_experiment:       'UartExperiment'            # experiment 3
-    OLD_hardware:
-        screen:
-            pin:                             13            # enable/disable screen pin
-            enabled:                       True            # default setting
-        radar:                                             # RCWL-0516 Microwave Radar Motion Sensor
-            i2c_address:                   0x19            # I²C address for the device
-            pin:                              9            # the IO Expander pin used for the analog pot
-        rotated:                                           # IR sensor over SAFT servo to determine if rotated
-            i2c_address:                   0x18            # I2C address of aft IO Expander
-            pin:                              9            # the IO Expander pin used for the analog pot
-            threshold:                      2.0            # threshold of the IR sensor to determine a reflection
-#       analog_potentiometer:                              # IO Expander-based analog potentiometer
-#           i2c_address:                   0x18            # I²C address for the device
-#           adc_pin:                         10            # the IO Expander pin used for the analog pot
-        ina260:
-            i2c_address:                   0x41            # I2C address (default 0x40)
-        bno055:
-            i2c_device:                       1            # I2C device bus number, equivalent to '/dev/i2c-1'
-            poll_rate_hz:                    20            # polling frequency (Hz)
-            mode:                        'NDOF_MODE'       # Acc/Mag/Gyr (see table in BNO055Mode class)
-#           mode:                'NDOF_FMC_OFF_MODE'       # Acc/Mag/Gyr (Fast Mag Calib off)
-#           mode:                     'COMPASS_MODE'       # Acc/Mag no gyro
-            pitch_trim:                       0.00         # trim adjustment on pitch
-            roll_trim:                        0.00         # trim adjustment on roll
-            euler_heading_trim:              90.00         # trim adjustment on Euler heading
-            quat_heading_trim:               90.00         # trim adjustment on Quaternion heading
-            play_sound:                   False            # if True, play sound to indicate calibration
-        irq_clock:
-            pin:                             18            # GPIO pin connected to an external clock source
-            slow_pin:                        23            # GPIO pin connected to a slow (5Hz) external clock source
-            freq_divider:                    50            # tick divisor for lower frequency callback
-        monitor:
-            i2c_port:                         0
-            i2c_address:                   0x3C
-            contrast:                      0x3F            # 0x-00-0xFF screen brightness
-            update_rate_hz:                   1            # update rate in Hz
-            use_thread:                   False            # if an external clock is not supplied, use a thread for the update loop
-            rotate:                           1            # values 0: 180°; 1: -90°; 2: 0°; 3: 90°
-            permit_callback:               False           # setting True may introduce message timing issues
-            font_size:                       10            # main font size
-            font_size_full:                   8            # font size for bar
-            font_size_message:               15            # message font size
-            font_name:      'Varela-Regular.ttf'           # font family
-        gamepad:
-            enabled:                       True
-            device_path:     '/dev/input/event9'           # the path to the bluetooth gamepad on the pi (see find_gamepad.py)
-            loop_delay:                       0.01         # main loop delay was sleep(0.01) or 1/100th second, or 10ms. 50ms is the delay for 20Hz, so 10ms is 5x 20Hz or 100Hz.
-            suppress_horiz_events:         True            # ignore horizontal joystick events
-            loop_freq_hz:                   100            # polling loop frequency (Hz)
-        tinyfx-controller:
-            i2c_address:                   0x18
-            pin_1:                           11            # pin on the IO Expander
-            pin_2:                           12            # pin on the IO Expander
-        rtof:
-            enabled:                       True
-    motion_controller:
-        afrs_max_ratio:                       0.36016      # speed ratio of inner wheels at max turn 
-        afrs_max_angle:                      45.0          # maximum AFRS turn angle
-        default_manual_speed:                 0.39         # default speed used when potentiometer is unavailable (one third ahead)
-        suppress_monitors:                False            # if True, darken the monitor and screen when running
-        initial_reposition_delay_sec:         0.2          # initial servo delay during repositioning
-        reposition_delay_sec:                 3.2          # how long to run the motors when repositioning the servos
-    calibrator:
-        step_limit:                      590000            # the number of steps to rotate once (roughly) was 570000
-        break_time_ms:                     6000            # how long to wait for the IMU to settle
-    stop_handler:                                          # offloads stop handling for motor controller
-        stop_ratio:                           0.50         # multiplier for stopping lambda 
-        halt_ratio:                           0.85         # multiplier for halting lambda
-        brake_ratio:                          0.93         # multiplier for braking lambda
-    servo_controller:
-        rotate_angle:                        59.5          # angle used for rotate mode
-        spin_angle:                          90.0          # angle used for spin mode
-        max_range:                          135            # currently used as limiter in test
-        scale_factor:                         0.64
-        # PFWD ................................
-        servo-pfwd-channel:                   4
-        servo-pfwd-trim:                     58
-        servo-pfwd-min:                     -88
-        servo-pfwd-max:                      90
-        # SFWD ................................
-        servo-sfwd-channel:                   0
-        servo-sfwd-trim:                     60
-        servo-sfwd-min:                     -87
-        servo-sfwd-max:                      90
-        # PMID ................................
-        servo-pmid-channel:                  -1
-        servo-pmid-trim:                     -1
-        servo-pmid-min:                      -1
-        servo-pmid-max:                      -1
-        # SMID ................................
-        servo-smid-channel:                  -1
-        servo-smid-trim:                     -1
-        servo-smid-min:                      -1
-        servo-smid-max:                      -1
-        # PAFT ................................
-        servo-paft-channel:                  12
-        servo-paft-trim:                     68
-        servo-paft-min:                     -90
-        servo-paft-max:                      83
-        # SAFT ................................
-        servo-saft-channel:                   8
-        servo-saft-trim:                     61
-        servo-saft-min:                     -83
-        servo-saft-max:                      90
-        # SAFT ................................
-        servo-cam-channel:                   15
-        servo-cam-trim:                      74 # was 70
-        servo-cam-min:                      -90
-        servo-cam-max:                       90
-    geometry:                                              # robot geometry (e.g., KR01)
-        wheel_diameter:                      72            # wheel diameter (mm)
-        wheel_base:                         242            # wheel base (mm), distance between front and rear axles
-        wheel_track:                        144            # wheel base (mm), distance between left and right wheel centerlines
-        wheel_offset:                        58            # offset from wheel centerline to steering axle
-        steps_per_rotation:                2774.64         # encoder steps per wheel rotation
-    publisher:
-        system:
-            publish_delay_sec:               30.0          # publishing delay loop
-            current_threshold:                6.0          # alarm over current
-            battery_threshold:               16.0          # alarm under voltage
-            regulator_5v_threshold:           4.85         # alarm under voltage
-            regulator_3v3_threshold:          3.2          # alarm under voltage
-            temperature_threshold:           60.0          # alarm over temperature
-        remote:
-            loop_freq_hz:                    20            # polling loop frequency (Hz)
-            clear_delay_sec:                1.0            # delay before clearing last event in loop (debounce)
-            d0_pin:                          22            # GPIO pin for bit 0
-            d1_pin:                          27            # GPIO pin for bit 1
-            d2_pin:                          17            # GPIO pin for bit 2
-        imu:
-            loop_freq_hz:                     5            # polling loop frequency (Hz)
-            pitch_threshold:                 20.0          # pitch threshold for sending a message
-            roll_threshold:                  20.0          # roll threshold for sending a message
-        clock:
-            divider:                         60            # divider for IRQ ticks (@20Hz, 60 = 3s)
-        queue:
-            loop_freq_hz:                    20            # polling loop frequency (Hz)
-        sensor_array: # note: these are Fore IO Expander pins, not RPi pins
-            fwd_i2c_address:               0x19            # I2C address of forward IO Expander
-            aft_i2c_address:               0x18            # I2C address of aft IO Expander
-            loop_freq_hz:                    20            # main loop delay in hz
-            bsb_pin:                          1            # 1 bumper starboard bottom
-            bst_pin:                          5            # 2 bumper starboard top (was 2)
-            bpb_pin:                          3            # 3 bumper port bottom
-            bpt_pin:                          4            # 4 bumper port top
-            fop_pin:                          9            # was: 7 fore oblique port IR distance sensor
-            fos_pin:                          8            # 8 fore oblique starboard IR distance sensor
-            wsa_pin:                         11            # 11 wheel starboard aft
-            wsf_pin:                         12            # 12 wheel starboard fore
-            wpa_pin:                         13            # 13 wheel port aft
-            wpf_pin:                         14            # 14 wheel starboard fore
-            mast_pin:                        10            # IOE pin connected to mast IR (aft IOE)
-            oblique_trigger_cm:              20            # min distance trigger oblique IR
-        gamepad:
-            publish_delay_sec:                0.001        #
-#       integrated_front_sensor:
-#           loop_freq_hz:                    20            # polling loop frequency (Hz)
-#           release_on_startup:           False            # if true, release when initially enabling
-#       bumper:
-#           loop_freq_hz:                    20            # polling loop frequency (Hz)
-#           one_shot:                     False            # if True then require reset before retriggering
-#           debounce_ms:                     50            # switch debounce time in milliseconds
-#           bmp_port_pin:                    21            # GPIO pin connected to port bumper
-#           bmp_cntr_pin:                    20            # GPIO pin connected to center bumper
-#           bmp_stbd_pin:                    16            # GPIO pin connected to starboard bumper
-#           bmp_paft_pin:                    26            # GPIO pin connected to port aft digital infrared sensor
-#           bmp_mast_pin:                     8            # GPIO pin connected to mast digital infrared sensor
-#           bmp_saft_pin:                    19            # GPIO pin connected to starboard aft digital infrared sensor
-#       external_bumper:
-#           loop_freq_hz:                    20            # polling loop frequency (Hz)
-#           ack_pin:                         21            # GPIO pin connected to acknowledge pin (white)
-#           int_pin:                         26            # GPIO pin connected to interrupt pin (grey)
-#           d0_pin:                          20            # GPIO pin connected to data 0 pin (red) was 20 or 6
-#           d1_pin:                          16            # GPIO pin connected to data 1 pin (green)
-#           d2_pin:                          19            # GPIO pin connected to data 2 pin (blue)
-#       mcu_bumper:
-#           loop_freq_hz:                    20            # polling loop frequency (Hz)
-#       queue:
-#           loop_freq_hz:                    20            # polling loop frequency (Hz)
-#       macro:
-#           loop_freq_hz:                    20            # polling loop frequency (Hz)
-#           quiescent_loop_freq_hz:           5            # quiescent loop frequency (Hz)
-#           wait_limit_ms:                 5000            # the longest we will ever wait for anything (because we are impatient)
-#           macro_path:                  'macro'           # the location of the macros to load on startup
-#           load_macros:                  False            # if True load *.py as macros from ./macro/ directory
-    subscriber:
-        clock:
-            nada:                         False            # nada
-        bumper:
-            shutdown_on_mast:             False            # if True then mast triggers shutdown
-        remote:
-            play_sound:                    True            # if True play sounds for events
-        stop:
-            nada:                         False            # nada
-        system:
-            exit_on_dire_event:            True            # if True exit if encountering a dire event
-
-pi:
-    disable_leds:                           False          # disable and re-enable Pi LEDs during operation?
-    led_0_path:   '/sys/class/leds/led0/brightness'
-    led_1_path:   '/sys/class/leds/led1/brightness'
-    sudo_name:    'sudo'
-
-# device registry ..............................................................
-devices:
-    0x0C: 'Digital Potentiometer'
-    0x0E: 'Digital Potentiometer: Panel'
-    0x0F: 'Digital Encoder' # default, moved to 0x16
-    0x10: 'PA1010D GPS'
-    0x15: 'ThunderBorg: Fwd'
-    0x16: 'ThunderBorg: Aft'
-    0x18: 'IO Expander: Aft'
-    0x19: 'IO Expander: Fwd'
-    0x22: 'Picon Zero 1'
-    0x23: 'Picon Zero 2'
-    0x28: 'BNO055'
-    0x29: 'VL53L1X'
-    0x36: 'UltraBorg'
-    0x39: 'HT0740'
-    0x40: 'Servo Bonnet'
-    0x41: 'INA260' # stbd?
-    0x48: 'ADS1015'
-    0x69: 'ICM20948'
-    0x74: '5x5 RGB Matrix'
-    0x75: '11x7 LED Matrix'
-    0x77: '5x5 RGB Matrix (or 11x7 LED Matrix)'
-
-# HT0740 0x38 or 0x39 or 0x3A or 0x3B
-# BNO055 0x28 or 0x29
-# BNO085 0x4A or 0x4B
-# ICM20948 0x68 or 0x69
-# INA260 0x40 or 0x41 or 0x44 or 0x45
-#
-# 0x4A may be an ADS1115, an INA260 or a BNO085.
-#
-# ☻ i2cdetect -y 1
-#      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
-# 00:          -- -- -- -- -- -- -- -- -- -- -- 0e --
-# 10: -- -- -- -- -- 15 -- -- 18 -- -- -- -- -- -- --
-# 20: -- -- -- -- -- -- -- -- 28 29 -- -- -- -- -- --
-# 30: -- -- -- -- -- -- 36 -- -- 39 -- -- -- -- -- --
-# 40: 40 41 -- -- -- -- -- -- 48 -- -- -- -- -- -- --
-# 50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-# 60: -- -- -- -- -- -- -- -- -- 69 -- -- -- -- -- --
-# 70: -- -- -- -- 74 -- -- 77
 
 #EOF

@@ -136,7 +136,12 @@ class MotorController(Component):
         else:
             self._saft_enc = None
         self._saft_mtr.enable()
-        self._all_mtrs = self._bundle_mtrs()
+        self._all_mtrs = {
+            Orientation.PFWD:  self._pfwd_mtr,
+            Orientation.SFWD:  self._sfwd_mtr,
+            Orientation.PAFT:  self._paft_mtr,
+            Orientation.SAFT:  self._saft_mtr,
+        }
         # Motor wrappers ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._pfwd_motor = None
         self._sfwd_motor = None
@@ -151,7 +156,12 @@ class MotorController(Component):
                 motor=self._paft_mtr, encoder=self._paft_enc, enable_pid=self._enable_pid, level=Level.INFO)
         self._saft_motor = Motor(config, orientation=Orientation.SAFT,
                 motor=self._saft_mtr, encoder=self._saft_enc, enable_pid=self._enable_pid, level=Level.INFO)
-        self._all_motors = self._bundle_motors()
+        self._all_motors = {
+            Orientation.PFWD:  self._pfwd_motor,
+            Orientation.SFWD:  self._sfwd_motor,
+            Orientation.PAFT:  self._paft_motor,
+            Orientation.SAFT:  self._saft_motor,
+        }
         # variables ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._verbose       = False
         self._is_daemon     = True
@@ -185,38 +195,12 @@ class MotorController(Component):
         return self._all_mtrs
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _bundle_mtrs(self):
-        '''
-        Returns a dictionary of all extant Motors.
-        '''
-        _all_motors = {
-            Orientation.PFWD:  self._pfwd_mtr,
-            Orientation.SFWD:  self._sfwd_mtr,
-            Orientation.PAFT:  self._paft_mtr,
-            Orientation.SAFT:  self._saft_mtr,
-        }
-        return _all_motors
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_motors(self):
         '''
         Returns a dictionary containing all instantiated Motors, keyed by
         Orientation.
         '''
         return self._all_motors
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _bundle_motors(self):
-        '''
-        Returns a dictionary of all extant Motors.
-        '''
-        _all_motors = {
-            Orientation.PFWD:  self._pfwd_motor,
-            Orientation.SFWD:  self._sfwd_motor,
-            Orientation.PAFT:  self._paft_motor,
-            Orientation.SAFT:  self._saft_motor,
-        }
-        return _all_motors
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_motor(self, orientation):

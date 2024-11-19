@@ -9,7 +9,6 @@
 # created:  2020-01-18
 # modified: 2024-11-11
 #
-# PID class at bottom of file
 
 import itertools
 from math import isclose
@@ -18,41 +17,11 @@ from colorama import init, Fore, Style
 init()
 
 #from ioexpander.common import PID
+from inventorhatmini.pid import PID
 
 from core.logger import Level, Logger
 from core.component import Component
 from core.orientation import Orientation
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class PID:
-    VEL_KP = 30.0              # velocity proportional (P) gain
-    VEL_KI = 0.0               # velocity integral (I) gain
-    VEL_KD = 0.4               # velocity derivative (D) gain
-    UPDATES = 100              # how many times to update the motor per second
-    UPDATE_RATE = 1 / UPDATES
-    '''
-    A simple class for handling Proportional, Integral & Derivative (PID)
-    control calculations. This is copied from ioexpander.common.
-    '''
-    def __init__(self):
-        self.kp = PID.VEL_KP
-        self.ki = PID.VEL_KI
-        self.kd = PID.VEL_KD
-        self.setpoint     = 0
-        self._error_sum   = 0
-        self._last_value  = 0
-        self._sample_rate = PID.UPDATE_RATE
-
-    def calculate(self, value, value_change=None):
-        print('calculate...')
-        error = self.setpoint - value
-        self._error_sum += error * self._sample_rate
-        if value_change is None:
-            rate_error = (value - self._last_value) / self._sample_rate
-        else:
-            rate_error = value_change
-        self._last_value = value
-        return (error * self.kp) + (self._error_sum * self.ki) - (rate_error * self.kd)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Motor(Component):

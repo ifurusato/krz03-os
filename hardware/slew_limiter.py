@@ -1,4 +1,5 @@
-#!/usr/bin/env python3 # -*- coding: utf-8 -*-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # Copyright 2024 by Murray Altheim. All rights reserved. This file is part of
 # the Robot OS project and is released under the "Apache Licence, Version 2.0".

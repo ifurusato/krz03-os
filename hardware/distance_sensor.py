@@ -39,14 +39,16 @@ class DistanceSensor(Component):
         if config is None:
             raise ValueError('no configuration provided.')
         _cfg = config['krzos'].get('hardware').get('distance_sensor')
-        if orientation is Orientation.PORT:
-            self._pin = _cfg.get('pin_port') # pin connected to the port sensor
-        elif orientation is Orientation.CNTR:
-            self._pin = _cfg.get('pin_cntr') # pin connected to the center sensor
-        elif orientation is Orientation.STBD:
-            self._pin = _cfg.get('pin_stbd') # pin connected to the starboard sensor
-        else:
-            raise Exception('unexpected orientation: {}'.format(orientation.name))
+        match orientation:
+            case Orientation.PORT:
+                self._pin = _cfg.get('pin_port') # pin connected to the port sensor
+            case Orientation.CNTR:
+                self._pin = _cfg.get('pin_cntr') # pin connected to the center sensor
+            case Orientation.STBD:
+                self._pin = _cfg.get('pin_stbd') # pin connected to the starboard sensor
+            case _:
+                raise Exception('unexpected orientation: {}'.format(orientation.name))
+        self._orientation = orientation
         self._timeout = _cfg.get('timeout')     # time in seconds to consider sensor as timed out 
         self._smoothing = _cfg.get('smoothing') # enable smoothing of distance readings 
         _smoothing_window    = _cfg.get('smoothing_window')
@@ -65,6 +67,11 @@ class DistanceSensor(Component):
         self._callback = self._pi.callback(self._pin, pigpio.EITHER_EDGE, self._pulse_callback)
         self._last_read_time = time.time()
         self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def orientation(self):
+        return self._orientation
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _pulse_callback(self, gpio, level, tick):

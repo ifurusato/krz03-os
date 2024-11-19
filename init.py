@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyright 2020-2024 by Murray Altheim. All rights reserved. This file is part
@@ -55,6 +55,7 @@ try:
     0x17   Inventor HAT - fwd
     0x18   IO Expander
     0x1D   LSM303D
+    0x28   VL53L1CX
     0x29   VL53L5CX
     0x38   BH1745                   (optional)
     0x74   RGB LED - stbd
