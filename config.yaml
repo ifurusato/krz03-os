@@ -11,6 +11,8 @@ krzosd:
     toggle_pin:                              10            # Rx=8, Tx=10; the GPIO pin connected to the 'enable' toggle switch
 
 krzos:
+    arguments:                                             # CLI arguments are copied here
+        nada:                             False            # nada
     component:
         # publishers .......................................
         enable_queue_publisher:            True            # publishes from globally-available queue
@@ -90,6 +92,12 @@ krzos:
             loop_freq_hz:                    20            # main loop delay in hz
             sense_threshold:                150            # threshold in millimeters to react to an obstacle
             bump_threshold:                  70            # threshold in millimeters to consider as a bump
+        imu:
+            loop_freq_hz:                     5            # polling loop frequency (Hz)
+            pitch_threshold:                 20.0          # pitch threshold for sending a message
+            roll_threshold:                  20.0          # roll threshold for sending a message
+        queue:
+            loop_freq_hz:                    20            # polling loop frequency (Hz)
     hardware:
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
@@ -129,6 +137,10 @@ krzos:
             include_accel_gyro:            True            # if true, poll heading data
             include_heading:               True            # if true, poll accelerometer and gyroscope data
             play_sound:                   False            # if True, play sound to indicate calibration
+        tinyfx-controller:
+            i2c_address:                   0x18
+            pin_1:                           14            # pin on the IO Expander (SCL blue)
+            pin_2:                           12            # pin on the IO Expander (SDA yellow)
         paa5100je:                                         # PAA5100JE Optical Flow Sensor
             rotation:                       180            # permitted values: 0, 90, 180 or 270 
             x_trim:                         1.0            # percentage X trim (as a multiplier)

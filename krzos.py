@@ -94,7 +94,6 @@ class KRZOS(Component, FiniteStateMachine):
         FiniteStateMachine.__init__(self, self._log, _name)
         self._system             = System(self, level)
         self._system.set_nice()
-        globals.put('krzos', self)
         # configuration…
         self._config                 = None
         self._component_registry     = None
@@ -107,6 +106,7 @@ class KRZOS(Component, FiniteStateMachine):
         self._distance_sensors       = None
 #       self._system_publisher       = None
 #       self._system_subscriber      = None
+        self._task_selector          = None
         self._icm20948               = None
         self._imu                    = None
         self._behaviour_mgr          = None
@@ -142,22 +142,17 @@ class KRZOS(Component, FiniteStateMachine):
 
         _args = self._config['krzos'].get('arguments')
         # copy argument-based configuration over to _config (changing the names!)
+        print('args: {}'.format(_args))
+
+        _args['log_enabled']    = arguments.log
+        self._log.info('write log enabled:    {}'.format(_args['log_enabled']))
+
+        _args['json_dump_enabled'] = arguments.json
+        self._log.info('json enabled:   {}'.format(_args['json_dump_enabled']))
 
 #       self._log.info('argument gamepad:     {}'.format(arguments.gamepad))
         _args['gamepad_enabled'] = arguments.gamepad and self._is_raspberry_pi
         self._log.info('gamepad enabled:      {}'.format(_args['gamepad_enabled']))
-#       _args['video_enabled']   = arguments.video
-#       self._log.info('video enabled:        {}'.format(_args['video_enabled']))
-        _args['motors_enabled']  = not arguments.no_motors
-        self._log.info('motors enabled:       {}'.format(_args['motors_enabled']))
-#       _args['mock_enabled']    = arguments.mock
-#       self._log.info('mock enabled:         {}'.format(_args['mock_enabled']))
-        _args['json_dump_enabled'] = arguments.json
-        self._log.info('json enabled:   {}'.format(_args['json_dump_enabled']))
-        _args['experimental_enabled'] = arguments.experimental
-        self._log.info('experiment enabled:   {}'.format(_args['experimental_enabled']))
-        _args['log_enabled']    = arguments.log
-        self._log.info('write log enabled:    {}'.format(_args['log_enabled']))
 
         # print remaining arguments
         self._log.info('argument config-file: {}'.format(arguments.config_file))
@@ -181,6 +176,7 @@ class KRZOS(Component, FiniteStateMachine):
 
         _cfg = self._config['krzos'].get('component')
         self._component_registry = globals.get('component-registry')
+        print('⭐ component registry: {}'.format(self._component_registry))
 
         # basic hardware ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -429,7 +425,7 @@ class KRZOS(Component, FiniteStateMachine):
         This halts any motor activity, demands a sudden halt of all tasks,
         then shuts down the OS.
         '''
-        self._log.info(Fore.MAGENTA + Style.BRIGHT + 'shutting down…')
+        self._log.info(Fore.MAGENTA + 'shutting down…')
         self.close()
         # we never get here if we shut down properly
         self._log.error(Fore.RED + 'shutdown error.')
@@ -577,15 +573,11 @@ def parse_args(passed_args=None):
     parser.add_argument('--docs',         '-d', action='store_true', help='show the documentation message and exit')
     parser.add_argument('--configure',    '-c', action='store_true', help='run configuration (included by -s)')
     parser.add_argument('--start',        '-s', action='store_true', help='start krzos')
-    parser.add_argument('--experimental', '-x', action='store_true', help='enable experiment manager')
     parser.add_argument('--json',         '-j', action='store_true', help='dump YAML configuration as JSON file')
-    parser.add_argument('--no-motors',    '-n', action='store_true', help='disable motors (uses mock)')
     parser.add_argument('--gamepad',      '-g', action='store_true', help='enable bluetooth gamepad control')
-    parser.add_argument('--video',        '-v', action='store_true', help='enable video if installed')
     parser.add_argument('--pubs',         '-P', help='enable publishers as identified by first character')
     parser.add_argument('--subs',         '-S', help='enable subscribers as identified by first character')
-    parser.add_argument('--behave',       '-B', help='override behaviour configuration (1, y, yes or true, otherwise false)')
-    parser.add_argument('--mock',         '-m', action='store_true', help='permit mocked libraries (e.g., when not on a Pi)')
+    parser.add_argument('--behave',       '-b', help='override behaviour configuration (1, y, yes or true, otherwise false)')
     parser.add_argument('--config-file',  '-f', help='use alternative configuration file')
     parser.add_argument('--log',          '-L', action='store_true', help='write log to timestamped file')
     parser.add_argument('--level',        '-l', help='specify logging level \'DEBUG\'|\'INFO\'|\'WARN\'|\'ERROR\' (default: \'INFO\')')

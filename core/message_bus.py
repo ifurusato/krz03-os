@@ -505,20 +505,28 @@ class MessageBus(Component):
         '''
         Cleanup tasks tied to the service's shutdown.
         '''
-        self._log.info('starting shutdown procedure…')
-        if signal:
-            self._log.info('received exit signal {}…'.format(signal))
-        self._log.info('nacking outstanding tasks…')
-        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-        [task.cancel() for task in tasks]
-        self._log.info('cancelling {:d} outstanding tasks…'.format(len(tasks)))
-        _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=False)
-        self._log.info('gathered tasks: {}'.format(_gathered_tasks))
-        if self.loop.is_running():
-            self._log.info('stopping event loop…')
-            self.loop.stop()
-            self._log.info('event loop stopped.')
-        self._log.info('shutting down…')
+        try:
+            self._log.info('starting shutdown procedure…')
+            if signal:
+                self._log.info('received exit signal {}…'.format(signal))
+            tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+            if len(tasks) > 0:
+                self._log.info('nacking outstanding tasks:')
+                for task in tasks:
+                    self._log.info('  task: {}'.format(task.get_name()))
+                [task.cancel() for task in tasks]
+                self._log.info('cancelling {:d} outstanding tasks…'.format(len(tasks)))
+                _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=False)
+                self._log.info('gathered tasks: {}'.format(_gathered_tasks))
+            else:
+                self._log.info('no outstanding tasks.')
+            if self.loop.is_running():
+                self._log.info('stopping event loop…')
+                self.loop.stop()
+                self._log.info('event loop stopped.')
+            self._log.info('shutting down…')
+        except Exception as e:
+            self._log.error('{} thrown shutting down krzos: {}'.format(type(e), e))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def __close_message_bus(self):
@@ -599,7 +607,7 @@ class MessageBus(Component):
                 self._loop.add_signal_handler(
                     s, lambda s = s: asyncio.create_task(self.shutdown(s), name='shutdown'),)
             self._loop.set_exception_handler(self._handle_exception)
-            self._loop.create_task(self._start_consuming(), name='__event_loop__')
+            self._loop.create_task(self._start_consuming(), name='__message-bus-event-loop')
         if not self._loop.is_running():
             self._log.info('starting asyncio task loop…')
             self._loop.run_forever()

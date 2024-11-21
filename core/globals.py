@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2021-09-03
-# modified: 2021-09-03
+# modified: 2024-11-21
 #
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -51,6 +51,10 @@ def put(key, value):
     global gvars
     if not gvars:
         init()
+    else:
+        _existing_value = get(key)
+        if _existing_value:
+            raise Globalerror("key '{}' has existing value: '{}'".format(key, _existing_value))
     gvars[key] = value
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

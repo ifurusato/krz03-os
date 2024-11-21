@@ -18,6 +18,9 @@ from datetime import datetime as dt
 from colorama import init, Fore, Style
 init()
 
+import core.globals as globals
+globals.init()
+
 from core.logger import Logger, Level
 from core.event import Event
 from core.orientation import Orientation
@@ -28,7 +31,7 @@ from hardware.distance_sensor import DistanceSensor
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DistanceSensors(Publisher):
     CLASS_NAME = 'dists'
-    _LISTENER_LOOP_NAME = '__dist_listener_loop'
+    _LISTENER_LOOP_NAME = '__distance-sensors-loop'
     '''
     A publisher for events from a trio of DistanceSensors.
 
@@ -62,11 +65,11 @@ class DistanceSensors(Publisher):
     def enable(self):
         Publisher.enable(self)
         if self.enabled:
-            if self._message_bus.get_task_by_name(DistanceSensors._LISTENER_LOOP_NAME):
+            if self.message_bus.get_task_by_name(DistanceSensors._LISTENER_LOOP_NAME):
                 self._log.warning('already enabled.')
             else:
                 self._log.info('creating task for distance sensor listener loop…')
-                self._message_bus.loop.create_task(self._dist_listener_loop(lambda: self.enabled), name=DistanceSensors._LISTENER_LOOP_NAME)
+                self.message_bus.loop.create_task(self._dist_listener_loop(lambda: self.enabled), name=DistanceSensors._LISTENER_LOOP_NAME)
                 self._log.info('enabled.')
         else:
             self._log.warning('failed to enable publisher.')
@@ -93,10 +96,11 @@ class DistanceSensors(Publisher):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def _dist_listener_loop(self, f_is_enabled):
         self._log.info('starting distance sensor listener loop.')
+        _exit_flag = False
         try:
-            # start all sensors
+            # enable all sensors
             for _sensor in self._sensors:
-                _sensor.start()
+                _sensor.enable()
             while f_is_enabled():
                 for _sensor in self._sensors:
                     _distance_mm = _sensor.get_distance()
@@ -111,12 +115,17 @@ class DistanceSensors(Publisher):
                             await Publisher.publish(self, _message)
                 await asyncio.sleep(self._publish_delay_sec)
         except asyncio.CancelledError:
-            self._log.error('caught cancellation: system exit!')
+            self._log.info('closing krzos from Ctrl-C…')
             if self._exit_on_cancel:
-                sys.exit(0)
+                _exit_flag = True
         finally:
             for _sensor in self._sensors:
                 _sensor.stop()
+            if _exit_flag:
+                _component_registry = globals.get('component-registry')
+                _krzos = _component_registry.get('krzos')
+                _krzos.shutdown()
+
         self._log.info('distance sensors publish loop complete.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

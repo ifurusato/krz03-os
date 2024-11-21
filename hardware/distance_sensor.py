@@ -15,6 +15,9 @@ import asyncio
 from collections import deque
 import pigpio
 
+import core.globals as globals
+globals.init()
+
 from core.logger import Logger, Level
 from core.component import Component
 from core.orientation import Orientation
@@ -35,7 +38,7 @@ class DistanceSensor(Component):
         :param level:         the logging Level
         '''
         self._log = Logger('dist:{}'.format(orientation.label), level)
-        Component.__init__(self, self._log, suppressed=False, enabled=True)
+        Component.__init__(self, self._log, suppressed=False, enabled=False)
         if config is None:
             raise ValueError('no configuration provided.')
         _cfg = config['krzos'].get('hardware').get('distance_sensor')
@@ -49,6 +52,7 @@ class DistanceSensor(Component):
             case _:
                 raise Exception('unexpected orientation: {}'.format(orientation.name))
         self._orientation = orientation
+        self._task_name = '__{}-distance-sensor-loop'.format(self.orientation.name)
         self._timeout = _cfg.get('timeout')     # time in seconds to consider sensor as timed out 
         self._smoothing = _cfg.get('smoothing') # enable smoothing of distance readings 
         _smoothing_window    = _cfg.get('smoothing_window')
@@ -130,8 +134,6 @@ class DistanceSensor(Component):
         '''
         Start the sensor's asynchronous loop.
         '''
-        self._running = True
-        self._task = asyncio.create_task(self._sensor_loop())
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def stop(self):
@@ -147,6 +149,18 @@ class DistanceSensor(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
         Component.enable(self)
+        if self.enabled:
+            _component_registry = globals.get('component-registry')
+            _message_bus = _component_registry.get('bus')
+            if _message_bus is None:
+                raise Exception('no message bus available.')
+            elif _message_bus.get_task_by_name(self._task_name):
+                self._log.warning('already enabled.')
+            else:
+                self._running = True
+                self._task = asyncio.create_task(self._sensor_loop(), name=self._task_name)
+        else:
+            self._log.warning('failed to enable distance sensor.')
  
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
