@@ -22,6 +22,7 @@ krzos:
         enable_remote_ctrl_publisher:     False            # enable Remote Control Publisher
         enable_rtof_publisher:            False            # enable Ranging ToF publisher
         enable_gamepad_publisher:         False            # enable gamepad support
+        enable_killswitch:                 True            # enable pushbutton kill switch
         # subscribers ......................................
         enable_macro_subscriber:          False            # enable macro publisher
     message_bus:
@@ -104,6 +105,8 @@ krzos:
             impl:                     'gpiozero'           # either 'gpio' or 'ioe' or 'gpiozero'
             pin:                             23            # GPIO or IO Expander pin used
             led_pin:                         13            # GPIO pin for LED on wait()
+        killswitch:                                        # application kill switch
+            pin:                             23            # GPIO or IO Expander pin used
         distance_sensor:
             pin_port:                        16            # the port input pin
             pin_cntr:                        20            # the center input pin

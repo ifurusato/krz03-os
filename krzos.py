@@ -56,6 +56,7 @@ from hardware.task_selector import TaskSelector
 from hardware.i2c_scanner import I2CScanner
 from hardware.tinyfx_controller import TinyFxController
 from hardware.distance_sensors import DistanceSensors
+from hardware.button import Button
 
 #from behave.behaviour_manager import BehaviourManager
 #from behave.avoid import Avoid
@@ -114,6 +115,7 @@ class KRZOS(Component, FiniteStateMachine):
         self._rgbmatrix              = None
         self._motor_controller       = None
         self._tinyfx                 = None
+        self._killswitch             = None
         self._closing                = False
         self._log.info('oid: {}'.format(id(self)))
         self._log.info('initialised.')
@@ -130,7 +132,6 @@ class KRZOS(Component, FiniteStateMachine):
             '[1/2]' if arguments.start else '[1/1]')
         self._log.info('application log level: {}'.format(self._log.level.name))
 
-        print("arguments: '{}'".format(arguments))
         # read YAML configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         _loader = ConfigLoader(self._level)
         _config_filename = arguments.config_file
@@ -142,7 +143,6 @@ class KRZOS(Component, FiniteStateMachine):
 
         _args = self._config['krzos'].get('arguments')
         # copy argument-based configuration over to _config (changing the names!)
-        print('args: {}'.format(_args))
 
         _args['log_enabled']    = arguments.log
         self._log.info('write log enabled:    {}'.format(_args['log_enabled']))
@@ -176,7 +176,6 @@ class KRZOS(Component, FiniteStateMachine):
 
         _cfg = self._config['krzos'].get('component')
         self._component_registry = globals.get('component-registry')
-        print('⭐ component registry: {}'.format(self._component_registry))
 
         # basic hardware ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -227,6 +226,11 @@ class KRZOS(Component, FiniteStateMachine):
 
         self._log.info('configure tinyfx controller…')
         self._tinyfx = TinyFxController(self._config)
+
+        _enable_killswitch= _cfg.get('enable_killswitch') or 'k' in _pubs
+        if _enable_killswitch:
+            self._killswitch = Button(self._config)
+            self._killswitch.add_callback(self.shutdown)
 
         # add task selector ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -287,7 +291,9 @@ class KRZOS(Component, FiniteStateMachine):
 #           self._system_subscriber.enable()
 
         if self._tinyfx:
-            self._tinyfx.channel_on(TinyFxController.RUNNING)
+            self._tinyfx.channel_on(Orientation.PORT)
+            time.sleep(0.1)
+            self._tinyfx.channel_on(Orientation.STBD)
 
         # begin main loop ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -428,7 +434,7 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.info(Fore.MAGENTA + 'shutting down…')
         self.close()
         # we never get here if we shut down properly
-        self._log.error(Fore.RED + 'shutdown error.')
+        self._log.error('shutdown error.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
@@ -584,12 +590,7 @@ def parse_args(passed_args=None):
 
     try:
         print('')
-        if passed_args is None:
-            args = parser.parse_args()
-        else:
-#           parser.parse_args(['1', '2', '3', '4'])
-            args = parser.parse_args(passed_args)
-        print("-- ARGS type: {}".format(type(args)))
+        args = parser.parse_args() if passed_args is None else parser.parse_args(passed_args)
         if args.docs:
             print(Fore.CYAN + '{}\n{}'.format(parser.format_help(), print_documentation(True)) + Style.RESET_ALL)
             return -1

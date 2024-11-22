@@ -25,12 +25,13 @@ import time
 import ioexpander as io
 
 from core.component import Component
+from core.orientation import Orientation
 from core.logger import Logger, Level
 
 class TinyFxController(Component):
-    HEADLIGHT = 1
-    DOWNLIGHT = 2
-    RUNNING   = 3
+    CHANNEL_1 = 1 # PORT
+    CHANNEL_2 = 2 # STBD
+    CHANNEL_3 = 3 # MAST
     '''
     This uses two pins on the IO Expander to control two of the LED
     channels on the Tiny FX by repurposing its SDA and SCL pins as
@@ -60,31 +61,45 @@ class TinyFxController(Component):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def channel_on(self, channel_id):
-        if channel_id == TinyFxController.HEADLIGHT:
-            self._log.info('headlight on.')
+        '''
+        Turn on the channel designated by:
+            Orientation.PORT | TinyFxController.CHANNEL_1 : port light
+            Orientation.STBD | TinyFxController.CHANNEL_2 : starboard light
+            Orientation.MAST | TinyFxController.CHANNEL_3 : mast flashing light
+        '''
+        if isinstance(channel_id, Orientation):
+            match channel_id:
+                case Orientation.PORT:
+                    channel_id = TinyFxController.CHANNEL_1
+                case Orientation.STBD:
+                    channel_id = TinyFxController.CHANNEL_2
+                case Orientation.MAST:
+                    channel_id = TinyFxController.CHANNEL_3
+        if channel_id == TinyFxController.CHANNEL_1:
+            self._log.info('channel 1 on.')
             self._ioe.output(self._pin1, io.LOW)
             self._ioe.output(self._pin2, io.LOW)
-        elif channel_id == TinyFxController.DOWNLIGHT:
-            self._log.info('downlights on.')
+        elif channel_id == TinyFxController.CHANNEL_2:
+            self._log.info('channel 2 on.')
             self._ioe.output(self._pin1, io.LOW)
             self._ioe.output(self._pin2, io.HIGH)
-        elif channel_id == TinyFxController.RUNNING:
-            self._log.info('running lights on.')
+        elif channel_id == TinyFxController.CHANNEL_3:
+            self._log.info('channel 3 on.')
             self._ioe.output(self._pin1, io.HIGH)
             self._ioe.output(self._pin2, io.LOW)
         else:
-            raise Exception('expected channel 1, 2 or 3, not {}.'.format(channel_id))
+            raise Exception('expected channel 1-3, not {}.'.format(channel_id))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def on(self):
         '''
         Turn off all channels.
         '''
-        self.channel_on(TinyFxController.HEADLIGHT)
+        self.channel_on(TinyFxController.CHANNEL_1)
         time.sleep(0.1)
-        self.channel_on(TinyFxController.DOWNLIGHT)
+        self.channel_on(TinyFxController.CHANNEL_2)
         time.sleep(0.1)
-        self.channel_on(TinyFxController.RUNNING)
+        self.channel_on(TinyFxController.CHANNEL_3)
         self._log.info('lights on.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

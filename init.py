@@ -36,6 +36,7 @@ from hardware.pigpiod_util import PigpiodUtility as pig_util
 EXPECT_GPS = True
 BLINK_ON_COMPLETE = True
 
+_pin = None
 _tb1 = None
 _tb2 = None
 
@@ -164,7 +165,7 @@ except KeyboardInterrupt:
 except Exception as e:
     _log.error('{} thrown in thunderborg test: {}\n{}'.format(type(e), e, traceback.format_exc()))
 finally:
-    if BLINK_ON_COMPLETE:
+    if _pin and BLINK_ON_COMPLETE:
         GPIO.cleanup(_pin)
 
 #EOF
