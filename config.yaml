@@ -24,6 +24,7 @@ krzos:
         enable_gamepad_publisher:         False            # enable gamepad support
         enable_killswitch:                 True            # enable pushbutton kill switch
         # subscribers ......................................
+        enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
         enable_macro_subscriber:          False            # enable macro publisher
     message_bus:
         max_age_ms:                        20.0            # maximum age of a message before expiry
@@ -141,7 +142,8 @@ krzos:
             include_heading:               True            # if true, poll accelerometer and gyroscope data
             play_sound:                   False            # if True, play sound to indicate calibration
         tinyfx-controller:
-            i2c_address:                   0x18
+            i2c_address:                   0x45
+            bus_number:                       1
             pin_1:                           14            # pin on the IO Expander (SCL blue)
             pin_2:                           12            # pin on the IO Expander (SDA yellow)
         paa5100je:                                         # PAA5100JE Optical Flow Sensor

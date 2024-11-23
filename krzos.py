@@ -46,6 +46,7 @@ from core.queue_publisher import QueuePublisher
 from core.subscriber import Subscriber, GarbageCollector
 #from hardware.system_subscriber import SystemSubscriber
 #from core.macro_subscriber import MacroSubscriber
+from hardware.distance_sensors_subscriber import DistanceSensorsSubscriber
 
 from hardware.system import System
 from hardware.rtof import RangingToF
@@ -54,9 +55,12 @@ from hardware.icm20948 import Icm20948
 from hardware.imu import IMU
 from hardware.task_selector import TaskSelector
 from hardware.i2c_scanner import I2CScanner
-from hardware.tinyfx_controller import TinyFxController
-from hardware.distance_sensors import DistanceSensors
+from hardware.tinyfx_i2c_controller import TinyFxController
+from hardware.distance_sensors_publisher import DistanceSensorsPublisher
 from hardware.button import Button
+
+from hardware.sound import Sound
+from hardware.player import Player
 
 #from behave.behaviour_manager import BehaviourManager
 #from behave.avoid import Avoid
@@ -93,30 +97,31 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.info('…')
         Component.__init__(self, self._log, suppressed=False, enabled=False)
         FiniteStateMachine.__init__(self, self._log, _name)
-        self._system             = System(self, level)
+        self._system                      = System(self, level)
         self._system.set_nice()
         # configuration…
-        self._config                 = None
-        self._component_registry     = None
-        self._controller             = None
-        self._message_bus            = None
-#       self._gamepad_publisher      = None
-#       self._macro_publisher        = None
-        self._queue_publisher        = None
-        self._rtof_publisher         = None
-        self._distance_sensors       = None
-#       self._system_publisher       = None
-#       self._system_subscriber      = None
-        self._task_selector          = None
-        self._icm20948               = None
-        self._imu                    = None
-        self._behaviour_mgr          = None
-#       self._gamepad_controller     = None
-        self._rgbmatrix              = None
-        self._motor_controller       = None
-        self._tinyfx                 = None
-        self._killswitch             = None
-        self._closing                = False
+        self._config                      = None
+        self._component_registry          = None
+        self._controller                  = None
+        self._message_bus                 = None
+#       self._gamepad_publisher           = None
+#       self._macro_publisher             = None
+        self._queue_publisher             = None
+        self._rtof_publisher              = None
+        self._distance_sensors_publisher  = None
+#       self._system_publisher            = None
+#       self._system_subscriber           = None
+        self._distance_sensors_subscriber = None
+        self._task_selector               = None
+        self._icm20948                    = None
+        self._imu                         = None
+        self._behaviour_mgr               = None
+#       self._gamepad_controller          = None
+        self._rgbmatrix                   = None
+        self._motor_controller            = None
+        self._tinyfx                      = None
+        self._killswitch                  = None
+        self._closing                     = False
         self._log.info('oid: {}'.format(id(self)))
         self._log.info('initialised.')
 
@@ -193,6 +198,9 @@ class KRZOS(Component, FiniteStateMachine):
 #       if _cfg.get('enable_omni_subscriber') or 'o' in _subs:
 #           self._omni_subscriber = OmniSubscriber(self._config, self._message_bus, level=self._level) # reacts to IR sensors
 
+        if _cfg.get('enable_distance_subscriber'):
+            self._distance_sensors_subscriber = DistanceSensorsSubscriber(self._config, self._message_bus, level=self._level) # reacts to IR sensors
+
         # create publishers  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
         _pubs = arguments.pubs if arguments.pubs else ''
@@ -206,7 +214,7 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_distance_sensors = _cfg.get('enable_distance_sensors')
         if _enable_distance_sensors:
-            self._distance_sensors = DistanceSensors(self._config, self._message_bus, self._message_factory, level=self._level)
+            self._distance_sensors_publisher = DistanceSensorsPublisher(self._config, self._message_bus, self._message_factory, level=self._level)
 
 #       if _cfg.get('enable_macro_publisher') or 'm' in _pubs:
 #           _callback = None
@@ -310,6 +318,9 @@ class KRZOS(Component, FiniteStateMachine):
         # print registry of components
         self._component_registry.print_registry()
 
+        # instantiate singleton with existing TinyFX
+        Player.instance(self._tinyfx).play(Sound.CHATTER_4)
+
         # ════════════════════════════════════════════════════════════════════
         # now in main application loop until quit or Ctrl-C…
         self._log.info('enabling message bus…')
@@ -392,9 +403,9 @@ class KRZOS(Component, FiniteStateMachine):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_distance_sensors(self):
         '''
-        Returns the DistanceSensors, None if not used.
+        Returns the DistanceSensorsPublisher, None if not used.
         '''
-        return self._distance_sensors
+        return self._distance_sensors_publisher
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_motor_controller(self):
@@ -446,6 +457,7 @@ class KRZOS(Component, FiniteStateMachine):
         elif self._closing:
             self._log.warning('already closing.')
         elif self.enabled:
+            Player.instance().play(Sound.HZAH)
             self._log.info('disabling…')
             if self._task_selector:
                 self._task_selector.close()
