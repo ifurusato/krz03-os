@@ -113,11 +113,11 @@ class KRZOS(Component, FiniteStateMachine):
 #       self._system_subscriber           = None
         self._distance_sensors_subscriber = None
         self._task_selector               = None
+        self._rgbmatrix                   = None
         self._icm20948                    = None
         self._imu                         = None
         self._behaviour_mgr               = None
 #       self._gamepad_controller          = None
-        self._rgbmatrix                   = None
         self._motor_controller            = None
         self._tinyfx                      = None
         self._killswitch                  = None
@@ -222,9 +222,11 @@ class KRZOS(Component, FiniteStateMachine):
 #           _library = KR01MacroLibrary(self._macro_publisher)
 #           self._macro_publisher.set_macro_library(_library)
 
+        # optionally used by ICM20948
+        self._rgbmatrix = RgbMatrix(enable_port=True, enable_stbd=True, level=self._level)
+
         _enable_imu_publisher = _cfg.get('enable_imu_publisher')
         if _enable_imu_publisher:
-            self._rgbmatrix = RgbMatrix(enable_port=True, enable_stbd=True, level=self._level)
             self._icm20948  = Icm20948(self._config, self._rgbmatrix, level=self._level)
             self._imu = IMU(self._config, self._icm20948, self._message_bus, self._message_factory, level=self._level)
 
@@ -299,9 +301,10 @@ class KRZOS(Component, FiniteStateMachine):
 #           self._system_subscriber.enable()
 
         if self._tinyfx:
-            self._tinyfx.channel_on(Orientation.PORT)
-            time.sleep(0.1)
-            self._tinyfx.channel_on(Orientation.STBD)
+            self._tinyfx.channel_on(Orientation.ALL)
+#           self._tinyfx.channel_on(Orientation.PORT)
+#           time.sleep(0.1)
+#           self._tinyfx.channel_on(Orientation.STBD)
 
         # begin main loop ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -319,7 +322,7 @@ class KRZOS(Component, FiniteStateMachine):
         self._component_registry.print_registry()
 
         # instantiate singleton with existing TinyFX
-        Player.instance(self._tinyfx).play(Sound.CHATTER_4)
+        Player.instance(self._tinyfx).play(Sound.BEEP)
 
         # ════════════════════════════════════════════════════════════════════
         # now in main application loop until quit or Ctrl-C…

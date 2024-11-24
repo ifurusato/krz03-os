@@ -65,7 +65,7 @@ class Player(Component):
         _duration    = _sound.duration
         _description = _sound.description
         _player      = Player.instance()
-        _player._log.info("playing '" + Style.BRIGHT + "{}".format(_name) + Style.NORMAL + "' ('{}') for {} seconds.".format(_description, _duration))
+        _player._log.info(Fore.MAGENTA + "playing '" + Style.BRIGHT + "{}".format(_name) + Style.NORMAL + "' ('{}') for {} seconds.".format(_description, _duration))
         _player._tinyfx_controller.play(_sound.name)
         time.sleep(_duration)
         time.sleep(0.1)

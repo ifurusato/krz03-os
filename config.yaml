@@ -95,7 +95,8 @@ krzos:
             sense_threshold:                150            # threshold in millimeters to react to an obstacle
             bump_threshold:                  70            # threshold in millimeters to consider as a bump
         imu:
-            loop_freq_hz:                     5            # polling loop frequency (Hz)
+            initial_calibration:           True            # if True, calibrate the IMU upon starting
+            loop_freq_hz:                    20            # polling loop frequency (Hz)
             pitch_threshold:                 20.0          # pitch threshold for sending a message
             roll_threshold:                  20.0          # roll threshold for sending a message
         queue:
@@ -125,7 +126,8 @@ krzos:
         icm20948:
             i2c_address:                   0x69            # I2C address (default 0x68)
             poll_rate_hz:                   150            # how often the IMU is polled
-            bench_calibrate:              False            # if true, calibrate the IMU manually while on the rotating bench
+            vertical_mount:                True            # vertical like Pimoroni, or horizontal like Adafruit
+            bench_calibrate:               True            # if true, calibrate the IMU manually while on the rotating bench
             motion_calibrate:             False            # if true, calibrate the IMU by the robot rotating in place
             show_console:                  True            # if true, show data on console (same as verbose)
             show_rgbmatrix5x5:             True            # if true, show heading as color
@@ -133,14 +135,14 @@ krzos:
             adjust_trim:                  False            # if true, use pot for trim, otherwise used fixed value
             pitch_trim:                    0.0             # pitch trim for level
             roll_trim:                     4.0             # roll trim for level
-            heading_trim:                 -1.51            # heading trim adjustment (in radians) to set north (was 0.15 on MR01)
+            heading_trim:                  1.55            # heading trim adjustment (in radians) to set north (was 0.15 on MR01)
             queue_length:                   100            # length of heading data queue
             stability_threshold:              5.0          # max standard deviation to determine stability
             cardinal_tolerance:               0.0698132    # tolerance to cardinal points (4° in radians)
 #           cardinal_tolerance:               0.0523599    # tolerance to cardinal points (3° in radians)
             include_accel_gyro:            True            # if true, poll heading data
             include_heading:               True            # if true, poll accelerometer and gyroscope data
-            play_sound:                   False            # if True, play sound to indicate calibration
+            play_sound:                    True            # if True, play sound to indicate calibration
         tinyfx-controller:
             i2c_address:                   0x45
             bus_number:                       1

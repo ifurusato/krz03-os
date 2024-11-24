@@ -480,7 +480,6 @@ class MessageBus(Component):
     # exception handling ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
     def _handle_exception(self, loop, context):
-        # context["message"] will always be there; but context["exception"] may not
         _exception = context.get('exception', context['message'])
         if _exception != None:
             _type = type(_exception)
@@ -514,8 +513,8 @@ class MessageBus(Component):
                 self._log.info('nacking outstanding tasks:')
                 for task in tasks:
                     self._log.info('  task: {}'.format(task.get_name()))
-                [task.cancel() for task in tasks]
                 self._log.info('cancelling {:d} outstanding tasks…'.format(len(tasks)))
+                [task.cancel() for task in tasks]
                 _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=False)
                 self._log.info('gathered tasks: {}'.format(_gathered_tasks))
             else:

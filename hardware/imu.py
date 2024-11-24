@@ -41,23 +41,37 @@ class IMU(Publisher):
         if not isinstance(level, Level):
             raise ValueError('wrong type for log level argument: {}'.format(type(level)))
         self._level = level
+        if icm20948 is None:
+            raise ValueError('null icm20948 argument.')
         self._icm20948 = icm20948
+        if message_bus is None:
+            raise ValueError('null message bus argument.')
+        self._message_bus = message_bus
+        if message_factory is None:
+            raise ValueError('null message factory argument.')
+        self._message_factory = message_factory
         Publisher.__init__(self, IMU.CLASS_NAME, config, message_bus, message_factory, level=self._level)
         # configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         _cfg = config['krzos'].get('publisher').get('imu')
-        _loop_freq_hz         = _cfg.get('loop_freq_hz')
-        self._publish_delay_sec = 1.0 / _loop_freq_hz
-        self._pitch_threshold = _cfg.get('pitch_threshold')
-        self._roll_threshold  = _cfg.get('roll_threshold')
-        self._log.info('ready.')
+        _loop_freq_hz             = _cfg.get('loop_freq_hz')
+        self._publish_delay_sec   = 1.0 / _loop_freq_hz
+        self._pitch_threshold     = _cfg.get('pitch_threshold')
+        self._roll_threshold      = _cfg.get('roll_threshold')
+        self._initial_calibration = _cfg.get('initial_calibration')
+        self._log.info('ready with loop frequency of {:d}Hz.'.format(_loop_freq_hz))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
-        if not self._icm20948.is_calibrated:
-            self._log.warning('cannot enable IMU: icm20948 has not been calibrated.')
-            return
         Publisher.enable(self)
         if self.enabled:
+            if self._initial_calibration:
+                self._log.info('calibrating…')
+                self._calibrate_imu()
+                self._log.info('finished calibration.')
+            if not self._icm20948.is_calibrated:
+                self._log.warning('cannot enable IMU: icm20948 has not been calibrated.')
+                self.disable()
+                return
             if self._message_bus.get_task_by_name(IMU._LISTENER_LOOP_NAME):
                 self._log.warning('already enabled.')
             else:
@@ -66,6 +80,18 @@ class IMU(Publisher):
                 self._log.info('enabled.')
         else:
             self._log.warning('failed to enable publisher.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _calibrate_imu(self):
+        '''
+        Calibrate the IMU now…
+        '''
+        if not self._icm20948.enabled:
+            self._icm20948.enable()
+        if not self._icm20948.is_calibrated:
+            # TODO motion calibrate?
+            self._log.info('calibrating IMU…')
+            self._icm20948.calibrate()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -79,13 +105,9 @@ class IMU(Publisher):
     async def _imu_listener_loop(self, f_is_enabled):
         self._log.info('starting imu listener loop.')
         while f_is_enabled():
+            _message = None
             # read heading, pitch and roll from IMU
             _heading, _pitch, _roll = self._icm20948.poll()
-#           self._icm20948.poll()
-#           _heading = self._icm20948.heading
-#           _pitch   = self._icm20948.pitch
-#           _roll    = self._icm20948.roll
-            _message = None
             if _heading is not None:
                 if abs(_roll) > self._roll_threshold:
                     self._log.info('heading: {:.2f}°; pitch: {:.2f}°; '.format(_heading, _pitch) + Style.BRIGHT + ' roll: {:.2f}°'.format(_roll))
