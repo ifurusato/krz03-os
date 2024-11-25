@@ -16,10 +16,14 @@ import RPi.GPIO as GPIO
 from colorama import init, Fore, Style
 init()
 
+import pigpio
+
 from core.logger import Logger, Level
+from core.component import Component
+from hardware.pigpiod_util import PigpiodUtility
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Button(object):
+class Button(Component):
     '''
     A simple button that can be configured to either use a GPIO pin or a pin
     on the IOExpander as input.
@@ -40,8 +44,12 @@ class Button(object):
         _cfg = config['krzos'].get('hardware').get('button')
         self._pin = _cfg.get('pin') if pin is None else pin
         self._log = Logger('button:{}'.format(self._pin), level)
+        Component.__init__(self, self._log, suppressed=False, enabled=False)
         self._impl = impl if impl is not None else _cfg.get('impl') # either 'gpio' or 'ioe' or 'gpiozero'
         self._ioe = None
+        self._pi  = None
+        self._pigpio_callback = None
+        self._callbacks = [] # list of callback functions
         if waitable:
 
             import RPi.GPIO as GPIO
@@ -73,17 +81,36 @@ class Button(object):
             self._ioe.set_mode(self._pin, io.IN_PU)
             self._log.info('ready: pushbutton on IO Expander pin {:d}'.format(self._pin))
 
+        elif self._impl == 'pigpio':
+
+            if not PigpiodUtility.is_pigpiod_running():
+                _pigpiod_util = PigpiodUtility()
+                _pigpiod_util.ensure_running()
+
+            self._pi = pigpio.pi()  # Initialize pigpio
+            if self._pi is None:
+                raise Exception('unable to instantiate pigpio.pi().')
+            elif self._pi._notify is None:
+                raise Exception('can\'t connect to pigpio daemon; did you start it?')
+            if not self._pi.connected:
+                raise RuntimeError("Failed to connect to pigpio daemon")
+            # set the GPIO pin mode
+            self._pi.set_mode(self._pin, pigpio.INPUT)
+            self._pi.set_pull_up_down(self._pin, pigpio.PUD_UP)
+            self._log.info('ready: pushbutton on GPIO pin {:d} using pigpio.'.format(self._pin))
+
         elif self._impl == 'gpiozero':
 
             from gpiozero import Button
 
             self._button = Button(self._pin, pull_up=True)  # create a Button object for the specified pin
-            self._callbacks = []             # list to store callback functions
-            self._button.when_pressed = self._button_pressed  # set the internal callback
+            self._button.when_pressed = self.__gpiozero_button_pressed  # set the internal callback
             self._log.info('ready: pushbutton on GPIO pin {:d} using gpiozero.'.format(self._pin))
 
         else:
             raise Exception('unrecognised source: {}'.format(self._impl))
+
+
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def add_callback(self, callback_method, bouncetime_ms=300):
@@ -101,18 +128,42 @@ class Button(object):
                 self._log.info('added callback on GPIO pin {:d}'.format(self._pin))
             except Exception as e:
                 self._log.error('{} error adding callback: {}\n{}'.format(type(e), e, traceback.format_exc()))
+        elif self._impl == 'pigpio':
+            self._pigpio_callback = self._pi.callback(self._pin, pigpio.RISING_EDGE, self.__pigpio_callback)
+            self._callbacks.append(callback_method)
         elif self._impl == 'gpiozero':
-              self._callbacks.append(callback_method)
+            self._callbacks.append(callback_method)
         else:
             raise Exception('{} implementation does not support callbacks.'.format(self._impl))
 
-    def _button_pressed(self):
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def __pigpio_callback(self, gpio, level, tick):
+        for callback in self._callbacks:  # execute registered callbacks
+            callback()
+#       self._callbacks.clear() # only if one-shot
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def __gpiozero_button_pressed(self):
         '''
         Internal method called when the button is pressed.
         '''
-        self._log.info("button pressed!")
+        self._log.info(Fore.MAGENTA + "button pressed!")
+        self._close_gpzio()
         for callback in self._callbacks:  # execute registered callbacks
             callback()
+#       self._callbacks.clear() # only if one-shot
+
+    def _close_gpzio(self):
+        if self._button:
+            try:
+                self._log.info("performing gpiozero cleanup…")
+                # cancel subsequent callbacks
+                self._button.when_pressed = None
+                self._button.close()
+            except Exception as e:
+                self._log.error("error during gpiozero cleanup: {e}".format(e))
+            finally:
+                self._button = None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -147,6 +198,18 @@ class Button(object):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
-        GPIO.cleanup(self._pin)
+        if self._impl == 'gpio':
+            GPIO.cleanup(self._pin)
+        elif self._impl == 'gpiozero':
+            self._close_gpzio()
+        elif self._impl == 'pigpio':
+            if self._pigpio_callback:
+                self._log.debug('cancelling pigpio callback…')
+                self._pigpio_callback.cancel()
+            if self._pi:
+                self._log.debug('stopping pigpio pi…')
+                self._pi.stop()
+        self._callbacks.clear()
+        Component.close(self) # calls disable
 
 #EOF

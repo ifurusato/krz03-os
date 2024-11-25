@@ -505,7 +505,7 @@ class MessageBus(Component):
         Cleanup tasks tied to the service's shutdown.
         '''
         try:
-            self._log.info('starting shutdown procedure…')
+            self._log.info(Fore.MAGENTA + 'starting shutdown procedure…')
             if signal:
                 self._log.info('received exit signal {}…'.format(signal))
             tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
@@ -523,7 +523,9 @@ class MessageBus(Component):
                 self._log.info('stopping event loop…')
                 self.loop.stop()
                 self._log.info('event loop stopped.')
-            self._log.info('shutting down…')
+            self._log.info(Fore.MAGENTA + 'async sleeping…')
+            await asyncio.sleep(0.3)
+            self._log.info(Fore.MAGENTA + 'continuing to shut down…')
         except Exception as e:
             self._log.error('{} thrown shutting down krzos: {}'.format(type(e), e))
 
@@ -542,9 +544,12 @@ class MessageBus(Component):
                     self.loop.stop()
                     self._log.info('event loop stopped.')
                 if not self.loop.is_running() and not self.loop.is_closed():
-                    self._log.info('closing event loop…')
-                    self.loop.close()
-                    self._log.info('event loop closed.')
+                    try:
+                        self._log.info('closing event loop…')
+                        self.loop.close()
+                        self._log.info('event loop closed.')
+                    except Exception as e:
+                        self._log.error('error closing event loop: {}'.format(e))
             else:
                 self._log.warning('no message bus event loop!')
         except KeyboardInterrupt:
@@ -646,7 +651,6 @@ class MessageBus(Component):
             self.clear_tasks()
             self.clear_queue()
             _nil = self.__close_message_bus()
-            time.sleep(0.1)
             self._log.info('disabled: {}'.format(_nil))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

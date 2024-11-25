@@ -17,6 +17,8 @@
 #
 
 import os, sys, signal, time, traceback
+import threading
+import atexit
 import argparse, psutil
 from pathlib import Path
 from colorama import init, Fore, Style
@@ -47,6 +49,7 @@ from core.subscriber import Subscriber, GarbageCollector
 #from hardware.system_subscriber import SystemSubscriber
 #from core.macro_subscriber import MacroSubscriber
 from hardware.distance_sensors_subscriber import DistanceSensorsSubscriber
+from hardware.sound_subscriber import SoundSubscriber
 
 from hardware.system import System
 from hardware.rtof import RangingToF
@@ -112,6 +115,7 @@ class KRZOS(Component, FiniteStateMachine):
 #       self._system_publisher            = None
 #       self._system_subscriber           = None
         self._distance_sensors_subscriber = None
+        self._sound_subscriber            = None
         self._task_selector               = None
         self._rgbmatrix                   = None
         self._icm20948                    = None
@@ -143,6 +147,8 @@ class KRZOS(Component, FiniteStateMachine):
         _filename = _config_filename if _config_filename is not None else 'config.yaml'
         self._config = _loader.configure(_filename)
         self._is_raspberry_pi = self._system.is_raspberry_pi()
+
+        _i2c_scanner = I2CScanner(self._config, level=Level.INFO)
 
         # configuration from command line arguments ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -201,6 +207,9 @@ class KRZOS(Component, FiniteStateMachine):
         if _cfg.get('enable_distance_subscriber'):
             self._distance_sensors_subscriber = DistanceSensorsSubscriber(self._config, self._message_bus, level=self._level) # reacts to IR sensors
 
+        if _cfg.get('enable_sound_subscriber'):
+            self._sound_subscriber = SoundSubscriber(self._config, self._message_bus, level=self._level)
+
         # create publishers  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
         _pubs = arguments.pubs if arguments.pubs else ''
@@ -227,8 +236,11 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_imu_publisher = _cfg.get('enable_imu_publisher')
         if _enable_imu_publisher:
-            self._icm20948  = Icm20948(self._config, self._rgbmatrix, level=self._level)
-            self._imu = IMU(self._config, self._icm20948, self._message_bus, self._message_factory, level=self._level)
+            if _i2c_scanner.has_hex_address(['0x69']):
+                self._icm20948 = Icm20948(self._config, self._rgbmatrix, level=self._level)
+                self._imu = IMU(self._config, self._icm20948, self._message_bus, self._message_factory, level=self._level)
+            else:
+                self._log.warning('no IMU available.')
 
         _enable_rtof_publisher = _cfg.get('enable_rtof_publisher')
         if _enable_rtof_publisher:
@@ -296,15 +308,22 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.heading('starting', 'starting m-series robot operating system (krzos)…', '[2/2]' )
         FiniteStateMachine.start(self)
 
+        atexit.register(self._cleanup)
+
 #       if self._system_subscriber:
 #           self._log.info('enabling system subscriber…')
 #           self._system_subscriber.enable()
 
-        if self._tinyfx:
-            self._tinyfx.channel_on(Orientation.ALL)
-#           self._tinyfx.channel_on(Orientation.PORT)
-#           time.sleep(0.1)
-#           self._tinyfx.channel_on(Orientation.STBD)
+        if self._tinyfx: # turn on running lights
+            _cfg = self._config.get('krzos').get('hardware').get('tinyfx-controller')
+            _enable_mast_light = _cfg.get('enable_mast_light')
+            if _enable_mast_light:
+                self._tinyfx.channel_on(Orientation.MAST)
+            _enable_nav_light = _cfg.get('enable_nav_lights')
+            if _enable_nav_light:
+                self._tinyfx.channel_on(Orientation.PORT)
+                time.sleep(0.1)
+                self._tinyfx.channel_on(Orientation.STBD)
 
         # begin main loop ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -479,6 +498,24 @@ class KRZOS(Component, FiniteStateMachine):
         return self._closing
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _cleanup(self):
+        try:
+            for thread_id, frame in sys._current_frames().items():
+                thread = next((t for t in threading.enumerate() if t.ident == thread_id), None)
+                if thread and thread.name.startswith("Thread-4"):
+                    self._log.info(Fore.MAGENTA + "Inspecting Thread-4 (held): {}".format(thread))
+                    traceback.print_stack(frame)
+            if threading.active_count() > 0:
+                for thread in threading.enumerate():
+                    if thread.name != 'MainThread':
+                        self._log.warning("unclosed resource thread: {}; alive={}, daemon={}".format(thread.name, thread.is_alive(), thread.daemon ))
+                    if thread.daemon:
+                        thread.join(timeout=1)
+                        self._log.info(Fore.MAGENTA + "thread {} stopped.".format(thread.name))
+        except Exception as e:
+            self._log.error('error cleaning up application: {}\n{}'.format(e, traceback.format_exc()))
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
         '''
         This closes KRZOS and sets the robot to a passive, stable state
@@ -507,13 +544,12 @@ class KRZOS(Component, FiniteStateMachine):
                     self._message_bus.close()
                     self._log.info('message bus closed.')
                 while not Component.close(self): # will call disable()
-                    print('closing on 2nd try................')
                     self._log.info('closing component…')
                 FiniteStateMachine.close(self)
                 self._closing = False
                 self._log.info('application closed.')
             except Exception as e:
-                print('error closing application: {}\n{}'.format(e, traceback.format_exc()))
+                self._log.error('error closing application: {}\n{}'.format(e, traceback.format_exc()))
             finally:
                 self._log.close()
                 sys.exit(0)
@@ -632,19 +668,55 @@ _krzos = None
 
 # execution handler ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def signal_handler(signal, frame):
-    print('\nsignal handler    :' + Fore.MAGENTA + Style.BRIGHT + ' INFO  : Ctrl-C caught: exiting…' + Style.RESET_ALL)
-    if _krzos and not ( _krzos.closing or _krzos.closed ):
-        _krzos.close()
-    print(Fore.MAGENTA + 'exit.' + Style.RESET_ALL)
-#   sys.stderr = DevNull()
-    sys.exit(0)
+    print(Fore.MAGENTA + '\nsignal handler    :' + Style.BRIGHT + ' INFO  : Ctrl-C caught: exiting…' + Style.RESET_ALL)
+    try:
+        if _krzos and not ( _krzos.closing or _krzos.closed ):
+            _krzos.close()
+        print(Fore.MAGENTA + 'exiting…' + Style.RESET_ALL)
+        close_daemon_threads()
+    except Exception as e:
+        print(Fore.RED + "error during shutdown: {}".format(e) + Style.RESET_ALL)
+    finally:
+        try:
+            sys.stdout.flush()
+            sys.stdout.close()
+        except Exception:
+            pass
+        sys.exit(0)
+
+def close_daemon_threads():
+    print(Fore.MAGENTA + 'closing daemon threads…' + Style.RESET_ALL)
+    try:
+        # wait for all non-daemon threads to exit
+        for thread in threading.enumerate():
+            if thread is not threading.main_thread() and not thread.daemon:
+                print(Fore.MAGENTA + 'waiting for thread {} to finish…'.format(thread.name) + Style.RESET_ALL)
+                thread.join(timeout=5)
+            else:
+                print(Fore.MAGENTA + 'thread {} seems okay…'.format(thread.name) + Style.RESET_ALL)
+
+        for thread_id, frame in sys._current_frames().items():
+            thread = next((t for t in threading.enumerate() if t.ident == thread_id), None)
+            if thread:
+                print("stack trace for thread (held):")
+                traceback.print_stack(frame)
+    except Exception as e:
+        print(Fore.RED + "error closing daemon threads: {}".format(e) + Style.RESET_ALL)
+    finally:
+        print(Fore.MAGENTA + 'daemon threads closed.' + Style.RESET_ALL)
 
 # main ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def main(argv):
     global _krzos
-    signal.signal(signal.SIGINT, signal_handler)
-    _suppress = False
+
     _log = Logger("main", Level.INFO)
+    if threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGINT, signal_handler)
+        _log.info("signal handler registered.")
+    else:
+        _log.warning("not running in the main thread: signal handling will not work.")
+
+    _suppress = False
     try:
         _args = parse_args()
         if _args == None:
@@ -667,7 +739,7 @@ def main(argv):
             # krzos is now running…
     except KeyboardInterrupt:
         print('\n')
-        print(Style.BRIGHT + 'caught Ctrl-C; exiting…' + Style.RESET_ALL)
+        print(Fore.MAGENTA + Style.BRIGHT + 'caught Ctrl-C; exiting…' + Style.RESET_ALL)
     except Exception:
         print(Fore.RED + Style.BRIGHT + 'error starting krzos: {}'.format(traceback.format_exc()) + Style.RESET_ALL)
     finally:

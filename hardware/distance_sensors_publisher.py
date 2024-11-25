@@ -137,6 +137,5 @@ class DistanceSensorsPublisher(Publisher):
         Disable this publisher.
         '''
         Publisher.disable(self)
-        self._log.info('disabled publisher.')
 
 #EOF

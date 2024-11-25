@@ -67,14 +67,13 @@ class Icm20948(Component):
             raise ValueError('wrong type for config argument: {}'.format(type(name)))
         # add color display ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._rgbmatrix          = rgbmatrix
+        self._port_rgbmatrix5x5  = None
+        self._stbd_rgbmatrix5x5  = None
         if self._rgbmatrix:
             if not isinstance(self._rgbmatrix, RgbMatrix):
                 raise ValueError('wrong type for RgbMatrix argument: {}'.format(type(self._rgbmatrix)))
             self._port_rgbmatrix5x5 = self._rgbmatrix.get_rgbmatrix(Orientation.PORT)
             self._stbd_rgbmatrix5x5 = self._rgbmatrix.get_rgbmatrix(Orientation.STBD)
-        else:
-            self._port_rgbmatrix5x5 = None
-            self._stbd_rgbmatrix5x5 = None
         self._counter = itertools.count()
         # configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         _cfg = config['krzos'].get('hardware').get('icm20948')

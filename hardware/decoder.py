@@ -125,7 +125,7 @@ class Decoder(object):
                 _implementation = "pigpio"
                 self._log.info('using ' + Fore.WHITE + 'pigpiod' + Fore.CYAN + ' for motor encoders…')
 
-                if not PigpiodUtility.is_running():
+                if not PigpiodUtility.is_pigpiod_running():
                     _pigpiod_util = PigpiodUtility()
                     _pigpiod_util.ensure_running()
 

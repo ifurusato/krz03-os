@@ -141,7 +141,7 @@ try:
         _log.info(Fore.GREEN + 'Port 5x5 RGB Matrix found at address 0x77.')
 #   0x69   ICM20948
     if not _i2c_scanner.has_hex_address(['0x69']):
-        raise DeviceNotFound('ICM20948 not found at address 0x69.')
+        _log.warning('ICM20948 not found at address 0x69.')
     else:
         _log.info(Fore.GREEN + 'ICM20948 found at address 0x69.')
 

@@ -11,7 +11,7 @@ krzosd:
     toggle_pin:                              10            # Rx=8, Tx=10; the GPIO pin connected to the 'enable' toggle switch
 
 krzos:
-    arguments:                                             # CLI arguments are copied here
+    arguments:                                             # CLI arguments are copied here (required section)
         nada:                             False            # nada
     component:
         # publishers .......................................
@@ -25,6 +25,7 @@ krzos:
         enable_killswitch:                 True            # enable pushbutton kill switch
         # subscribers ......................................
         enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
+        enable_sound_subscriber:           True            # enable sounds for various events
         enable_macro_subscriber:          False            # enable macro publisher
     message_bus:
         max_age_ms:                        20.0            # maximum age of a message before expiry
@@ -104,7 +105,7 @@ krzos:
     hardware:
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
-            impl:                     'gpiozero'           # either 'gpio' or 'ioe' or 'gpiozero'
+            impl:                       'pigpio'           # either 'gpio', 'ioe', 'gpiozero' or 'pigpio'
             pin:                             23            # GPIO or IO Expander pin used
             led_pin:                         13            # GPIO pin for LED on wait()
         killswitch:                                        # application kill switch
@@ -148,6 +149,8 @@ krzos:
             bus_number:                       1
             pin_1:                           14            # pin on the IO Expander (SCL blue)
             pin_2:                           12            # pin on the IO Expander (SDA yellow)
+            enable_mast_light:             True            # flashing white mast light
+            enable_nav_lights:             True            # port and starboard running lights
         paa5100je:                                         # PAA5100JE Optical Flow Sensor
             rotation:                       180            # permitted values: 0, 90, 180 or 270 
             x_trim:                         1.0            # percentage X trim (as a multiplier)

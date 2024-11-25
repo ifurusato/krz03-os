@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-20
-# modified: 2024-11-23
+# modified: 2024-11-25
 #
 # DO NOT EDIT: This is an auto-generated file.
 #
@@ -28,7 +28,7 @@ JSONEncoder.default = _default
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Sound(Enum):
-    __order__ = " SILENCE BEEP BEEP_HI BLIP BUZZ CHATTER_1 CHATTER_2 CHATTER_4 CHATTER_5 CHIRP_1 CHIRP_4 CHIRP_7 DWERP EARPIT HZAH PEW_PEW_PEW SONIC_BAT TELEMETRY TSK_TSK_TSK TWEAK TWIT ZZT "
+    __order__ = " SILENCE BEEP BEEP_HI BLIP BUZZ CHATTER_1 CHATTER_2 CHATTER_3 CHATTER_4 CHATTER_5 CHIRP_1 CHIRP_4 CHIRP_7 DWERP EARPIT HONK HZAH PEW_PEW_PEW PIZZLE SONIC_BAT TELEMETRY TSK_TSK_TSK TICK TWEAK TWIT ZZT "
 
     #                idx   name            mnemonic     dur(s)  filename                description
     SILENCE       = (  1, 'silence',      'SILENCE',      0.0, 'silence.wav',      'silence. 1')
@@ -38,21 +38,25 @@ class Sound(Enum):
     BUZZ          = (  5, 'buzz',         'BUZZ',         1.0, 'buzz.wav',         'buzz. 5')
     CHATTER_1     = (  6, 'chatter-1',    'CHATTER_1',    1.0, 'chatter-1.wav',    'chatter 1. 6')
     CHATTER_2     = (  7, 'chatter-2',    'CHATTER_2',    1.0, 'chatter-2.wav',    'chatter 2. 7')
-    CHATTER_4     = (  8, 'chatter-4',    'CHATTER_4',    1.0, 'chatter-4.wav',    'chatter 4. 8')
-    CHATTER_5     = (  9, 'chatter-5',    'CHATTER_5',    1.0, 'chatter-5.wav',    'chatter 5. 9')
-    CHIRP_1       = ( 10, 'chirp-1',      'CHIRP_1',      2.0, 'chirp-1.wav',      'chirp 1. 10')
-    CHIRP_4       = ( 11, 'chirp-4',      'CHIRP_4',      1.0, 'chirp-4.wav',      'chirp 4. 11')
-    CHIRP_7       = ( 12, 'chirp-7',      'CHIRP_7',      1.0, 'chirp-7.wav',      'chirp 7. 12')
-    DWERP         = ( 13, 'dwerp',        'DWERP',        1.0, 'dwerp.wav',        'dwerp. 13')
-    EARPIT        = ( 14, 'earpit',       'EARPIT',       1.0, 'earpit.wav',       'ear pit. 14')
-    HZAH          = ( 15, 'hzah',         'HZAH',         1.0, 'hzah.wav',         'hzah. 15')
+    CHATTER_3     = (  8, 'chatter-3',    'CHATTER_3',    1.0, 'chatter-3.wav',    'chatter 3. 8')
+    CHATTER_4     = (  9, 'chatter-4',    'CHATTER_4',    1.0, 'chatter-4.wav',    'chatter 4. 9')
+    CHATTER_5     = ( 10, 'chatter-5',    'CHATTER_5',    1.0, 'chatter-5.wav',    'chatter 5. 10')
+    CHIRP_1       = ( 11, 'chirp-1',      'CHIRP_1',      2.0, 'chirp-1.wav',      'chirp 1. 11')
+    CHIRP_4       = ( 12, 'chirp-4',      'CHIRP_4',      1.0, 'chirp-4.wav',      'chirp 4. 12')
+    CHIRP_7       = ( 13, 'chirp-7',      'CHIRP_7',      1.0, 'chirp-7.wav',      'chirp 7. 13')
+    DWERP         = ( 14, 'dwerp',        'DWERP',        1.0, 'dwerp.wav',        'dwerp. 14')
+    EARPIT        = ( 15, 'earpit',       'EARPIT',       1.0, 'earpit.wav',       'ear pit. 15')
+    HONK          = ( 16, 'honk',         'HONK',         1.0, 'honk.wav',         'honk. 16')
+    HZAH          = ( 17, 'hzah',         'HZAH',         1.0, 'hzah.wav',         'hzah. 17')
     PEW_PEW_PEW   = ( 16, 'pew-pew-pew',  'PEW_PEW_PEW',  1.0, 'pew-pew-pew.wav',  'pew pew pew. 16')
-    SONIC_BAT     = ( 17, 'sonic-bat',    'SONIC_BAT',    1.0, 'sonic-bat.wav',    'sonic bat beep. 17')
-    TELEMETRY     = ( 18, 'telemetry',    'TELEMETRY',    1.0, 'telemetry.wav',    'telemetry. 18')
-    TSK_TSK_TSK   = ( 19, 'tsk-tsk-tsk',  'TSK_TSK_TSK',  1.0, 'tsk-tsk-tsk.wav',  'tsk-tsk-tsk. 19')
-    TWEAK         = ( 20, 'tweak',        'TWEAK',        1.0, 'tweak.wav',        'tweak. 20')
-    TWIT          = ( 21, 'twit',         'TWIT',         1.0, 'twit.wav',         'twit. 21')
-    ZZT           = ( 22, 'zzt',          'ZZT',          1.0, 'zzt.wav',          'zzt. 22')
+    PIZZLE        = ( 17, 'pizzle',       'PIZZLE',       1.0, 'pizzle.wav',       'pizzle. 17')
+    SONIC_BAT     = ( 18, 'sonic-bat',    'SONIC_BAT',    1.0, 'sonic-bat.wav',    'sonic bat beep. 18')
+    TELEMETRY     = ( 19, 'telemetry',    'TELEMETRY',    1.0, 'telemetry.wav',    'telemetry. 19')
+    TSK_TSK_TSK   = ( 20, 'tsk-tsk-tsk',  'TSK_TSK_TSK',  1.0, 'tsk-tsk-tsk.wav',  'tsk-tsk-tsk. 20')
+    TICK          = ( 21, 'tick',         'TICK',         0.0, 'tick.wav',         'tick. 21')
+    TWEAK         = ( 22, 'tweak',        'TWEAK',        1.0, 'tweak.wav',        'tweak. 22')
+    TWIT          = ( 23, 'twit',         'TWIT',         1.0, 'twit.wav',         'twit. 23')
+    ZZT           = ( 24, 'zzt',          'ZZT',          1.0, 'zzt.wav',          'zzt. 24')
 
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name, mnemonic, duration, filename, description):

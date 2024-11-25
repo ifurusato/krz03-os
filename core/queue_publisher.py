@@ -114,6 +114,5 @@ class QueuePublisher(Publisher):
         '''
         Publisher.disable(self) 
         self.clear()
-        self._log.info('disabled publisher.')
 
 #EOF
