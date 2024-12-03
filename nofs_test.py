@@ -76,6 +76,7 @@ def accumulate_and_clamp(value, delta, max_value):
 
 # .............................................................................
 async def main():
+    _nofs = None
     try:
 
         _config = ConfigLoader(Level.INFO).configure()
@@ -148,10 +149,10 @@ async def main():
 #       print('\n')
 #       _log.info('caught Ctrl-C: exiting…')
     except Exception as e:
-        print(Fore.BLUE + 'EXCEPTION.')
-#       print(Fore.BLUE + 'EXCEPTION: {}'.format(e))
+        print(Fore.BLUE + '{} thrown executing nofs: {}'.format(type(e), e))
     finally:
         if _nofs:
+            _nofs.close()
             await _nofs.stop()
         pass
 

@@ -13,7 +13,7 @@
 import sys
 import traceback
 from enum import Enum # for Response at bottom of file
-from smbus import SMBus
+from smbus2 import SMBus
 from colorama import init, Fore, Style
 init()
 
@@ -30,7 +30,7 @@ class TinyFxController(Component):
         Component.__init__(self, self._log, suppressed=False, enabled=True)
         _cfg = config['krzos'].get('hardware').get('tinyfx-controller')
         _bus_number = _cfg.get('bus_number')
-        self.bus    = SMBus(_bus_number)
+        self._bus   = SMBus(_bus_number)
         self._i2c_address        = _cfg.get('i2c_address')
         self._config_register    = 1
         self._max_payload_length = 32
@@ -96,7 +96,7 @@ class TinyFxController(Component):
         '''
         Write the payload to the I2C bus.
         '''
-        self.bus.write_block_data(self._i2c_address, self._config_register, payload)
+        self._bus.write_block_data(self._i2c_address, self._config_register, payload)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _write_completion_code(self):
@@ -104,7 +104,7 @@ class TinyFxController(Component):
         Write a completion code to the I2C bus.
         '''
         self._log.debug("writing completion code...")
-        self.bus.write_byte_data(self._i2c_address, self._config_register, 0xFF)
+        self._bus.write_byte_data(self._i2c_address, self._config_register, 0xFF)
         self._log.debug("write complete.")
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -112,7 +112,7 @@ class TinyFxController(Component):
         '''
         Read the response from the I2C device.
         '''
-        read_data = self.bus.read_byte_data(self._i2c_address, self._config_register)
+        read_data = self._bus.read_byte_data(self._i2c_address, self._config_register)
         self._log.debug("read data: '{}'".format(read_data))
         response = Response.from_value(read_data)
         if response.value <= Response.OKAY.value:
@@ -126,6 +126,7 @@ class TinyFxController(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
         self.send_data('off')
+        self._bus.close()
         self._log.info('closed.')
 
 

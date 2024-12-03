@@ -42,19 +42,9 @@ class I2CScanner(object):
             raise ValueError('expected log level as a Level enum.')
         self._log = Logger('i2cscan', level)
         self._config = config
+        self._bus_number = bus_number # bus number 1 indicates /dev/i2c-1
         self._int_list = []
         self._hex_list = []
-        self._bus      = None
-        try:
-            self._log.info('initialising…')
-            from smbus2 import SMBus
-            _bus_number = bus_number  # 1 indicates /dev/i2c-1
-            self._bus = SMBus(_bus_number)
-            self._log.info('ready.')
-        except ImportError:
-            self._log.warning('import error, unable to initialise: this script requires smbus2. Scan will return an empty result.')
-        except Exception as e:
-            self._log.warning('{} while initialising I²C bus: scan will return an empty result.'.format(e))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_hex_addresses(self):
@@ -116,24 +106,34 @@ class I2CScanner(object):
         if len(self._int_list) == 0:
             self._log.info('scanning I²C address bus…')
             device_count = 0
-            if self._bus is not None:
-                for address in range(3, 128):
-                    try:
-                        self._bus.write_byte(address, 0)
-                        _hex_address = hex(address)
-                        self._log.debug('found I²C device at 0x{:02X} (hex: {})'.format(address, _hex_address))
-                        self._int_list.append(address)
-                        self._hex_list.append('0x{:02X}'.format(address))
-                        device_count = device_count + 1
-                    except IOError as e:
-                        if e.errno != errno.EREMOTEIO:
-                            self._log.debug('{0} on address {1}'.format(e, hex(address)))
-#                           self._log.warning('{0} on address {1}'.format(e, hex(address)))
-                    except Exception as e: # exception if read_byte fails
-                        self._log.error('{0} error on address {1}'.format(e, hex(address)))
-                self._bus.close()
-                self._bus = None
-                self._log.info("found {:d} I²C device(s).".format(device_count))
+            try:
+                self._log.info('initialising…')
+                from smbus2 import SMBus
+                with SMBus(self._bus_number) as _bus:
+                    self._log.info('scanning…')
+                    for address in range(3, 128):
+                        try:
+                            _bus.write_byte(address, 0)
+                            _hex_address = hex(address)
+                            self._log.debug('found I²C device at 0x{:02X} (hex: {})'.format(address, _hex_address))
+                            self._int_list.append(address)
+                            self._hex_list.append('0x{:02X}'.format(address))
+                            device_count = device_count + 1
+                        except IOError as e:
+                            if e.errno != errno.EREMOTEIO:
+                                self._log.debug('{0} on address {1}'.format(e, hex(address)))
+#                               self._log.warning('{0} on address {1}'.format(e, hex(address)))
+                        except Exception as e: # exception if read_byte fails
+                            self._log.error('{0} error on address {1}'.format(e, hex(address)))
+                self._log.info('scanning complete.')
+            except ImportError:
+                self._log.warning('import error, unable to initialise: this script requires smbus2. Scan will return an empty result.')
+            except Exception as e:
+                self._log.warning('{} while initialising I²C bus: scan will return an empty result.'.format(e))
+            if device_count == 1:
+                self._log.info("found one I²C device.".format(device_count))
+            elif device_count > 1:
+                self._log.info("found {:d} I²C devices.".format(device_count))
             else:
                 self._log.info("found no devices (no smbus available).")
         return self._int_list

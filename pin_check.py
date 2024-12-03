@@ -47,6 +47,7 @@ def main():
         NNNN = '\n' * ROWS # as tall as your screen
         INDENT = '    '
 
+        GPIO.cleanup()
         GPIO.setmode(GPIO.BOARD)
 
         # column 1 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -121,6 +122,8 @@ def main():
         print('\n')
         print('Ctrl-C caught, exiting…')
         sys.exit(0)
+    finally:
+        GPIO.cleanup()
 
 if __name__== "__main__":
     main()

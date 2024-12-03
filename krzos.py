@@ -61,6 +61,7 @@ from hardware.i2c_scanner import I2CScanner
 from hardware.tinyfx_i2c_controller import TinyFxController
 from hardware.distance_sensors_publisher import DistanceSensorsPublisher
 from hardware.button import Button
+from hardware.pigpiod_util import PigpiodUtility as PigUtil
 
 from hardware.sound import Sound
 from hardware.player import Player
@@ -159,7 +160,7 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.info('write log enabled:    {}'.format(_args['log_enabled']))
 
         _args['json_dump_enabled'] = arguments.json
-        self._log.info('json enabled:   {}'.format(_args['json_dump_enabled']))
+        self._log.info('json enabled:         {}'.format(_args['json_dump_enabled']))
 
 #       self._log.info('argument gamepad:     {}'.format(arguments.gamepad))
         _args['gamepad_enabled'] = arguments.gamepad and self._is_raspberry_pi
@@ -168,6 +169,10 @@ class KRZOS(Component, FiniteStateMachine):
         # print remaining arguments
         self._log.info('argument config-file: {}'.format(arguments.config_file))
         self._log.info('argument level:       {}'.format(arguments.level))
+
+        # confirm external services are running ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+        PigUtil.ensure_pigpiod_is_running()
 
         # establish basic subsumption components ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -178,7 +183,7 @@ class KRZOS(Component, FiniteStateMachine):
 
         self._controller = Controller(self._message_bus, self._level)
 
-        # JSON configuration dump ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+        # JSON configuration dump ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         if _args['json_dump_enabled']:
             print('exporting JSON configuration.')
             # TODO
@@ -500,6 +505,8 @@ class KRZOS(Component, FiniteStateMachine):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _cleanup(self):
         try:
+            main_thread = threading.main_thread()
+
             for thread_id, frame in sys._current_frames().items():
                 thread = next((t for t in threading.enumerate() if t.ident == thread_id), None)
                 if thread and thread.name.startswith("Thread-4"):
@@ -507,11 +514,16 @@ class KRZOS(Component, FiniteStateMachine):
                     traceback.print_stack(frame)
             if threading.active_count() > 0:
                 for thread in threading.enumerate():
-                    if thread.name != 'MainThread':
-                        self._log.warning("unclosed resource thread: {}; alive={}, daemon={}".format(thread.name, thread.is_alive(), thread.daemon ))
+                    if thread is main_thread:
+                        self._log.warning("unclosed main thread: {}/{}; alive={}, daemon={}".format(thread.name, thread.ident, thread.is_alive(), thread.daemon ))
+                    else:
+                        self._log.warning("unclosed resource thread: {}/{}; alive={}, daemon={}".format(thread.name, thread.ident, thread.is_alive(), thread.daemon ))
                     if thread.daemon:
                         thread.join(timeout=1)
                         self._log.info(Fore.MAGENTA + "thread {} stopped.".format(thread.name))
+                    if thread.ident == thread_id and thread.name.startswith("Thread"):
+                        self._log.info("💔 stack trace for Thread '{}':".format(thread.name))
+                        traceback.print_stack(frame)
         except Exception as e:
             self._log.error('error cleaning up application: {}\n{}'.format(e, traceback.format_exc()))
 

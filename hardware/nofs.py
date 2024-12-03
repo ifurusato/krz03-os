@@ -11,6 +11,7 @@
 #
 
 import asyncio
+import time
 from datetime import datetime as dt
 from pmw3901 import BG_CS_FRONT_BCM, PAA5100
 from colorama import init, Fore, Style
@@ -75,6 +76,23 @@ class NearOpticalFlowSensor(Component):
         self._running        = False
         self._last_poll_time = dt.now().timestamp()
         self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def set_led(self, value):
+        '''
+        Turn the white LEDs on or off.
+        '''
+#       self._nofs.set_led(value)
+        if value is True:
+            time.sleep(0.2)
+            self._nofs._write(0x7f, 0x14)
+            self._nofs._write(0x6f, 0x1c) # DEC 28
+            self._nofs._write(0x7f, 0x00)
+        else:
+            time.sleep(0.2)
+            self._nofs._write(0x7f, 0x14)
+            self._nofs._write(0x6f, 0x00) 
+            self._nofs._write(0x7f, 0x00) 
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def start(self):
@@ -204,5 +222,13 @@ class NearOpticalFlowSensor(Component):
     def reset(self):
         self._tx = 0.0
         self._ty = 0.0
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def close(self):
+        '''
+        Closes the sensor, turning off the LED.
+        '''
+        self.set_led(False)
+        Component.close(self) # calls disable
 
 #EOF

@@ -15,10 +15,10 @@ krzos:
         nada:                             False            # nada
     component:
         # publishers .......................................
-        enable_queue_publisher:            True            # publishes from globally-available queue
-        enable_distance_sensors:           True            # enable Distance Sensors
+        enable_queue_publisher:           False            # publishes from globally-available queue
+        enable_distance_sensors:          False            # enable Distance Sensors
         enable_system_publisher:           True            # enable System Publisher
-        enable_imu_publisher:              True            # enable IMU publisher
+        enable_imu_publisher:             False            # enable IMU publisher
         enable_remote_ctrl_publisher:     False            # enable Remote Control Publisher
         enable_rtof_publisher:            False            # enable Ranging ToF publisher
         enable_gamepad_publisher:         False            # enable gamepad support
@@ -111,9 +111,9 @@ krzos:
         killswitch:                                        # application kill switch
             pin:                             23            # GPIO or IO Expander pin used
         distance_sensor:
-            pin_port:                        16            # the port input pin
-            pin_cntr:                        20            # the center input pin
-            pin_stbd:                        21            # the starboard input pin
+            pin_port:                        24            # the port input pin
+            pin_cntr:                        25            # the center input pin
+            pin_stbd:                         8            # the starboard input pin
             timeout:                          1            # time in seconds to consider sensor as timed out 
             smoothing:                     True            # enable smoothing of distance readings
             smoothing_window:                 5            # number of samples to use for smoothing
