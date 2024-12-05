@@ -101,23 +101,23 @@ try:
     if INVENTOR_HAT:
         #   0x16   Inventor HAT - aft
         if not _i2c_scanner.has_hex_address(['0x16']):
-            raise DeviceNotFound('Aft Inventor HAT not found at address 0x16.')
+            _log.warning('Aft Inventor HAT not found at address 0x16.')
         else:
             _log.info(Fore.GREEN + 'Aft Inventor HAT found at address 0x16.')
         #   0x17   Inventor HAT - fwd
         if not _i2c_scanner.has_hex_address(['0x17']):
-            raise DeviceNotFound('Fwd Inventor HAT not found at address 0x17.')
+            _log.warning('Fwd Inventor HAT not found at address 0x17.')
         else:
             _log.info(Fore.GREEN + 'Fwd Inventor HAT found at address 0x17.')
     elif PICON_ZERO:
         #   0x22   Picon Zero - aft
         if not _i2c_scanner.has_hex_address(['0x22']):
-            raise DeviceNotFound('Aft Picon Zero not found at address 0x22.')
+            _log.warning('Aft Picon Zero not found at address 0x22.')
         else:
             _log.info(Fore.GREEN + 'Aft Picon Zero found at address 0x22.')
         #   0x23   Picon Zero - fwd
         if not _i2c_scanner.has_hex_address(['0x23']):
-            raise DeviceNotFound('Fwd Picon Zero not found at address 0x23.')
+            _log.warning('Fwd Picon Zero not found at address 0x23.')
         else:
             _log.info(Fore.GREEN + 'Fwd Picon Zero found at address 0x23.')
     #   0x18   IO Expander

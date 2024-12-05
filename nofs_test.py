@@ -78,33 +78,43 @@ def accumulate_and_clamp(value, delta, max_value):
 async def main():
     _nofs = None
     try:
+        print('🦊 a.')
 
         _config = ConfigLoader(Level.INFO).configure()
         _nofs = NearOpticalFlowSensor(_config, level=Level.INFO)
 
         _matrix = None
+        print('🦊 b.')
         _i2c_scanner = I2CScanner(_config, level=Level.INFO)
         _brightness = 0.7
+        print('🦊 c.')
         if _i2c_scanner.has_hex_address(['0x75']):
+            print('🦊 c1.')
             _matrix = Matrix(Orientation.STBD)
+            print('🦊 c2.')
             _matrix.set_brightness(_brightness)
             _matrix.pixel(CENTER_X, CENTER_Y, _brightness)
             _matrix.show()
+            print('🦊 c3.')
+        print('🦊 d.')
 
         _log.info("""Detect flow/motion in front of the PAA5100JE sensor.
 
     Press Ctrl+C to exit!
     """)
 
+        print('🦊 e.')
         _swap_axes = True
         x_max_mm = 0.0
         y_max_mm = 0.0
         xd, yd = 0, 0  # Initialize display values
         last_move_time = dt.now().timestamp()  # Track the last time the robot moved
 
+        print('🦊 f.')
         _log.info(Fore.GREEN + 'starting nofs loop…')
         await _nofs.start()
 
+        print('🦊 g.')
         while True:
             try:
 
@@ -139,17 +149,18 @@ async def main():
                     _log.info(Fore.MAGENTA + 'plot: {: 2d}, {: 2d}'.format(xd, yd))
                     _matrix.pixel(xy[0], xy[1], _brightness, update=True)
 
-            except RuntimeError:
-                print('RuntimeError... ')
+            except RuntimeError as re:
+                _log.error('runtime error in nofs loop: {}\n{}'.format(e, traceback.format_exc()))
                 continue
             finally:
                 await asyncio.sleep(1)
 
-#   except KeyboardInterrupt:
-#       print('\n')
-#       _log.info('caught Ctrl-C: exiting…')
+        print('🦊 h.')
+    except KeyboardInterrupt:
+        print('\n')
+        _log.info('caught Ctrl-C: exiting…')
     except Exception as e:
-        print(Fore.BLUE + '{} thrown executing nofs: {}'.format(type(e), e))
+        _log.error('{} thrown executing nofs: {}\n{}'.format(type(e), e, traceback.format_exc()))
     finally:
         if _nofs:
             _nofs.close()
