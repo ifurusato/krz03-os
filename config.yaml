@@ -17,15 +17,15 @@ krzos:
         # publishers .......................................
         enable_queue_publisher:           False            # publishes from globally-available queue
         enable_distance_sensors:          False            # enable Distance Sensors
-        enable_system_publisher:           True            # enable System Publisher
+        enable_system_publisher:          False            # enable System Publisher
         enable_imu_publisher:             False            # enable IMU publisher
         enable_remote_ctrl_publisher:     False            # enable Remote Control Publisher
         enable_rtof_publisher:            False            # enable Ranging ToF publisher
         enable_gamepad_publisher:         False            # enable gamepad support
         enable_killswitch:                 True            # enable pushbutton kill switch
         # subscribers ......................................
-        enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
-        enable_sound_subscriber:           True            # enable sounds for various events
+        enable_distance_subscriber:       False            # enable Distance Sensors Subscriber
+        enable_sound_subscriber:          False            # enable sounds for various events
         enable_macro_subscriber:          False            # enable macro publisher
     message_bus:
         max_age_ms:                        20.0            # maximum age of a message before expiry
@@ -105,7 +105,7 @@ krzos:
     hardware:
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
-            impl:                       'pigpio'           # either 'gpio', 'ioe', 'gpiozero' or 'pigpio'
+            impl:                        'gpio'            # either 'gpio', 'ioe', 'gpiozero' or 'pigpio'
             pin:                             23            # GPIO or IO Expander pin used
             led_pin:                         13            # GPIO pin for LED on wait()
         killswitch:                                        # application kill switch

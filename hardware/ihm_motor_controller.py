@@ -38,7 +38,7 @@ from hardware.motor import Motor
 from hardware.motor_directive_factory import MotorDirectiveFactory
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class IHM_MotorController(Component):
+class MotorController(Component):
     '''
     The controller for 4 motors:
 
@@ -327,7 +327,7 @@ class IHM_MotorController(Component):
             self._log.warning('loop already running.')
         elif self._loop_thread is None:
             self._loop_enabled = True
-            self._loop_thread = Thread(name='motor_loop', target=IHM_MotorController._motor_loop, args=[self, lambda: self._loop_enabled], daemon=self._is_daemon)
+            self._loop_thread = Thread(name='motor_loop', target=MotorController._motor_loop, args=[self, lambda: self._loop_enabled], daemon=self._is_daemon)
             self._loop_thread.start()
             self._log.info('loop enabled.')
         else:

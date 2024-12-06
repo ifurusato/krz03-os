@@ -76,19 +76,21 @@ def accumulate_and_clamp(value, delta, max_value):
 
 # .............................................................................
 async def main():
+
+    USE_MATRIX = False
     _nofs = None
+
     try:
         print('🦊 a.')
 
         _config = ConfigLoader(Level.INFO).configure()
         _nofs = NearOpticalFlowSensor(_config, level=Level.INFO)
-
         _matrix = None
         print('🦊 b.')
         _i2c_scanner = I2CScanner(_config, level=Level.INFO)
         _brightness = 0.7
         print('🦊 c.')
-        if _i2c_scanner.has_hex_address(['0x75']):
+        if USE_MATRIX and _i2c_scanner.has_hex_address(['0x75']):
             print('🦊 c1.')
             _matrix = Matrix(Orientation.STBD)
             print('🦊 c2.')

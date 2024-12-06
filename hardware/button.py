@@ -111,7 +111,6 @@ class Button(Component):
             raise Exception('unrecognised source: {}'.format(self._impl))
 
 
-
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def add_callback(self, callback_method, bouncetime_ms=300):
         '''
