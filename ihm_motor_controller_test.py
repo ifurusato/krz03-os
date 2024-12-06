@@ -27,7 +27,7 @@ from core.util import Util
 from core.directive import Directive
 from core.orientation import Orientation
 from core.config_loader import ConfigLoader
-from hardware.motor_controller import MotorController
+from hardware.ihm_motor_controller import IHM_MotorController
 from hardware.motor_directive_factory import MotorDirectiveFactory
 from hardware.button import Button
 from controllers import*
@@ -56,22 +56,22 @@ try:
 
     _enable_pid = False
     _log.info('creating motor controller…')
-    _motor_controller = MotorController(_config, fwd_controller, aft_controller, enable_pid=_enable_pid, level=Level.INFO)
+    _motor_controller = IHM_MotorController(_config, fwd_controller, aft_controller, enable_pid=_enable_pid, level=Level.INFO)
 
     _speed = 0.9
     _duration = 1.5
     _directives = [
-            MotorDirectiveFactory.create(Directive.AHEAD,     speed=_speed), 
-            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
-            MotorDirectiveFactory.create(Directive.BRAKE), 
+            MotorDirectiveFactory.create(Directive.AHEAD,     speed=_speed),
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration),
+            MotorDirectiveFactory.create(Directive.BRAKE),
             MotorDirectiveFactory.create(Directive.CRAB_PORT, speed=_speed),
-            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
-            MotorDirectiveFactory.create(Directive.BRAKE), 
-            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration),
+            MotorDirectiveFactory.create(Directive.BRAKE),
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration),
             MotorDirectiveFactory.create(Directive.ASTERN,    speed=_speed),
-            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration),
             MotorDirectiveFactory.create(Directive.CRAB_STBD, speed=_speed),
-            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration), 
+            MotorDirectiveFactory.create(Directive.WAIT,      duration=_duration),
             MotorDirectiveFactory.create(Directive.BRAKE)
         ]
     _motor_controller.execute(_directives)
@@ -86,5 +86,5 @@ finally:
         _motor_controller.close()
     if _wait_button:
         _wait_button.close()
-    
+
 #EOF
