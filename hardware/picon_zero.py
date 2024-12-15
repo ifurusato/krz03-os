@@ -54,7 +54,8 @@ class PiconZero(object):
         try:
             self._log.info('initialising smbus…')
             self._bus = SMBus(PiconZero.BUS_NUMBER)
-            self._log.info(Fore.WHITE + 'picon-zero ready on 0x{:02X}.'.format(self._i2c_address))
+            self.initialise(debug=True)
+            self._log.info(Style.BRIGHT + 'picon-zero ready on 0x{:02X}.'.format(self._i2c_address))
         except ImportError:
             self._log.warning('import error, unable to initialise: this script requires smbus2.')
         except Exception as e:
@@ -121,22 +122,22 @@ class PiconZero(object):
                     self._log.error("Error in set_motor(): {}; retrying…".format(e))
 
     def forward(self, speed):
-        self._log.info('forward.')
+        self._log.info('forward: {}'.format(speed))
         self.set_motor(0, speed)
         self.set_motor(1, speed)
 
     def reverse(self, speed):
-        self._log.info('reverse..')
+        self._log.info('reverse: {}'.format(speed))
         self.set_motor(0, -speed)
         self.set_motor(1, -speed)
 
     def spinLeft(self, speed):
-        self._log.info('spin left.')
+        self._log.info('spin left: {}'.format(speed))
         self.set_motor(0, -speed)
         self.set_motor(1, speed)
 
     def spinRight(self, speed):
-        self._log.info('spin right.')
+        self._log.info('spin right: {}'.format(speed))
         self.set_motor(0, speed)
         self.set_motor(1, -speed)
 

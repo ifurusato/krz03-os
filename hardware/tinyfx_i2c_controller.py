@@ -79,7 +79,7 @@ class TinyFxController(Component):
         except TimeoutError as te:
             self._log.error("transfer timeout: {}".format(te))
         except Exception as e:
-            self._log.error('{} thrown in thunderborg test: {}\n{}'.format(type(e), e, traceback.format_exc()))
+            self._log.error('{} thrown sending data to tiny fx: {}\n{}'.format(type(e), e, traceback.format_exc()))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _convert_to_payload(self, data):

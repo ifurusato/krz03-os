@@ -16,9 +16,12 @@ sudo apt -y upgrade
 sudo apt -y autoremove
 sudo apt -y install git tcsh vim i2c-tools
 sudo apt -y install python3-pip
+sudo apt -y install python3-smbus
 sudo apt -y install python3-numpy
 sudo pip3 install icm20948 --break-system-packages
 sudo pip3 install -r requirements.txt --break-system-packages
+
+# IMPORTANT: modify this for your own account details
 git config --global user.email "ichiro.furusato@gmail.com"
 git config --global user.name "Ichiro Furusato"
 

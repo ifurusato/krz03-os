@@ -69,7 +69,7 @@ class PButton(object):
         return _value
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class MrosDaemon(object):
+class KrzosDaemon(object):
     '''
     Monitors a push switch connected to a GPIO pin.
 
@@ -173,7 +173,7 @@ class MrosDaemon(object):
 def main():
     _daemon = None
     try:
-        _daemon = MrosDaemon(Level.INFO)
+        _daemon = KrzosDaemon(Level.INFO)
         while True:
             _daemon.read_state()
             time.sleep(0.2)

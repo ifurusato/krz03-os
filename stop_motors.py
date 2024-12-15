@@ -13,38 +13,30 @@
 from colorama import init, Fore, Style
 init()
 
-from inventorhatmini import InventorHATMini, MOTOR_A, MOTOR_B
+from core.logger import Logger, Level
+from core.orientation import Orientation
+from core.config_loader import ConfigLoader
+from hardware.pz_motor_controller import MotorController
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-print(Fore.CYAN + 'create aft controller…' + Style.RESET_ALL)
-aft_controller = InventorHATMini(address=0x17, init_servos=False, init_leds=False)
+try:
+    # read YAML configuration
+    _config = ConfigLoader(Level.INFO).configure()
+    _motor_controller = MotorController(_config)
+    _motor_controller.enable()
+    _delay_sec = 1.5
 
-print(Fore.CYAN + 'create fwd controller…' + Style.RESET_ALL)
-fwd_controller = InventorHATMini(address=0x16, init_servos=False, init_leds=False)
+#       _orientations = [ Orientation.PORT, Orientation.STBD, Orientation.PFWD, Orientation.SFWD, Orientation.PAFT, Orientation.SAFT ]
+    _orientations = [ Orientation.PORT, Orientation.STBD ]
+    for _orientation in _orientations:
+        _motor_controller.set_motor_speed(_orientation, 0)
+        time.sleep(0.33)
 
-# forward motors ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-pfwd_motor = fwd_controller.motors[MOTOR_A]
-sfwd_motor = fwd_controller.motors[MOTOR_B]
-pfwd_motor.enable()
-sfwd_motor.enable()
-# aft motors ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-paft_motor = aft_controller.motors[MOTOR_A]
-saft_motor = aft_controller.motors[MOTOR_B]
-paft_motor.enable()
-saft_motor.enable()
+    _motor_controller.disable()
 
-print(Fore.GREEN + 'stopping motors…' + Style.RESET_ALL)
-pfwd_motor.speed(0.0)
-sfwd_motor.speed(0.0)
-paft_motor.speed(0.0)
-saft_motor.speed(0.0)
-
-# Disable the motors
-pfwd_motor.disable()
-sfwd_motor.disable()
-paft_motor.disable()
-saft_motor.disable()
-
-print(Fore.CYAN + 'complete.' + Style.RESET_ALL)
+except Exception as e:
+    print(Fore.RED + 'error:{}'.format(e) + Style.RESET_ALL)
+finally:
+    print(Fore.CYAN + 'complete.' + Style.RESET_ALL)
 #EOF

@@ -20,7 +20,7 @@ from core.subscriber import Subscriber
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DistanceSensorsSubscriber(Subscriber):
-    CLASS_NAME = 'dists'
+    CLASS_NAME = 'distance'
     '''
     A subscriber to distance sensor events.
 
@@ -73,16 +73,16 @@ class DistanceSensorsSubscriber(Subscriber):
         '''
         if message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected.')
-        _event = message.event
-        _value = message.payload.value
-        _fore = self.get_fore(_event)
-        if Event.is_bumper_event(_event):
-            self._log.info(_fore + Style.BRIGHT + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
-        elif Event.is_infrared_event(_event):
-            self._log.info(_fore + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
-        else:
-            self._log.info(_fore + Style.DIM + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
+        if self._verbose:
+            _event = message.event
+            _value = message.payload.value
+            _fore  = self.get_fore(_event)
+            if Event.is_bumper_event(_event):
+                self._log.info(_fore + Style.BRIGHT + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
+            elif Event.is_infrared_event(_event):
+                self._log.info(_fore + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
+            else:
+                self._log.info(_fore + Style.DIM + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
         await Subscriber.process_message(self, message)
-#       self._log.info('post-processing message {}'.format(message.name))
 
 #EOF

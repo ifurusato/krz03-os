@@ -76,11 +76,11 @@ class SoundSubscriber(Subscriber):
         if message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected.')
         _event = message.event
-        _='''
-        BEEP BEEP_HI BLIP BUZZ CHATTER_1 CHATTER_2 CHATTER_3 CHATTER_4 CHATTER_5 
-        CHIRP_1 CHIRP_4 CHIRP_7 DWERP EARPIT HONK HZAH PEW_PEW_PEW PIZZLE 
-        SONIC_BAT TELEMETRY TSK_TSK_TSK TICK TWEAK TWIT ZZT "
-        '''
+
+#       SILENCE ARMING_TONE BEEP BEEP_HI BLIP BOINK BUZZ CHATTER CHIRP CHIRP_4 CHIRP_7 
+#       DWERP EARPIT GLINCE GWOLP HONK HZAH IPPURT ITIZ IZIT PEW_PEW_PEW PIZZLE SKID_FZZT 
+#       SONIC_BAT TELEMETRY TIKA_TIKA TSK_TSK_TSK TICK TWEAK TWIDDLE_POP TWIT WOW ZZT 
+
         match _event.group:
             case Group.SYSTEM:      #  1, "system" 
                 self._log.info(Style.DIM + 'SYSTEM: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
@@ -93,8 +93,15 @@ class SoundSubscriber(Subscriber):
                 self._shutdown()
                 self._log.info(Style.BRIGHT + 'BUMPER: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
             case Group.INFRARED:    #  6, "infrared" 
-                Player.instance().play(Sound.TICK)
-                self._log.info(Style.BRIGHT + 'INFRARED: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
+                if _event is Event.INFRARED_PORT:
+                    self._log.info(Fore.RED   + 'port infrared: {:d}mm'.format(int(message.payload.value)))
+                    Player.instance().play(Sound.DIT_A)
+                elif _event is Event.INFRARED_CNTR:
+                    self._log.info(Fore.BLUE  + 'center infrared: {:d}mm'.format(int(message.payload.value)))
+                    Player.instance().play(Sound.DIT_B)
+                elif _event is Event.INFRARED_STBD:
+                    self._log.info(Fore.GREEN + 'starboard infrared: {:d}mm'.format(int(message.payload.value)))
+                    Player.instance().play(Sound.DIT_C)
             case Group.IMU:         #  7, "imu" 
                 self._log.info(Style.DIM + 'IMU: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
             case Group.BEHAVIOUR:   # 11, "behaviour" 

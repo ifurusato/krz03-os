@@ -15,17 +15,18 @@ krzos:
         nada:                             False            # nada
     component:
         # publishers .......................................
-        enable_queue_publisher:           False            # publishes from globally-available queue
-        enable_distance_sensors:          False            # enable Distance Sensors
-        enable_system_publisher:          False            # enable System Publisher
+        enable_queue_publisher:            True            # publishes from globally-available queue
+        enable_distance_sensors:           True            # enable Distance Sensors
+        enable_system_publisher:           True            # enable System Publisher
+        enable_tinyfx_controller:          True            # enable Tiny FX for sounds and lighting fx
         enable_imu_publisher:             False            # enable IMU publisher
         enable_remote_ctrl_publisher:     False            # enable Remote Control Publisher
         enable_rtof_publisher:            False            # enable Ranging ToF publisher
         enable_gamepad_publisher:         False            # enable gamepad support
         enable_killswitch:                 True            # enable pushbutton kill switch
         # subscribers ......................................
-        enable_distance_subscriber:       False            # enable Distance Sensors Subscriber
-        enable_sound_subscriber:          False            # enable sounds for various events
+        enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
+        enable_sound_subscriber:           True            # enable sounds for various events
         enable_macro_subscriber:          False            # enable macro publisher
     message_bus:
         max_age_ms:                        20.0            # maximum age of a message before expiry
@@ -91,12 +92,20 @@ krzos:
                 FULL:                        80.0
                 MAXIMUM:                    100.0
     publisher:
+        system:
+            publish_delay_sec:               30.0          # publishing delay loop
+            current_threshold:                6.0          # alarm over current
+            battery_threshold:               16.0          # alarm under voltage
+            regulator_5v_threshold:           4.85         # alarm under voltage
+            regulator_3v3_threshold:          3.2          # alarm under voltage
+            temperature_threshold:           60.0          # alarm over temperature
         distance_sensors:
             loop_freq_hz:                    20            # main loop delay in hz
             sense_threshold:                150            # threshold in millimeters to react to an obstacle
             bump_threshold:                  70            # threshold in millimeters to consider as a bump
         imu:
-            initial_calibration:           True            # if True, calibrate the IMU upon starting
+            initial_calibration:          False            # if True, calibrate the IMU upon starting
+            active_mode:                  False            # uses asyncio loop in active mode
             loop_freq_hz:                    20            # polling loop frequency (Hz)
             pitch_threshold:                 20.0          # pitch threshold for sending a message
             roll_threshold:                  20.0          # roll threshold for sending a message
@@ -106,10 +115,14 @@ krzos:
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
             impl:                        'gpio'            # either 'gpio', 'ioe', 'gpiozero' or 'pigpio'
-            pin:                             23            # GPIO or IO Expander pin used
+            pin:                             17            # GPIO or IO Expander pin used
             led_pin:                         13            # GPIO pin for LED on wait()
+        rtof:                                              # ranging time of flight sensor (VL53L5CX)
+            enabled:                       True            # GPIO or IO Expander pin used
         killswitch:                                        # application kill switch
-            pin:                             23            # GPIO or IO Expander pin used
+            pin:                             17            # GPIO or IO Expander pin used
+        player:                                            # Tiny FX sound player
+            verbose:                       True            # verbose messaging
         distance_sensor:
             pin_port:                        24            # the port input pin
             pin_cntr:                        25            # the center input pin

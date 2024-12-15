@@ -237,7 +237,8 @@ class Subscriber(Component, FiniteStateMachine):
                     # don't arbitrate, just keep republishing this message
                     pass
                 elif not self._permit_resend:
-                    self._log.warning('message: {} already sent; event: {}'.format(_message.name, _message.event.name))
+#                   self._log.warning('message: {} already sent; event: {}'.format(_message.name, _message.event.name))
+                    self._log.debug('message: {} already sent; event: {}'.format(_message.name, _message.event.name))
     
 #               # keep track of timestamp of last message
 #               self._log.debug('last message timestamp: {}'.format(_message.timestamp))

@@ -30,7 +30,7 @@ from hardware.distance_sensor import DistanceSensor
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DistanceSensorsPublisher(Publisher):
-    CLASS_NAME = 'dists'
+    CLASS_NAME = 'distance'
     _LISTENER_LOOP_NAME = '__distance-sensors-loop'
     '''
     A publisher for events from a trio of DistanceSensorsPublisher.

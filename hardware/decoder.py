@@ -37,7 +37,6 @@ init()
 
 from core.logger import Logger
 from core.orientation import Orientation
-from hardware.pigpiod_util import PigpiodUtility
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Decoder(object):
@@ -125,9 +124,7 @@ class Decoder(object):
                 _implementation = "pigpio"
                 self._log.info('using ' + Fore.WHITE + 'pigpiod' + Fore.CYAN + ' for motor encoders…')
 
-                if not PigpiodUtility.is_pigpiod_running():
-                    _pigpiod_util = PigpiodUtility()
-                    _pigpiod_util.ensure_running()
+                # should be handled previously: if not PigpiodUtility.is_pigpiod_running():
 
                 import pigpio
 

@@ -5,206 +5,286 @@
         "mnemonic": "SILENCE",
         "duration": 0.25,
         "filename": "silence.wav",
-        "description": "silence. 1"
+        "description": "silence."
     },
     {
         "index": 2,
+        "name": "arming-tone",
+        "mnemonic": "ARMING_TONE",
+        "duration": 1.0,
+        "filename": "arming-tone.wav",
+        "description": "arming-tone - beep."
+    },
+    {
+        "index": 3,
         "name": "beep",
         "mnemonic": "BEEP",
         "duration": 1.0,
         "filename": "beep.wav",
-        "description": "beep. 2"
+        "description": "beep."
     },
     {
-        "index": 3,
+        "index": 4,
         "name": "beep-hi",
         "mnemonic": "BEEP_HI",
         "duration": 1.0,
         "filename": "beep-hi.wav",
-        "description": "hi beep. 3"
+        "description": "hi beep."
     },
     {
-        "index": 4,
+        "index": 5,
         "name": "blip",
         "mnemonic": "BLIP",
         "duration": 1.0,
         "filename": "blip.wav",
-        "description": "blip. 4"
+        "description": "blip."
     },
     {
-        "index": 5,
+        "index": 6,
+        "name": "boink",
+        "mnemonic": "BOINK",
+        "duration": 1.0,
+        "filename": "boink.wav",
+        "description": "boink."
+    },
+    {
+        "index": 7,
         "name": "buzz",
         "mnemonic": "BUZZ",
         "duration": 1.0,
         "filename": "buzz.wav",
-        "description": "buzz. 5"
-    },
-    {
-        "index": 6,
-        "name": "chatter-1",
-        "mnemonic": "CHATTER_1",
-        "duration": 1.0,
-        "filename": "chatter-1.wav",
-        "description": "chatter 1. 6"
-    },
-    {
-        "index": 7,
-        "name": "chatter-2",
-        "mnemonic": "CHATTER_2",
-        "duration": 1.0,
-        "filename": "chatter-2.wav",
-        "description": "chatter 2. 7"
+        "description": "buzz."
     },
     {
         "index": 8,
-        "name": "chatter-3",
-        "mnemonic": "CHATTER_3",
+        "name": "chatter",
+        "mnemonic": "CHATTER",
         "duration": 1.5,
-        "filename": "chatter-3.wav",
-        "description": "chatter 3. 8"
+        "filename": "chatter.wav",
+        "description": "chatter."
     },
     {
         "index": 9,
-        "name": "chatter-4",
-        "mnemonic": "CHATTER_4",
-        "duration": 1.0,
-        "filename": "chatter-4.wav",
-        "description": "chatter 4. 9"
+        "name": "chirp",
+        "mnemonic": "CHIRP",
+        "duration": 2.5,
+        "filename": "chirp.wav",
+        "description": "chirp."
     },
     {
         "index": 10,
-        "name": "chatter-5",
-        "mnemonic": "CHATTER_5",
-        "duration": 1.0,
-        "filename": "chatter-5.wav",
-        "description": "chatter 5. 10"
-    },
-    {
-        "index": 11,
-        "name": "chirp-1",
-        "mnemonic": "CHIRP_1",
-        "duration": 2.5,
-        "filename": "chirp-1.wav",
-        "description": "chirp 1. 11"
-    },
-    {
-        "index": 12,
         "name": "chirp-4",
         "mnemonic": "CHIRP_4",
         "duration": 1.0,
         "filename": "chirp-4.wav",
-        "description": "chirp 4. 12"
+        "description": "chirp 4."
     },
     {
-        "index": 13,
+        "index": 11,
         "name": "chirp-7",
         "mnemonic": "CHIRP_7",
         "duration": 1.0,
         "filename": "chirp-7.wav",
-        "description": "chirp 7. 13"
+        "description": "chirp 7."
+    },
+    {
+        "index": 12,
+        "name": "dit-a",
+        "mnemonic": "DIT_A",
+        "duration": 0.5,
+        "filename": "dit_a.wav",
+        "description": "dit A."
+    },
+    {
+        "index": 13,
+        "name": "dit-b",
+        "mnemonic": "DIT_B",
+        "duration": 0.5,
+        "filename": "dit_b.wav",
+        "description": "dit B."
     },
     {
         "index": 14,
+        "name": "dit-c",
+        "mnemonic": "DIT_C",
+        "duration": 0.5,
+        "filename": "dit_c.wav",
+        "description": "dit C."
+    },
+    {
+        "index": 15,
         "name": "dwerp",
         "mnemonic": "DWERP",
         "duration": 1.0,
         "filename": "dwerp.wav",
-        "description": "dwerp. 14"
+        "description": "dwerp."
     },
     {
-        "index": 15,
+        "index": 16,
         "name": "earpit",
         "mnemonic": "EARPIT",
         "duration": 1.0,
         "filename": "earpit.wav",
-        "description": "ear pit. 15"
+        "description": "ear pit."
     },
     {
-        "index": 16,
+        "index": 17,
+        "name": "glince",
+        "mnemonic": "GLINCE",
+        "duration": 1.0,
+        "filename": "glince.wav",
+        "description": "glince."
+    },
+    {
+        "index": 18,
+        "name": "gwolp",
+        "mnemonic": "GWOLP",
+        "duration": 1.0,
+        "filename": "gwolp.wav",
+        "description": "gwolp."
+    },
+    {
+        "index": 19,
         "name": "honk",
         "mnemonic": "HONK",
         "duration": 1.0,
         "filename": "honk.wav",
-        "description": "honk. 16"
+        "description": "honk."
     },
     {
-        "index": 17,
+        "index": 20,
         "name": "hzah",
         "mnemonic": "HZAH",
         "duration": 1.0,
         "filename": "hzah.wav",
-        "description": "hzah. 17"
+        "description": "hzah."
     },
     {
-        "index": 16,
+        "index": 21,
+        "name": "ippurt",
+        "mnemonic": "IPPURT",
+        "duration": 1.0,
+        "filename": "ippurt.wav",
+        "description": "ippurt."
+    },
+    {
+        "index": 22,
+        "name": "itiz",
+        "mnemonic": "ITIZ",
+        "duration": 1.0,
+        "filename": "itiz.wav",
+        "description": "itiz."
+    },
+    {
+        "index": 23,
+        "name": "izit",
+        "mnemonic": "IZIT",
+        "duration": 1.0,
+        "filename": "izit.wav",
+        "description": "izit."
+    },
+    {
+        "index": 24,
         "name": "pew-pew-pew",
         "mnemonic": "PEW_PEW_PEW",
         "duration": 1.5,
         "filename": "pew-pew-pew.wav",
-        "description": "pew pew pew. 16"
+        "description": "pew pew pew."
     },
     {
-        "index": 17,
+        "index": 25,
         "name": "pizzle",
         "mnemonic": "PIZZLE",
         "duration": 1.0,
         "filename": "pizzle.wav",
-        "description": "pizzle. 17"
+        "description": "pizzle."
     },
     {
-        "index": 18,
+        "index": 26,
+        "name": "skid-fzzt",
+        "mnemonic": "SKID_FZZT",
+        "duration": 1.0,
+        "filename": "skid-fzzt.wav",
+        "description": "skid-fzzt."
+    },
+    {
+        "index": 27,
         "name": "sonic-bat",
         "mnemonic": "SONIC_BAT",
         "duration": 1.0,
         "filename": "sonic-bat.wav",
-        "description": "sonic bat beep. 18"
+        "description": "sonic bat beep."
     },
     {
-        "index": 19,
+        "index": 28,
         "name": "telemetry",
         "mnemonic": "TELEMETRY",
         "duration": 1.0,
         "filename": "telemetry.wav",
-        "description": "telemetry. 19"
+        "description": "telemetry."
     },
     {
-        "index": 20,
+        "index": 29,
+        "name": "tika-tika",
+        "mnemonic": "TIKA_TIKA",
+        "duration": 1.0,
+        "filename": "chatter-1.wav",
+        "description": "tika-tika."
+    },
+    {
+        "index": 30,
         "name": "tsk-tsk-tsk",
         "mnemonic": "TSK_TSK_TSK",
         "duration": 1.0,
         "filename": "tsk-tsk-tsk.wav",
-        "description": "tsk-tsk-tsk. 20"
+        "description": "tsk-tsk-tsk."
     },
     {
-        "index": 21,
+        "index": 31,
         "name": "tick",
         "mnemonic": "TICK",
         "duration": 0.5,
         "filename": "tick.wav",
-        "description": "tick. 21"
+        "description": "tick."
     },
     {
-        "index": 22,
+        "index": 32,
         "name": "tweak",
         "mnemonic": "TWEAK",
         "duration": 1.0,
         "filename": "tweak.wav",
-        "description": "tweak. 22"
+        "description": "tweak."
     },
     {
-        "index": 23,
+        "index": 33,
+        "name": "twiddle-pop",
+        "mnemonic": "TWIDDLE_POP",
+        "duration": 1.0,
+        "filename": "twiddle-pop.wav",
+        "description": "twiddle-pop."
+    },
+    {
+        "index": 34,
         "name": "twit",
         "mnemonic": "TWIT",
         "duration": 1.0,
         "filename": "twit.wav",
-        "description": "twit. 23"
+        "description": "twit."
     },
     {
-        "index": 24,
+        "index": 35,
+        "name": "wow",
+        "mnemonic": "WOW",
+        "duration": 1.0,
+        "filename": "wow.wav",
+        "description": "wow."
+    },
+    {
+        "index": 36,
         "name": "zzt",
         "mnemonic": "ZZT",
         "duration": 1.0,
         "filename": "zzt.wav",
-        "description": "zzt. 24"
+        "description": "zzt."
     }
 ]

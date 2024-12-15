@@ -376,7 +376,7 @@ class Icm20948(Component):
         self._amin = list(self.__icm20948.read_magnetometer_data())
         self._amax = list(self.__icm20948.read_magnetometer_data())
         if self._play_sound:
-            Player.instance().play(Sound.CHATTER_2)
+            Player.instance().play(Sound.BOINK)
         self._log.info(Fore.WHITE + Style.BRIGHT + '\n\n    calibrate by rotating sensor through a horizontal 360° motion…\n')
 #       if self._show_rgbmatrix5x5 and self._port_rgbmatrix5x5:
 #           self._rgbmatrix.set_display_type(DisplayType.RANDOM)
@@ -411,7 +411,7 @@ class Icm20948(Component):
             if self.is_calibrated:
                 self._log.info(Fore.GREEN + 'IMU calibrated: elapsed: {:d}ms'.format(_elapsed_ms))
                 if self._play_sound:
-                    Player.instance().play(Sound.CHATTER_4)
+                    Player.instance().play(Sound.BOINK)
             elif self.enabled: # only scream if we're still enabled
                 self._log.error('unable to calibrate IMU after elapsed: {:d}ms'.format(_elapsed_ms))
                 if self._play_sound:

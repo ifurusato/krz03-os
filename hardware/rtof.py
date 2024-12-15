@@ -56,11 +56,9 @@ class RangingToF(Component):
     values. This publishes messages of various events. TBD
 
     :param config:            the YAML based application configuration
-    :param skip_init:         if True the default firmware load is avoided
     :param level:             the logging Level
     '''
-    def __init__(self, config, message_bus, message_factory, skip_init=False, suppressed=False, enabled=False, level=Level.INFO):
-#   def __init__(self, config, skip_init=False, suppressed=False, enabled=False, level=Level.INFO):
+    def __init__(self, config, message_bus, message_factory, suppressed=False, enabled=False, level=Level.INFO):
         if not isinstance(level, Level):
             raise ValueError('wrong type for log level argument: {}'.format(type(level)))
         self._log = Logger("rtof", level)
@@ -72,7 +70,8 @@ class RangingToF(Component):
         _enabled = _config.get('enabled')
         self._log.info('enabled: {}'.format(_enabled))
         # set up VL53L5CX
-        self._vl53 = self._getVL53(skip_init)
+        self._initialised = False
+        self._vl53 = self._getVL53()
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -80,17 +79,18 @@ class RangingToF(Component):
         return 'rtof'
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _getVL53(self, skip):
+    def _getVL53(self):
         '''
         Instantiate the sensor.
         '''
         stime = datetime.datetime.now()
-        if skip:
+        if self._initialised:
             self._log.info("initialising VL53L5CX…")
             vl53 = vl53l5cx.VL53L5CX(skip_init=True)
         else:
             self._log.info("uploading firmware to VL53L5CX, please wait…")
             vl53 = vl53l5cx.VL53L5CX()
+            self._initialised = True
         vl53.set_resolution(8 * 8)
         vl53.set_ranging_frequency_hz(15)
         vl53.set_integration_time_ms(20)

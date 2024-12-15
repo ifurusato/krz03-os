@@ -17,6 +17,9 @@ from datetime import datetime as dt
 from colorama import init, Fore, Style
 init()
 
+import core.globals as globals
+globals.init()
+
 from core.message_factory import MessageFactory
 from core.logger import Logger, Level
 from core.event import Event
@@ -29,8 +32,9 @@ class IMU(Publisher):
     _LISTENER_LOOP_NAME = '__imu_listener_loop'
 
     '''
-    A publisher for events derived from the values of an IMU. It also provides
-    general data output from the IMU.
+    The IMU operates in an active mode, using an asyncio loop, as a publisher
+    for events derived from the values of an IMU, or in a passive mode, where
+    it can be queried for the general data output from the IMU.
 
     :param config:            the application configuration
     :param message_bus:       the asynchronous message bus
@@ -53,6 +57,7 @@ class IMU(Publisher):
         Publisher.__init__(self, IMU.CLASS_NAME, config, message_bus, message_factory, level=self._level)
         # configuration ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         _cfg = config['krzos'].get('publisher').get('imu')
+        self._active_mode         = _cfg.get('active_mode')
         _loop_freq_hz             = _cfg.get('loop_freq_hz')
         self._publish_delay_sec   = 1.0 / _loop_freq_hz
         self._pitch_threshold     = _cfg.get('pitch_threshold')
@@ -61,23 +66,46 @@ class IMU(Publisher):
         self._log.info('ready with loop frequency of {:d}Hz.'.format(_loop_freq_hz))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _suppress_sensors(self, suppress):
+        '''
+        Suppress bumper/IR sensors during manual calibration.
+        '''
+        _component_registry = globals.get('component-registry')
+        _distance_sensors_publisher = _component_registry.get('pub:distance')
+        if _distance_sensors_publisher:
+            if suppress:
+                self._log.info(Fore.WHITE + Style.BRIGHT + 'suppressing distance sensors publisher…')
+                _distance_sensors_publisher.suppress()
+            else:
+                self._log.info(Fore.WHITE + Style.BRIGHT + 'releasing distance sensors publisher…')
+                _distance_sensors_publisher.release()
+        else:
+            self._log.warning('could not find distance sensors publisher.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
         Publisher.enable(self)
         if self.enabled:
             if self._initial_calibration:
                 self._log.info('calibrating…')
+                self._suppress_sensors(True)
                 self._calibrate_imu()
                 self._log.info('finished calibration.')
+                self._suppress_sensors(False)
             if not self._icm20948.is_calibrated:
                 self._log.warning('cannot enable IMU: icm20948 has not been calibrated.')
                 self.disable()
                 return
-            if self._message_bus.get_task_by_name(IMU._LISTENER_LOOP_NAME):
-                self._log.warning('already enabled.')
+            if self._active_mode:
+                if self._message_bus.get_task_by_name(IMU._LISTENER_LOOP_NAME):
+                    self._log.warning('already enabled.')
+                else:
+                    self._log.info('creating task for imu listener loop…')
+                    self._message_bus.loop.create_task(self._imu_listener_loop(lambda: self.enabled), name=IMU._LISTENER_LOOP_NAME)
+                    self._log.info('enabled in active mode.')
             else:
-                self._log.info('creating task for imu listener loop…')
-                self._message_bus.loop.create_task(self._imu_listener_loop(lambda: self.enabled), name=IMU._LISTENER_LOOP_NAME)
-                self._log.info('enabled.')
+                self._log.info('enabled in passive mode.')
+
         else:
             self._log.warning('failed to enable publisher.')
 

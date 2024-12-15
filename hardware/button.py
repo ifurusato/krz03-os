@@ -16,11 +16,8 @@ import RPi.GPIO as GPIO
 from colorama import init, Fore, Style
 init()
 
-import pigpio
-
 from core.logger import Logger, Level
 from core.component import Component
-from hardware.pigpiod_util import PigpiodUtility
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Button(Component):
@@ -61,6 +58,8 @@ class Button(Component):
             GPIO.setup(self._led_pin, GPIO.OUT)
             self._counter = itertools.count()
             self._toggle = itertools.cycle([True, False])
+            self._log.info('ready: waitable pushbutton on GPIO pin {:d} using RPi.GPIO'.format(self._pin))
+
         if self._impl == 'gpio':
 
             import RPi.GPIO as GPIO
@@ -69,8 +68,7 @@ class Button(Component):
             GPIO.cleanup()
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(self._pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-#           GPIO.setup(self._pin, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
-            self._log.info('ready: pushbutton on GPIO pin {:d}'.format(self._pin))
+            self._log.info('ready: pushbutton on GPIO pin {:d} using RPi.GPIO'.format(self._pin))
 
         elif self._impl == 'ioe':
 
@@ -82,6 +80,9 @@ class Button(Component):
             self._log.info('ready: pushbutton on IO Expander pin {:d}'.format(self._pin))
 
         elif self._impl == 'pigpio':
+
+            import pigpio
+            from hardware.pigpiod_util import PigpiodUtility
 
             if not PigpiodUtility.is_pigpiod_running():
                 _pigpiod_util = PigpiodUtility()

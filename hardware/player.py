@@ -44,11 +44,13 @@ class Player(Component):
             # put any initialization here.
             cls.__instance._log = Logger('player', Level.INFO)
             Component.__init__(cls.__instance, cls.__instance._log, suppressed=False, enabled=True)
+            _config = ConfigLoader(Level.INFO).configure()
+            _cfg = _config['krzos'].get('hardware').get('player')
             if tinyfx is None:
-                _config = ConfigLoader(Level.INFO).configure()
                 cls.__instance._tinyfx_controller = TinyFxController(_config)
             else:
                 cls.__instance._tinyfx_controller = tinyfx
+            cls.__instance._verbose = _cfg.get('verbose')
             cls.__instance._log.info('ready.')
         return cls.__instance
 
@@ -65,7 +67,8 @@ class Player(Component):
         _duration    = _sound.duration
         _description = _sound.description
         _player      = Player.instance()
-        _player._log.info(Fore.MAGENTA + "playing '" + Style.BRIGHT + "{}".format(_name) + Style.NORMAL + "' ('{}') for {} seconds.".format(_description, _duration))
+        if _player._verbose:
+            _player._log.info(Fore.MAGENTA + "playing '" + Style.BRIGHT + "{}".format(_name) + Style.NORMAL + "' ('{}') for {} seconds.".format(_description, _duration))
         _player._tinyfx_controller.play(_sound.name)
         time.sleep(_duration)
         time.sleep(0.1)

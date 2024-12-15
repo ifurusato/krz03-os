@@ -20,7 +20,8 @@ init()
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 class Pin():
     def __init__(self, pin, label):
-        GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        if pin > 0:
+            GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         # https://raspi.tv/2013/rpi-gpio-basics-6-using-inputs-and-outputs-together-with-rpi-gpio-pull-ups-and-pull-downs
         # pull_up_down=GPIO.PUD_DOWN. If you want/need pull-up you can change the GPIO.PUD_DOWN for GPIO.PUD_UP
         self._pin = pin
@@ -30,7 +31,9 @@ class Pin():
         '''
         Change the NORMAL and BRIGHT as desired,
         '''
-        if GPIO.input(self._pin): # if low
+        if self._pin < 0:
+            return Fore.GREEN + Style.DIM + self._label
+        elif GPIO.input(self._pin): # if low
             return Fore.GREEN + Style.NORMAL + self._label
         else:
             return Fore.GREEN + Style.BRIGHT + self._label
@@ -76,8 +79,8 @@ def main():
         _pin18 = Pin(18,'GPIO24')
         # GND 20
         _pin22 = Pin(22,'GPIO25')
-        _pin24 = Pin(24,'GPIO8')
-        _pin26 = Pin(26,'GPIO7')
+        _pin24 = Pin(-24,'GPIO8')
+        _pin26 = Pin(-26,'GPIO7')
         # SC1 28
         # GND 30
         _pin32 = Pin(32,'GPIO12')

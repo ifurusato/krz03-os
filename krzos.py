@@ -16,10 +16,10 @@
 #234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 #
 
+print('🤖 import begin.')
 import os, sys, signal, time, traceback
-import threading
-import atexit
-import argparse, psutil
+print('🤖 a.')
+import argparse
 from pathlib import Path
 from colorama import init, Fore, Style
 init()
@@ -43,7 +43,7 @@ from core.controller import Controller
 from core.publisher import Publisher
 from core.queue_publisher import QueuePublisher
 #from core.macro_publisher import MacroPublisher
-#from hardware.system_publisher import SystemPublisher
+from hardware.system_publisher import SystemPublisher
 
 from core.subscriber import Subscriber, GarbageCollector
 #from hardware.system_subscriber import SystemSubscriber
@@ -58,9 +58,11 @@ from hardware.icm20948 import Icm20948
 from hardware.imu import IMU
 from hardware.task_selector import TaskSelector
 from hardware.i2c_scanner import I2CScanner
-from hardware.tinyfx_i2c_controller import TinyFxController
 from hardware.distance_sensors_publisher import DistanceSensorsPublisher
-from hardware.button import Button
+print('🤖 s.')
+#from hardware.button import Button
+from hardware.killswitch import Killswitch
+print('🤖 t.')
 from hardware.pigpiod_util import PigpiodUtility as PigUtil
 
 from hardware.sound import Sound
@@ -113,8 +115,8 @@ class KRZOS(Component, FiniteStateMachine):
         self._queue_publisher             = None
         self._rtof_publisher              = None
         self._distance_sensors_publisher  = None
-#       self._system_publisher            = None
-#       self._system_subscriber           = None
+        self._system_publisher            = None
+        self._system_subscriber           = None
         self._distance_sensors_subscriber = None
         self._sound_subscriber            = None
         self._task_selector               = None
@@ -199,8 +201,8 @@ class KRZOS(Component, FiniteStateMachine):
 
         _subs = arguments.subs if arguments.subs else ''
 
-#       if _cfg.get('enable_system_subscriber') or 's' in _subs:
-#           self._system_subscriber = SystemSubscriber(self._config, self, self._message_bus, level=self._level)
+        if _cfg.get('enable_system_subscriber') or 's' in _subs:
+            self._system_subscriber = SystemSubscriber(self._config, self, self._message_bus, level=self._level)
 
 #       if _cfg.get('enable_macro_subscriber'):
 #           if not self._macro_publisher:
@@ -222,9 +224,9 @@ class KRZOS(Component, FiniteStateMachine):
         if _cfg.get('enable_queue_publisher') or 'q' in _pubs:
             self._queue_publisher = QueuePublisher(self._config, self._message_bus, self._message_factory, self._level)
 
-#       _enable_system_publisher = _cfg.get('enable_system_publisher')
-#       if _enable_system_publisher:
-#           self._system_publisher = SystemPublisher(self._config, self._message_bus, self._message_factory, self._system, level=self._level)
+        _enable_system_publisher = _cfg.get('enable_system_publisher')
+        if _enable_system_publisher:
+            self._system_publisher = SystemPublisher(self._config, self._message_bus, self._message_factory, self._system, level=self._level)
 
         _enable_distance_sensors = _cfg.get('enable_distance_sensors')
         if _enable_distance_sensors:
@@ -249,15 +251,23 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_rtof_publisher = _cfg.get('enable_rtof_publisher')
         if _enable_rtof_publisher:
-            self._rtof_publisher = RangingToF(self._config, self._message_bus, self._message_factory, skip_init=True, level=self._level)
+            if _i2c_scanner.has_hex_address(['0x29']):
+                self._rtof_publisher = RangingToF(self._config, self._message_bus, self._message_factory, level=self._level)
+            else:
+                self._log.warning('rtof disabled: no VL53L5CX found.')
 
-        self._log.info('configure tinyfx controller…')
-        self._tinyfx = TinyFxController(self._config)
+        _enable_tinyfx_controller = _cfg.get('enable_tinyfx_controller')
+        if _enable_tinyfx_controller:
+            from hardware.tinyfx_i2c_controller import TinyFxController
+
+            self._log.info('configure tinyfx controller…')
+            self._tinyfx = TinyFxController(self._config)
 
         _enable_killswitch= _cfg.get('enable_killswitch') or 'k' in _pubs
         if _enable_killswitch:
-            self._killswitch = Button(self._config)
-            self._killswitch.add_callback(self.shutdown)
+#           self._killswitch = Button(self._config)
+#           self._killswitch.add_callback(self.shutdown)
+            self._killswitch = Killswitch(config=self._config, callback=self.shutdown, level=self._level)
 
         # add task selector ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -313,11 +323,11 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.heading('starting', 'starting m-series robot operating system (krzos)…', '[2/2]' )
         FiniteStateMachine.start(self)
 
-        atexit.register(self._cleanup)
+#       atexit.register(self._cleanup)
 
-#       if self._system_subscriber:
-#           self._log.info('enabling system subscriber…')
-#           self._system_subscriber.enable()
+        if self._system_subscriber:
+            self._log.info('enabling system subscriber…')
+            self._system_subscriber.enable()
 
         if self._tinyfx: # turn on running lights
             _cfg = self._config.get('krzos').get('hardware').get('tinyfx-controller')
@@ -345,8 +355,9 @@ class KRZOS(Component, FiniteStateMachine):
         # print registry of components
         self._component_registry.print_registry()
 
-        # instantiate singleton with existing TinyFX
-        Player.instance(self._tinyfx).play(Sound.BEEP)
+        if self._tinyfx:
+            # instantiate singleton with existing TinyFX
+            Player.instance(self._tinyfx).play(Sound.BEEP)
 
         # ════════════════════════════════════════════════════════════════════
         # now in main application loop until quit or Ctrl-C…
@@ -464,7 +475,7 @@ class KRZOS(Component, FiniteStateMachine):
             self._log.warning('could not change state of LEDs: does not appear to be a Raspberry Pi.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def shutdown(self):
+    def shutdown(self, arg=None):
         '''
         This halts any motor activity, demands a sudden halt of all tasks,
         then shuts down the OS.
@@ -484,7 +495,8 @@ class KRZOS(Component, FiniteStateMachine):
         elif self._closing:
             self._log.warning('already closing.')
         elif self.enabled:
-            Player.instance().play(Sound.HZAH)
+            if self._tinyfx:
+                Player.instance().play(Sound.HZAH)
             self._log.info('disabling…')
             if self._task_selector:
                 self._task_selector.close()
@@ -503,29 +515,34 @@ class KRZOS(Component, FiniteStateMachine):
         return self._closing
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _cleanup(self):
-        try:
-            main_thread = threading.main_thread()
+#   def _cleanup(self):
+#       try:
+#           print('🧡 cleanup a.')
+#           main_thread = threading.main_thread()
 
-            for thread_id, frame in sys._current_frames().items():
-                thread = next((t for t in threading.enumerate() if t.ident == thread_id), None)
-                if thread and thread.name.startswith("Thread-4"):
-                    self._log.info(Fore.MAGENTA + "Inspecting Thread-4 (held): {}".format(thread))
-                    traceback.print_stack(frame)
-            if threading.active_count() > 0:
-                for thread in threading.enumerate():
-                    if thread is main_thread:
-                        self._log.warning("unclosed main thread: {}/{}; alive={}, daemon={}".format(thread.name, thread.ident, thread.is_alive(), thread.daemon ))
-                    else:
-                        self._log.warning("unclosed resource thread: {}/{}; alive={}, daemon={}".format(thread.name, thread.ident, thread.is_alive(), thread.daemon ))
-                    if thread.daemon:
-                        thread.join(timeout=1)
-                        self._log.info(Fore.MAGENTA + "thread {} stopped.".format(thread.name))
-                    if thread.ident == thread_id and thread.name.startswith("Thread"):
-                        self._log.info("💔 stack trace for Thread '{}':".format(thread.name))
-                        traceback.print_stack(frame)
-        except Exception as e:
-            self._log.error('error cleaning up application: {}\n{}'.format(e, traceback.format_exc()))
+#           for thread_id, frame in sys._current_frames().items():
+#               thread = next((t for t in threading.enumerate() if t.ident == thread_id), None)
+#               if thread and thread.name.startswith("Thread-4"):
+#                   self._log.info(Fore.MAGENTA + "Inspecting Thread-4 (held): {}".format(thread))
+#                   traceback.print_stack(frame)
+#           print('🧡 cleanup a.')
+#           if threading.active_count() > 0:
+#               for thread in threading.enumerate():
+#                   if thread is main_thread:
+#                       self._log.warning("unclosed main thread: {}/{}; alive={}, daemon={}".format(thread.name, thread.ident, thread.is_alive(), thread.daemon ))
+#                   else:
+#                       self._log.warning("unclosed resource thread: {}/{}; alive={}, daemon={}".format(thread.name, thread.ident, thread.is_alive(), thread.daemon ))
+#                   if thread.daemon:
+#                       thread.join(timeout=1)
+#                       self._log.info(Fore.MAGENTA + "thread {} stopped.".format(thread.name))
+#                   if thread.ident == thread_id and thread.name.startswith("Thread"):
+#                       self._log.info("💔 stack trace for Thread '{}':".format(thread.name))
+#                       traceback.print_stack(frame)
+#           print('🧡 cleanup z.')
+#       except Exception as e:
+#           self._log.error('error cleaning up application: {}\n{}'.format(e, traceback.format_exc()))
+#       finally:
+#           print('🧡 cleanup finally.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
@@ -558,12 +575,21 @@ class KRZOS(Component, FiniteStateMachine):
                 while not Component.close(self): # will call disable()
                     self._log.info('closing component…')
                 FiniteStateMachine.close(self)
-                self._closing = False
                 self._log.info('application closed.')
             except Exception as e:
                 self._log.error('error closing application: {}\n{}'.format(e, traceback.format_exc()))
             finally:
+                print('close finally 1.')
                 self._log.close()
+                print('close finally 2.')
+                self._closing = False
+                _threads = sys._current_frames().items()
+                self._log.info(Fore.WHITE + 'close finally: {} threads remain.'.format(len(_threads)))
+                if len(_threads) > 1:
+                    frames = sys._current_frames()
+                    for thread_id, frame in frames.items():
+                        print(Fore.YELLOW + "🥃 Thread ID: {}, Frame: {}".format(thread_id, frame) + Style.RESET_ALL)
+
                 sys.exit(0)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -685,7 +711,7 @@ def signal_handler(signal, frame):
         if _krzos and not ( _krzos.closing or _krzos.closed ):
             _krzos.close()
         print(Fore.MAGENTA + 'exiting…' + Style.RESET_ALL)
-        close_daemon_threads()
+#       close_daemon_threads()
     except Exception as e:
         print(Fore.RED + "error during shutdown: {}".format(e) + Style.RESET_ALL)
     finally:
@@ -696,37 +722,41 @@ def signal_handler(signal, frame):
             pass
         sys.exit(0)
 
-def close_daemon_threads():
-    print(Fore.MAGENTA + 'closing daemon threads…' + Style.RESET_ALL)
-    try:
-        # wait for all non-daemon threads to exit
-        for thread in threading.enumerate():
-            if thread is not threading.main_thread() and not thread.daemon:
-                print(Fore.MAGENTA + 'waiting for thread {} to finish…'.format(thread.name) + Style.RESET_ALL)
-                thread.join(timeout=5)
-            else:
-                print(Fore.MAGENTA + 'thread {} seems okay…'.format(thread.name) + Style.RESET_ALL)
-
-        for thread_id, frame in sys._current_frames().items():
-            thread = next((t for t in threading.enumerate() if t.ident == thread_id), None)
-            if thread:
-                print("stack trace for thread (held):")
-                traceback.print_stack(frame)
-    except Exception as e:
-        print(Fore.RED + "error closing daemon threads: {}".format(e) + Style.RESET_ALL)
-    finally:
-        print(Fore.MAGENTA + 'daemon threads closed.' + Style.RESET_ALL)
+#def close_daemon_threads():
+#    print(Fore.MAGENTA + 'closing daemon threads…' + Style.RESET_ALL)
+#    try:
+#        # wait for all non-daemon threads to exit
+#        for thread in threading.enumerate():
+#            if thread is not threading.main_thread() and not thread.daemon:
+#                print(Fore.MAGENTA + 'waiting for thread {} to finish…'.format(thread.name) + Style.RESET_ALL)
+#                thread.join(timeout=5)
+#            else:
+#                print(Fore.MAGENTA + 'thread {} seems okay…'.format(thread.name) + Style.RESET_ALL)
+#
+#        for thread_id, frame in sys._current_frames().items():
+#            thread = next((t for t in threading.enumerate() if t.ident == thread_id), None)
+#            if thread:
+#                print("stack trace for thread (held):")
+#                traceback.print_stack(frame)
+#    except Exception as e:
+#        print(Fore.RED + "error closing daemon threads: {}".format(e) + Style.RESET_ALL)
+#    finally:
+#        print(Fore.MAGENTA + 'daemon threads closed.' + Style.RESET_ALL)
 
 # main ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def main(argv):
     global _krzos
 
+#   print("😻 a. Threads at start:", threading.enumerate())
+
     _log = Logger("main", Level.INFO)
-    if threading.current_thread() is threading.main_thread():
-        signal.signal(signal.SIGINT, signal_handler)
-        _log.info("signal handler registered.")
-    else:
-        _log.warning("not running in the main thread: signal handling will not work.")
+#   if threading.current_thread() is threading.main_thread():
+#       signal.signal(signal.SIGINT, signal_handler)
+#       _log.info("signal handler registered.")
+#   else:
+#       _log.warning("not running in the main thread: signal handling will not work.")
+
+#   print("😻 b. Threads at start:", threading.enumerate())
 
     _suppress = False
     try:
@@ -737,17 +767,22 @@ def main(argv):
         elif _args == -1:
             _suppress = True # help or docs
         else:
+            print('😻 c.')
             # write log_to_file to global symbol table
             _level = Level.from_string(_args.level) if _args.level != None else Level.INFO
             _log.level = _level
             _log.debug('arguments: {}'.format(_args))
+            print('😻 d.')
             _krzos = KRZOS(level=_level)
+            print('😻 e.')
             if _args.configure or _args.start:
                 _krzos.configure(_args)
                 if not _args.start:
                     _log.info('configure only: ' + Fore.YELLOW + 'specify the -s argument to start krzos.')
+            print('😻 f.')
             if _args.start:
                 _krzos.start()
+            print('😻 g.')
             # krzos is now running…
     except KeyboardInterrupt:
         print('\n')
@@ -757,6 +792,7 @@ def main(argv):
     finally:
         if _krzos and not _krzos.closed:
             _krzos.close()
+        print('😻 z.')
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 if __name__== "__main__":

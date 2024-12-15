@@ -33,7 +33,7 @@ from core.stringbuilder import StringBuilder
 from core.util import Util
 from core.publisher import Publisher
 from hardware.i2c_scanner import I2CScanner
-#from ads1015 import ADS1015
+from ads1015 import ADS1015
 #from hardware.ina260_sensor import Ina260
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -58,12 +58,13 @@ class SystemPublisher(Publisher):
         self._system = system
         _cfg = config['krzos'].get('publisher').get('system')
         # config ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        self._publish_delay_sec = _cfg.get('publish_delay_sec')
-        self._current_threshold = _cfg.get('current_threshold')
-        self._battery_threshold = _cfg.get('battery_threshold')
-        self._regulator_5v_threshold = _cfg.get('regulator_5v_threshold')
+        self._publish_delay_sec       = _cfg.get('publish_delay_sec')
+        self._current_threshold       = _cfg.get('current_threshold')
+        self._battery_threshold       = _cfg.get('battery_threshold')
+        self._regulator_5v_threshold  = _cfg.get('regulator_5v_threshold')
         self._regulator_3v3_threshold = _cfg.get('regulator_3v3_threshold')
-        self._temperature_threshold = _cfg.get('temperature_threshold')
+        self._temperature_threshold   = _cfg.get('temperature_threshold')
+        self._batt_avail = False
         # dire event test values ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 #       self._current_threshold = 0.4  # TEST
 #       self._battery_threshold = 20.0 # TEST
@@ -73,18 +74,19 @@ class SystemPublisher(Publisher):
         self._log.info('thresholds for current: {:3.2f}A; voltage: {:3.2f}V.'.format(self._current_threshold, self._battery_threshold))
         # INA260 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 #       self._ina260 = Ina260(config, level=self._level)
+        self._ina260 = None
         # ADS1015 ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-#       self._ads1015 = ADS1015()
-#       chip_type = self._ads1015.detect_chip_type()
-#       self._log.info('ADS1015 chip type: {}'.format(chip_type))
-#       self._ads1015.set_mode("single")
-#       self._ads1015.set_programmable_gain(2.048)
-#       if chip_type == 'ADS1015':
-#           self._ads1015.set_sample_rate(1600)
-#       else:
-#           self._ads1015.set_sample_rate(860)
-#       self._reference = self._ads1015.get_reference_voltage()
-#       self._log.info('reference voltage: {:6.3f}v'.format(self._reference))
+        self._ads1015 = ADS1015()
+        chip_type = self._ads1015.detect_chip_type()
+        self._log.info('ADS1015 chip type: {}'.format(chip_type))
+        self._ads1015.set_mode("single")
+        self._ads1015.set_programmable_gain(2.048)
+        if chip_type == 'ADS1015':
+            self._ads1015.set_sample_rate(1600)
+        else:
+            self._ads1015.set_sample_rate(860)
+        self._reference = self._ads1015.get_reference_voltage()
+        self._log.info('reference voltage: {:6.3f}v'.format(self._reference))
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -93,12 +95,10 @@ class SystemPublisher(Publisher):
         return 0.0
             
     def get_5v_regulator(self):
-#       return self._ads1015.get_compensated_voltage(channel='in1/ref', reference_voltage=self._reference)
-        return 0.0
+        return self._ads1015.get_compensated_voltage(channel='in1/ref', reference_voltage=self._reference)
         
     def get_3v3(self):
-#       return self._ads1015.get_compensated_voltage(channel='in2/ref', reference_voltage=self._reference)
-        return 0.0
+        return self._ads1015.get_compensated_voltage(channel='in2/ref', reference_voltage=self._reference)
 
    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -141,10 +141,16 @@ class SystemPublisher(Publisher):
             _overcurrent       = False
    
             # read values ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-#           _ina_battery = self._ina260.voltage
-#           _ads_battery = self.get_battery()
-#           _current = self._ina260.current
-#           _power   = self._ina260.power
+            if self._ina260:
+                _ina_battery = self._ina260.voltage
+                _ads_battery = self.get_battery()
+                _current = self._ina260.current
+                _power   = self._ina260.power
+            else:
+                _ina_battery = 0.0
+                _ads_battery = 0.0
+                _current = None
+                _power   = None
             _5vReg   = self.get_5v_regulator()
             _3v3Reg  = self.get_3v3()
             _temp    = self._system.read_cpu_temperature()
@@ -152,12 +158,15 @@ class SystemPublisher(Publisher):
             # battery ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
             # we get a second battery reading from the ADS1015, so why not?
             _batt_color = Fore.YELLOW
-            if _ina_battery < self._battery_threshold:
-                _undervoltage_ina_batt = True
-                _batt_color = Fore.RED + Style.BRIGHT
-            if _ads_battery < self._battery_threshold:
-                _undervoltage_ads_batt = True
-                _batt_color = Fore.RED + Style.BRIGHT
+            if self._ina260:
+                if _ina_battery < self._battery_threshold:
+                    _undervoltage_ina_batt = True
+                    _batt_color = Fore.RED + Style.BRIGHT
+                if _ads_battery < self._battery_threshold:
+                    _undervoltage_ads_batt = True
+                    _batt_color = Fore.RED + Style.BRIGHT
+            else:
+                _batt_color = Fore.CYAN
             if _5vReg < self._regulator_5v_threshold:
                 _undervoltage_5v = True
                 _batt_color = Fore.RED + Style.BRIGHT
@@ -167,16 +176,19 @@ class SystemPublisher(Publisher):
 
             # current ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
             _curr_color = Fore.MAGENTA
-            if _current > self._current_threshold:
-                _overcurrent = True
-                _curr_color = Fore.RED + Style.BRIGHT
-            if _current < 1.0:
-                _current_display = '{:d}mA; '.format(int(_current * 1000))
+            if self._ina260:
+                if _current > self._current_threshold:
+                    _overcurrent = True
+                    _curr_color = Fore.RED + Style.BRIGHT
+                if _current < 1.0:
+                    _current_display = '{:d}mA; '.format(int(_current * 1000))
+                else:
+                    _current_display = '{:4.2f}A; '.format(_current)
             else:
-                _current_display = '{:4.2f}A; '.format(_current)
+                    _current_display = None
 
             # temperature ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-            _temp_color = Fore.WHITE
+            _temp_color = Fore.GREEN
             if _temp > self._temperature_threshold:
                 _temp_color = Fore.RED + Style.BRIGHT
 
@@ -191,7 +203,7 @@ class SystemPublisher(Publisher):
                 _ht_msg = 'high temperature: {:4.2f}C'.format(_temp)
                 self._log.warning(_ht_msg)
                 _message = self.message_factory.create_message(Event.HIGH_TEMPERATURE, _ht_msg)
-            elif _undervoltage_ina_batt and _undervoltage_ads_batt:
+            elif self._ina260 and _undervoltage_ina_batt and _undervoltage_ads_batt:
                 _ub_msg = 'under-voltage on battery: {:4.2f}V (INA) / {:4.2f}V (ADS)'.format(_ina_battery, _ads_battery)
                 self._log.warning(_ub_msg)
                 _message = self.message_factory.create_message(Event.BATTERY_LOW, _ub_msg)
@@ -204,11 +216,12 @@ class SystemPublisher(Publisher):
                 self._log.warning(_uv3_msg)
                 _message = self.message_factory.create_message(Event.REGULATOR_3V3_LOW, _uv3_msg)
             # display ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-            self._log.info('' + _batt_color + 'battery: {:4.2f}V (INA)/{:4.2f}V (ADS); '.format(_ina_battery, _ads_battery)
+            self._log.info(
+                    ( '' + _batt_color + 'battery: {:4.2f}V (INA)/{:4.2f}V (ADS); '.format(_ina_battery, _ads_battery) if self._ina260 else '' )
                     + 'regulators: {:4.2f}V (5V); {:4.2f}V (3v3); '.format(_5vReg, _3v3Reg) 
-                    + Style.NORMAL + _curr_color + _current_display
-                    + Style.NORMAL + Fore.GREEN + 'power: {:4.2f}W; '.format(_power)
-                    + Style.NORMAL + _temp_color + 'temperature: {:4.2f}C'.format(_temp))
+                    + ( ( Style.NORMAL + _curr_color + _current_display ) if _current_display else '' )
+                    + ( ( Style.NORMAL + Fore.GREEN + 'power: {:4.2f}W; '.format(_power) ) if _power else '' )
+                    + Fore.CYAN + Style.NORMAL + 'temperature: ' + _temp_color + '{:4.2f}C'.format(_temp))
             # publish event ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
             if _message:
                 await Publisher.publish(self, _message)

@@ -29,14 +29,14 @@ from hardware.i2c_scanner import I2CScanner, DeviceNotFound
 #from hardware.irq_clock import IrqClock
 #import hardware.ThunderBorg3
 #from hardware.ThunderBorg3 import ThunderBorg, ScanForThunderBorg, SetNewAddress
-from hardware.pigpiod_util import PigpiodUtility as pig_util
+from hardware.pigpiod_util import PigpiodUtility as PigUtil
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
 EXPECT_GPS = True
 BLINK_ON_COMPLETE = True
-PICON_ZERO        = True
-INVENTOR_HAT      = False
+PICON_ZERO        = False
+INVENTOR_HAT      = True
 CONFIRM_PIGPIOD   = True
 
 _pin = None
@@ -163,7 +163,7 @@ try:
         _log.info(Fore.GREEN + 'ICM20948 found at address 0x69.')
 
     if CONFIRM_PIGPIOD:
-        pig_util.ensure_pigpiod_is_running()
+        PigUtil.ensure_pigpiod_is_running()
 
     if BLINK_ON_COMPLETE:
         _pin = 13
@@ -181,7 +181,7 @@ try:
 except KeyboardInterrupt:
     _log.info('Ctrl-C caught; exiting...')
 except Exception as e:
-    _log.error('{} thrown in thunderborg test: {}\n{}'.format(type(e), e, traceback.format_exc()))
+    _log.error('{} thrown by init: {}\n{}'.format(type(e), e, traceback.format_exc()))
 finally:
     if _pin and BLINK_ON_COMPLETE:
         GPIO.cleanup(_pin)
