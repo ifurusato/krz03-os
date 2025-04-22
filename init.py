@@ -35,9 +35,12 @@ from hardware.pigpiod_util import PigpiodUtility as PigUtil
 
 EXPECT_GPS = True
 BLINK_ON_COMPLETE = True
+MOTOR_2040        = True
+TINY_FX           = True
+IO_EXPANDER       = False
+INVENTOR_HAT      = False
 PICON_ZERO        = False
-INVENTOR_HAT      = True
-CONFIRM_PIGPIOD   = True
+CONFIRM_PIGPIOD   = False
 
 _pin = None
 _tb1 = None
@@ -55,15 +58,17 @@ try:
     0x0E   Digital Pot - stbd       (optional)
     0x0F   Rotary Encoder - port    (optional)
     0x10   GPS
-    0x16   Inventor HAT - aft
-    0x17   Inventor HAT - fwd
+    0x16   Inventor HAT - aft       (optional)
+    0x17   Inventor HAT - fwd       (optional)
     0x18   IO Expander
     0x1D   LSM303D
-    0x22   Picon Zero - aft
-    0x23   Picon Zero - fwd
-    0x28   VL53L1CX
-    0x29   VL53L5CX
+    0x22   Picon Zero - aft         (optional)
+    0x23   Picon Zero - fwd         (optional)
+    0x29   VL53L1CX or VL53L5CX
     0x38   BH1745                   (optional)
+    0x44   Motor 2040               (optional)
+    0x45   TinyFX
+    0x48   ADS1015
     0x74   RGB LED - stbd
     0x75   11x7 Matrix LED - stbd
     0x77   11x7 Matrix LED - port   (conflict)
@@ -90,15 +95,25 @@ try:
         _log.info(Fore.GREEN + 'Digital Potentiometer found at address 0x0E.')
     #   0x0F   Rotary Encoder - port    (optional)
     if not _i2c_scanner.has_hex_address(['0x0F']):
-        _log.info(Style.DIM + 'Digital Encoder not found at address 0x0F.')
+        _log.info(Style.DIM + 'Rotary Encoder not found at address 0x0F.')
     else:
-        _log.info(Fore.GREEN + 'Digital Encoder found at address 0x0F.')
+        _log.info(Fore.GREEN + 'Rotary Encoder found at address 0x0F.')
     # I²C address 0x10: PA1010D GPS
     if not _i2c_scanner.has_hex_address(['0x10']):
         _log.info(Style.DIM + 'PA1010D GPS not found at address 0x10.')
     else:
         _log.info(Fore.GREEN + 'PA1010D GPS found at address 0x10.')
-    if INVENTOR_HAT:
+    if TINY_FX:
+        if not _i2c_scanner.has_hex_address(['0x44']):
+            _log.warning('TinyFX not found at address 0x44.')
+        else:
+            _log.info(Fore.GREEN + 'TinyFX found at address 0x44.')
+    if MOTOR_2040:
+        if not _i2c_scanner.has_hex_address(['0x45']):
+            _log.warning('Motor 2040 not found at address 0x45.')
+        else:
+            _log.info(Fore.GREEN + 'Motor 2040 found at address 0x45.')
+    elif INVENTOR_HAT:
         #   0x16   Inventor HAT - aft
         if not _i2c_scanner.has_hex_address(['0x16']):
             _log.warning('Aft Inventor HAT not found at address 0x16.')
@@ -120,11 +135,17 @@ try:
             _log.warning('Fwd Picon Zero not found at address 0x23.')
         else:
             _log.info(Fore.GREEN + 'Fwd Picon Zero found at address 0x23.')
-    #   0x18   IO Expander
-    if not _i2c_scanner.has_hex_address(['0x18']):
-        _log.warning('IO Expander not found at address 0x18.')
+    #   0x48   ADS1015
+    if not _i2c_scanner.has_hex_address(['0x48']):
+        _log.warning('ADS1015 not found at address 0x48.')
     else:
-        _log.info(Fore.GREEN + 'IO Expander found at address 0x18.')
+        _log.info(Fore.GREEN + 'ADS1015 found at address 0x48.')
+    if IO_EXPANDER:
+        #   0x18   IO Expander
+        if not _i2c_scanner.has_hex_address(['0x18']):
+            _log.warning('IO Expander not found at address 0x18.')
+        else:
+            _log.info(Fore.GREEN + 'IO Expander found at address 0x18.')
     #   0x1D   LSM303D
     if not _i2c_scanner.has_hex_address(['0x1D']):
         _log.info(Style.DIM + 'LM303D not found at address 0x1D.')
@@ -132,9 +153,9 @@ try:
         _log.info(Fore.GREEN + 'LM303D found at address 0x1D.')
     #   0x29   VL53L5CX
     if not _i2c_scanner.has_hex_address(['0x29']):
-        _log.warning('VL53L5X not found at address 0x29.')
+        _log.warning('VL53L1X or VL53L5X not found at address 0x29.')
     else:
-        _log.info(Fore.GREEN + 'VL53L5X found at address 0x29.')
+        _log.info(Fore.GREEN + 'VL53L1X or VL53L5X found at address 0x29.')
     #   0x38   BH1745                   (optional)
     if not _i2c_scanner.has_hex_address(['0x38']):
         _log.info(Style.DIM + 'BH1745 not found at address 0x38.')
@@ -164,6 +185,8 @@ try:
 
     if CONFIRM_PIGPIOD:
         PigUtil.ensure_pigpiod_is_running()
+    else:
+        _log.info(Style.DIM + 'no check for pigpiod.')
 
     if BLINK_ON_COMPLETE:
         _pin = 13

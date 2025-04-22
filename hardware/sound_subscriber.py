@@ -60,13 +60,6 @@ class SoundSubscriber(Subscriber):
 #               + Fore.YELLOW + '{}'.format(type(_value)))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _shutdown(self): # TEMP
-        self._log.info(Fore.MAGENTA + 'shutdown from bumper.')
-        _component_registry = globals.get('component-registry')
-        _krzos = _component_registry.get('krzos')
-        _krzos.shutdown()
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):
         '''
         Process the message.
@@ -89,9 +82,10 @@ class SoundSubscriber(Subscriber):
             case Group.STOP:        #  4, "stop" 
                 self._log.info(Style.DIM + 'STOP: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
             case Group.BUMPER:      #  5, "bumper" 
-                Player.instance().play(Sound.HONK)
-                self._shutdown()
-                self._log.info(Style.BRIGHT + 'BUMPER: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
+                _value = int(message.payload.value)
+                if _value > 0:
+                    self._log.info(Style.BRIGHT + 'BUMPER: message {}; '.format(message.name) + Fore.YELLOW + 'event: {}; '.format(_event.name) + 'value: {}'.format(_value))
+                    Player.instance().play(Sound.HONK)
             case Group.INFRARED:    #  6, "infrared" 
                 if _event is Event.INFRARED_PORT:
                     self._log.info(Fore.RED   + 'port infrared: {:d}mm'.format(int(message.payload.value)))

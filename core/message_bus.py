@@ -132,11 +132,11 @@ class MessageBus(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def clear_tasks(self):
         '''
-        Clears the task list of any completed tasks.
+        Cancels any tasks that have been completed.
         '''
         _tasks = self.get_all_tasks()
         if len(_tasks) > 0:
-            self._log.info('clearing {:d} outstanding tasks.'.format(len(_tasks)))
+            self._log.info('clearing {:d} outstanding task{}…'.format(len(_tasks), '' if len(_tasks) == 1 else 's'))
             for _task in _tasks:
                 _task_name = _task.get_name()
                 if 'shutdown' in _task_name:
@@ -144,20 +144,28 @@ class MessageBus(Component):
                 else:
                     try:
                         if not _task.cancelled():
+                            self._log.info("cancelling task '{}'…".format(_task_name))
                             _task.cancel()
                         if _task.done():
+                            self._log.info("task '{}' is already done.".format(_task_name))
                             _tasks.remove(_task)
+                            pass
                         else:
                             if 'cleanup' in _task_name:
+                                self._log.info('cancelling cleanup task…')
+                                _task.cancel()
                                 _tasks.remove(_task)
-                                self._log.info('removed cleanup task.')
+                                self._log.info('cancelled cleanup task.')
                             elif 'republish' in _task_name:
+                                self._log.info('cancelling republication task…')
+                                _task.cancel()
                                 _tasks.remove(_task)
-                                self._log.info('removed republication task.')
+                                self._log.info('cancelled republication task.')
                             else:
+                                _task.cancel()
                                 _tasks.remove(_task)
                                 if not self.closing:
-                                    self._log.warning('removed unfinished task: {}'.format(_task))
+                                    self._log.warning("removed unfinished task: '{}' ({})".format(_task.get_name(), _task))
                     except CancelledError:
                         self._log.warning('cancelled error: ignored.')
                     except Exception as e:

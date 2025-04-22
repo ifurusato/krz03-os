@@ -1,78 +1,85 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2020-2024 by Murray Altheim. All rights reserved. This file is part
+# Copyright 2020-2025 by Murray Altheim. All rights reserved. This file is part
 # of the Robot Operating System project, released under the MIT License. Please
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
 # created:  2024-08-28
-# modified: 2024-09-06
+# modified: 2025-04-22
 #
-# Sends 0 to both channels of the TinyFX, turning all LEDs on.
+# Sends data to the TinyFX, using the TinyFxController.
 #
 
 import sys, time, traceback
 from colorama import init, Fore, Style
 init()
 
+from core.orientation import Orientation
 from core.logger import Logger, Level
 from core.config_loader import ConfigLoader
-from hardware.tinyfx_gpio_controller import TinyFxGpioController
+from hardware.tinyfx_controller import TinyFxController
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def main():
-
+    
     _loop   = False
     _tinyfx = None
     _log = Logger('test', Level.INFO)
 
     setting = sys.argv[1]
     _log.info(Fore.CYAN + Style.DIM + '-- setting \"{}\"...'.format(setting) + Style.RESET_ALL)
-
+    
     try:
     
         # read YAML configuration
         _level = Level.INFO
         _config = ConfigLoader(Level.INFO).configure()
-        _tinyfx = TinyFxGpioController(_config, level=Level.INFO)
+        _tinyfx = TinyFxController(_config, level=Level.INFO)
         _log.info('starting test…')
     
         if setting.startswith('on'):
             _log.info(Fore.WHITE + 'setting ON')
             _tinyfx.on()
             
+        elif setting.startswith('ram'):
+            _tinyfx.ram()
+
+        elif setting.startswith('flash'):
+            _tinyfx.flash()
+
         elif setting.startswith('of'):
             _log.info(Fore.WHITE + 'setting OFF')
             _tinyfx.off()
             
-        elif setting.startswith('ch1'):
-            _log.info(Fore.WHITE + 'setting DOWN LIGHTS')
-            _tinyfx.channel_on(TinyFxGpioController.CHANNEL_1)
+        elif setting.startswith('ma'):
+            _log.info(Fore.WHITE + 'setting MAST LIGHT')
+            _tinyfx.channel_on(Orientation.MAST)
             
-        elif setting.startswith('ch2'):
-            _log.info(Fore.WHITE + 'setting HEADLIGHT')
-            _tinyfx.channel_on(TinyFxGpioController.CHANNEL_2)
+        elif setting.startswith('po'):
+            _log.info(Fore.WHITE + 'setting PORT LIGHT')
+            _tinyfx.channel_on(Orientation.PORT)
             
-        elif setting.startswith('ch3'):
-            _log.info(Fore.WHITE + 'setting RUNNING LIGHTS')
-            _tinyfx.channel_on(TinyFxGpioController.CHANNEL_3)
-            
-        elif setting.startswith('lo'):
-            _log.info(Fore.WHITE + 'setting LOOP')
-            _loop = True
-            while True:
-                _tinyfx.off()
-                time.sleep(0.33)
-                _tinyfx.channel_on(TinyFxGpioController.HEADLIGHT)
-                time.sleep(1)
-                time.sleep(0.33)
-                _tinyfx.channel_on(TinyFxGpioController.DOWNLIGHT)
-                time.sleep(1)
-                time.sleep(0.33)
-                _tinyfx.channel_on(TinyFxGpioController.RUNNING)
-                time.sleep(1)
-                
+        elif setting.startswith('st'):
+            _log.info(Fore.WHITE + 'setting STBD LIGHT')
+            _tinyfx.channel_on(Orientation.STBD)
+
+        elif setting.startswith('pi'):
+            if setting == 'pir get':
+                _log.info(Fore.WHITE + 'getting PIR')
+                _tinyfx.channel_on(Orientation.PIR)
+            elif setting == 'pir on':
+                _log.info(Fore.WHITE + 'enable PIR')
+                _tinyfx.pir(True)
+            elif setting == 'pir off':
+                _log.info(Fore.WHITE + 'disable PIR')
+                _tinyfx.pir(False)
+            else:
+                _log.warning('unrecognised argument \"{}\"'.format(setting))
+        elif setting.startswith('play '):
+            _log.info(Fore.WHITE + "play '{}'".format(setting[5:]))
+            _tinyfx.play(setting)
         else:   
             _log.warning('unrecognised argument \"{}\"'.format(setting))
 
@@ -90,7 +97,7 @@ def main():
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
 if len(sys.argv) != 2:
-    print(Fore.RED + "\n  ERROR: expected 1 command line argument: 'on' | 'off' | 'ch1' | 'ch2' | 'ch3' | 'loop'" + Style.RESET_ALL)
+    print(Fore.RED + "\n  ERROR: expected 1 command line argument: 'on' | 'off' | 'mast' | 'port' | 'stbd' | 'pir get' | 'pir on' | 'pir off' | 'play {key}' | ram | flash" + Style.RESET_ALL)
     sys.exit(1)
     
 if __name__== "__main__":

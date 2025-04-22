@@ -27,7 +27,7 @@ try:
     _proc_num = -1
     _lines = o.decode('ascii').split('\n')
     for _line in _lines:
-        if 'python3' in _line:
+        if 'python3' in _line or 'python' in _line:
             _proc_num = int(_line.split()[0])
             if _proc_num != _pid:
                 _kill_command = 'kill -9 {}'.format(_proc_num)

@@ -109,12 +109,12 @@ class DistanceSensorsPublisher(Publisher):
                         if _distance_mm < self._bump_threshold:
                             if self._verbose:
                                 self._log.info(Fore.WHITE + Style.BRIGHT + "bumper:   {:<10} {:>10.1f}mm".format(_sensor.orientation.name, _distance_mm))
-                            _message = self.message_factory.create_message( self._get_bumper_event(_sensor.orientation), (_distance_mm))
+                            _message = self.message_factory.create_message(self._get_bumper_event(_sensor.orientation), (_distance_mm))
                             await Publisher.publish(self, _message)
                         elif _distance_mm < self._sense_threshold:
                             if self._verbose:
                                 self._log.info(Fore.WHITE + "infrared: {:<10} {:>10.1f}mm".format(_sensor.orientation.name, _distance_mm))
-                            _message = self.message_factory.create_message( self._get_infrared_event(_sensor.orientation), (_distance_mm))
+                            _message = self.message_factory.create_message(self._get_infrared_event(_sensor.orientation), (_distance_mm))
                             await Publisher.publish(self, _message)
                 await asyncio.sleep(self._publish_delay_sec)
         except asyncio.CancelledError:

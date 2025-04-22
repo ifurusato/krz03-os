@@ -38,11 +38,13 @@ def main():
     global enabled
     try:
 
-        print('killswitch begin…')
+        _momentary = True
+        _pin = 17
 
+        print('button begin…')
         _config = ConfigLoader(Level.INFO).configure()
-        _button = Button(config=_config, level=Level.INFO)
-        _button.add_callback(shutdown)
+        _button = Button(config=_config, pin=_pin, momentary=_momentary, level=Level.INFO)
+        _button.add_callback(shutdown, 500)
 
         _old_value = None
         while enabled:
@@ -51,9 +53,10 @@ def main():
     except KeyboardInterrupt:
         print('\n')
         print('Ctrl-C caught, exiting…')
-
+    except RuntimeError as rte:
+        print(Fore.RED + 'runtime error in test: {}'.format(rte) + Style.RESET_ALL)
     except Exception as e:
-        print(Fore.RED + 'error in motor test: {}'.format(e) + Style.RESET_ALL)
+        print(Fore.RED + 'error in test: {}'.format(e) + Style.RESET_ALL)
         traceback.print_exc(file=sys.stdout)
     finally:
         pass

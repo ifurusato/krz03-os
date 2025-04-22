@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2020-02-21
-# modified: 2024-02-25
+# modified: 2025-04-21
 #
 
 from enum import Enum
@@ -26,14 +26,15 @@ class Group(Enum):
     BUMPER     = (  5, "bumper" )
     INFRARED   = (  6, "infrared" )
     IMU        = (  7, "imu" )
-    VELOCITY   = (  8, "velocity" )
-    THETA      = (  9, "theta" )
-    CHADBURN   = ( 10, "chadburn" )
-    BEHAVIOUR  = ( 11, "behaviour" )
-    CLOCK      = ( 12, "clock" )
-    EXPERIMENT = ( 13, "experiment" )
-    REMOTE     = ( 14, "remote" )
-    OTHER      = ( 15, "other" )
+    PIR        = (  8, "pir" )
+    VELOCITY   = (  9, "velocity" )
+    THETA      = ( 10, "theta" )
+    CHADBURN   = ( 11, "chadburn" )
+    BEHAVIOUR  = ( 12, "behaviour" )
+    CLOCK      = ( 13, "clock" )
+    EXPERIMENT = ( 14, "experiment" )
+    REMOTE     = ( 16, "remote" )
+    OTHER      = ( 16, "other" )
 
     def __new__(cls, *args, **kwds):
         obj = object.__new__(cls)
@@ -151,8 +152,12 @@ class Event(Enum):
     INFRARED_STBD          = ( 132, "infrared stbd",           51,   Group.INFRARED )
 
     # imu ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    IMU_OVER_PITCH          = ( 140, "imu over-pitch",         70,   Group.IMU )
-    IMU_OVER_ROLL           = ( 141, "imu over-roll",          70,   Group.IMU )
+    IMU_OVER_PITCH         = ( 140, "imu over-pitch",          70,   Group.IMU )
+    IMU_OVER_ROLL          = ( 141, "imu over-roll",           70,   Group.IMU )
+
+    # pir ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    PIR_ACTIVE             = ( 150, "pir active",              70,   Group.PIR )
+    PIR_INACTIVE           = ( 151, "pir inactive",            70,   Group.PIR )
 
     # velocity directives  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     VELOCITY               = ( 200, "velocity",               100,   Group.VELOCITY ) # with value

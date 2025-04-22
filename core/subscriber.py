@@ -77,6 +77,7 @@ class Subscriber(Component, FiniteStateMachine):
         If called, permits messages to be resent without issuing a warning.
         '''
         self._permit_resend = True
+        raise Exception('permit resend set true.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def set_log_level(self, level):
@@ -230,15 +231,19 @@ class Subscriber(Component, FiniteStateMachine):
     
                 # we've handled message so pass along to arbitrator
                 if _message.sent == 0:
-#                   self._log.debug('sending message: {}; event: {} to arbitrator...'.format(_message.name, _message.event.name))
+                    self._log.debug('sending message: {}; event: {} to arbitrator...'.format(_message.name, _message.event.name))
                     await self._arbitrate_message(_message)
-#                   self._log.debug('sent message:' + Fore.WHITE + ' {}; event: {} to arbitrator.'.format(_message.name, _message.event.name))
+                    self._log.debug('message:' + Fore.WHITE + ' {}; event: {} sent to arbitrator; sent? {}'.format(_message.name, _message.event.name, _message.sent))
+                    if _message.sent > 0:
+                        self._log.debug('message:' + Fore.WHITE + ' {}; event: {} already sent'.format(_message.name, _message.event.name))
+                        return
                 elif _message.sent == -1:
+                    self._log.info('dont arbitrate, just republish message: {}; event: {}.'.format(_message.name, _message.event.name))
                     # don't arbitrate, just keep republishing this message
                     pass
                 elif not self._permit_resend:
 #                   self._log.warning('message: {} already sent; event: {}'.format(_message.name, _message.event.name))
-                    self._log.debug('message: {} already sent; event: {}'.format(_message.name, _message.event.name))
+                    self._log.info('message: {} already sent; event: {}'.format(_message.name, _message.event.name))
     
 #               # keep track of timestamp of last message
 #               self._log.debug('last message timestamp: {}'.format(_message.timestamp))
@@ -292,9 +297,9 @@ class Subscriber(Component, FiniteStateMachine):
         Pass the message on to the Arbitrator and acknowledge that it has been
         sent (by setting a flag in the message).
         '''
-        await self._message_bus.arbitrate(message.payload)
         # increment sent acknowledgement count
         message.acknowledge_sent()
+        await self._message_bus.arbitrate(message.payload)
 #       if self._message_bus.verbose:
 #           self._log.info('arbitrated payload for event {}; value: {}'.format(message.payload.event.name, message.payload.value))
 
@@ -318,8 +323,8 @@ class Subscriber(Component, FiniteStateMachine):
         self._log.debug('message {} expired by subscriber: {}.'.format(message.name, self._name))
         message.expire()
         # clear any tasks related to the message
-#       self._message_bus.clear_tasks()
-#       self._log.debug('end cleanup of message: {}'.format(message.name))
+        self._message_bus.clear_tasks()
+        self._log.debug('end cleanup of message: {}'.format(message.name))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _print_message_info(self, title, message, elapsed):

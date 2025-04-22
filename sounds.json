@@ -3,7 +3,7 @@
         "index": 1,
         "name": "silence",
         "mnemonic": "SILENCE",
-        "duration": 0.25,
+        "duration": 0.0,
         "filename": "silence.wav",
         "description": "silence."
     },
@@ -59,7 +59,7 @@
         "index": 8,
         "name": "chatter",
         "mnemonic": "CHATTER",
-        "duration": 1.5,
+        "duration": 1.0,
         "filename": "chatter.wav",
         "description": "chatter."
     },
@@ -67,7 +67,7 @@
         "index": 9,
         "name": "chirp",
         "mnemonic": "CHIRP",
-        "duration": 2.5,
+        "duration": 2.0,
         "filename": "chirp.wav",
         "description": "chirp."
     },
@@ -99,7 +99,7 @@
         "index": 13,
         "name": "dit-a",
         "mnemonic": "DIT_A",
-        "duration": 0.5,
+        "duration": 0.0,
         "filename": "dit_a.wav",
         "description": "dit A."
     },
@@ -107,7 +107,7 @@
         "index": 14,
         "name": "dit-b",
         "mnemonic": "DIT_B",
-        "duration": 0.5,
+        "duration": 0.0,
         "filename": "dit_b.wav",
         "description": "dit B."
     },
@@ -115,7 +115,7 @@
         "index": 15,
         "name": "dit-c",
         "mnemonic": "DIT_C",
-        "duration": 0.5,
+        "duration": 0.0,
         "filename": "dit_c.wav",
         "description": "dit C."
     },
@@ -195,7 +195,7 @@
         "index": 25,
         "name": "pew-pew-pew",
         "mnemonic": "PEW_PEW_PEW",
-        "duration": 1.5,
+        "duration": 1.0,
         "filename": "pew-pew-pew.wav",
         "description": "pew pew pew."
     },
@@ -251,7 +251,7 @@
         "index": 32,
         "name": "tick",
         "mnemonic": "TICK",
-        "duration": 0.5,
+        "duration": 0.0,
         "filename": "tick.wav",
         "description": "tick."
     },

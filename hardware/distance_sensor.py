@@ -12,6 +12,7 @@
 
 import time
 import asyncio
+from threading import Thread
 from collections import deque
 import pigpio
 
@@ -21,6 +22,7 @@ globals.init()
 from core.logger import Logger, Level
 from core.component import Component
 from core.orientation import Orientation
+from hardware.pigpiod_util import PigpiodUtility
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 class DistanceSensor(Component):
@@ -28,8 +30,15 @@ class DistanceSensor(Component):
     '''
     Provides distance information in millimeters from a Pololu PWM-based
     infrared proximity sensor.
+
+    This can run either in a Thread or using the MessageBus (asyncio).
+
+    :param config:       the application configuration
+    :param orientation:  the orientation of the sensor, PORT, CNTR or STBD
+    :param message_bus:  the optional message bus
+    :param level:        the log level
     '''
-    def __init__(self, config, orientation, level=Level.INFO):
+    def __init__(self, config, orientation, message_bus=None, level=Level.INFO):
         '''
         Initializes the DistanceSensor.
 
@@ -53,24 +62,33 @@ class DistanceSensor(Component):
                 raise Exception('unexpected orientation: {}'.format(orientation.name))
         self._orientation = orientation
         self._task_name = '__{}-distance-sensor-loop'.format(self.orientation.name)
-        self._timeout = _cfg.get('timeout')     # time in seconds to consider sensor as timed out 
-        self._smoothing = _cfg.get('smoothing') # enable smoothing of distance readings 
-        _smoothing_window    = _cfg.get('smoothing_window')
+        self._timeout = _cfg.get('timeout')     # time in seconds to consider sensor as timed out
+        self._smoothing = _cfg.get('smoothing') # enable smoothing of distance readings
+        _smoothing_window     = _cfg.get('smoothing_window')
         self._window = deque(maxlen=_smoothing_window) if self._smoothing else None
-        self._loop_interval  = _cfg.get('loop_interval') # interval between distance polling, in seconds
-        self._pulse_start    = None
-        self._pulse_width_us = None
-        self._distance       = None
-        self._task           = None
-        self._running        = False
-        # initialize pigpio
+        self._loop_interval   = _cfg.get('loop_interval') # interval between distance polling, in seconds
+        self._pulse_start     = None
+        self._pulse_width_us  = None
+        self._distance        = -1
+        self._task            = None
+        self._running         = False
+        self._pi              = None
+        self._callback        = None
+        self._use_message_bus = False
+        self._log.info('distance sensor ready on pin {}.'.format(self._pin))
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _ensure_pigpio(self):
+        '''
+        Make sure that pigpio is running.
+        '''
+        PigpiodUtility.ensure_pigpiod_is_running()
         self._pi = pigpio.pi()
         if not self._pi.connected:
             raise Exception("Failed to connect to pigpio daemon")
         self._pi.set_mode(self._pin, pigpio.INPUT)
         self._callback = self._pi.callback(self._pin, pigpio.EITHER_EDGE, self._pulse_callback)
         self._last_read_time = time.time()
-        self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -87,24 +105,28 @@ class DistanceSensor(Component):
         elif level == 0: # falling edge
             if self._pulse_start is not None:
                 self._pulse_width_us = pigpio.tickDiff(self._pulse_start, tick)
+            else:
+                self._pulse_width_us = None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _compute_distance(self):
         '''
-        Compute and update the distance based on the current pulse width.
+        Compute and update the distance based on the current pulse width,
+        returning the distance or -1 if out of range.
         '''
-        if self._pulse_width_us is not None:
-            if 1000 <= self._pulse_width_us <= 1850:
-                distance_mm = (self._pulse_width_us - 1000) * 3 / 4
+        _pulse_width_us = self._pulse_width_us # capture current value
+        _distance = -1
+        if _pulse_width_us is not None:
+            if 1000 <= _pulse_width_us <= 1850:
+                distance_mm = (_pulse_width_us - 1000) * 3 / 4
                 self._last_read_time = time.time()
-                self._pulse_width_us = None # reset after processing
                 if self._smoothing:
                     self._window.append(distance_mm)
-                    self._distance = sum(self._window) / len(self._window)
+                    _distance = int(sum(self._window) / len(self._window))
                 else:
-                    self._distance = distance_mm
-            else:
-                self._distance = None
+                    _distance = int(distance_mm)
+            self._pulse_width_us = None # reset after processing
+        return _distance
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_distance(self):
@@ -121,19 +143,23 @@ class DistanceSensor(Component):
         return time.time() - self._last_read_time > self._timeout
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    async def _sensor_loop(self):
+    async def _async_sensor_loop(self):
         '''
         Asynchronous loop to continuously compute distances.
         '''
         while self._running:
-            self._compute_distance()
+            self._distance = self._compute_distance()
             await asyncio.sleep(self._loop_interval)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def start(self):
+    def _sensor_loop(self):
         '''
-        Start the sensor's asynchronous loop.
+        Loop to continuously compute distances. This is used when the
+        asyncio message bus is active.
         '''
+        while self._running:
+            self._distance = self._compute_distance()
+            time.sleep(self._loop_interval)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def stop(self):
@@ -143,30 +169,37 @@ class DistanceSensor(Component):
         self._running = False
         if self._task:
             self._task.cancel()
-        self._callback.cancel()
-        self._pi.stop()
+        if self._callback:
+            self._callback.cancel()
+        if self._pi:
+            self._pi.stop()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
         Component.enable(self)
         if self.enabled:
-            _component_registry = globals.get('component-registry')
-            _message_bus = _component_registry.get('bus')
-            if _message_bus is None:
-                raise Exception('no message bus available.')
-            elif _message_bus.get_task_by_name(self._task_name):
-                self._log.warning('already enabled.')
+            self._ensure_pigpio()
+            if self._use_message_bus:
+                _component_registry = globals.get('component-registry')
+                _message_bus = _component_registry.get('bus')
+                if _message_bus is None:
+                    raise Exception('no message bus available.')
+                elif _message_bus.get_task_by_name(self._task_name):
+                    self._log.warning('already enabled.')
+                self._running = True
+                self._task = asyncio.create_task(self._async_sensor_loop(), name=self._task_name)
             else:
                 self._running = True
-                self._task = asyncio.create_task(self._sensor_loop(), name=self._task_name)
+                self._thread = Thread(name='sensor-loop', target=self._sensor_loop)
+                self._thread.start()
         else:
             self._log.warning('failed to enable distance sensor.')
- 
+
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
         self.stop()
         Component.disable(self)
- 
+
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
         '''

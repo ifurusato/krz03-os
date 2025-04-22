@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
 # Copyright 2020-2024 by Murray Altheim. All rights reserved. This file is part
@@ -7,57 +7,57 @@
 #
 # author:   Murray Altheim
 # created:  2024-11-16
-# modified: 2024-11-19
+# modified: 2024-11-18
 #
 
-import sys, traceback
+import asyncio
 import time
-from colorama import init, Fore, Style
-init()
+from hardware.distance_sensor import DistanceSensor
 
 from core.logger import Logger, Level
 from core.orientation import Orientation
 from core.config_loader import ConfigLoader
-from core.message_bus import MessageBus
-from core.message_factory import MessageFactory
-from hardware.distance_sensors import DistanceSensors
 
-# ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-def main():
+async def main():
 
-    _level = Level.INFO
-    _distance_sensors = None
-    _log = Logger("dist-test", _level)
+    _config = ConfigLoader(Level.INFO).configure()
+    _port_sensor = DistanceSensor(_config, Orientation.PORT)
+    _cntr_sensor = DistanceSensor(_config, Orientation.CNTR)
+    _stbd_sensor = DistanceSensor(_config, Orientation.STBD)
+    _sensors = [ _port_sensor, _cntr_sensor, _stbd_sensor ]
+
+    # start all sensors
+    for _sensor in _sensors:
+        _sensor.enable()
 
     try:
-
-        _config = ConfigLoader(Level.INFO).configure()
-
-        _log.info('creating message bus…')
-        _message_bus = MessageBus(_config, _level)
-        _log.info('creating message factory…')
-        _message_factory = MessageFactory(_message_bus, _level)
-
-        _log.info('creating distance sensors…')
-        _distance_sensors = DistanceSensors(_config, _message_bus, _message_factory, level=_level)
-#       _distance_sensors.enable()
-
-        _log.info("starting message bus...")
-        _message_bus.enable()
-
-        _log.info("Measuring distances...")
+        print("measuring distances…")
         while True:
-            time.sleep(1)
+            distances = []
+            for _sensor in _sensors:
+                distance_mm = _sensor.get_distance()
+                if distance_mm > 0:
+                    distances.append("{:>8}mm".format(distance_mm))
+                else:
+                    distances.append("         ·")
 
-    except KeyboardInterrupt:
-        _log.info("\nCtrl-C caught, exiting…")
-    except Exception as e:
-        _log.error('error in motor test: {}'.format(e))
-        traceback.print_exc(file=sys.stdout)
+            result_line = " | ".join(distances)
+            print(f"\r{' ' * 100}", end="")  # Clear the current line
+            print(f"\r\t{result_line}", end="")  # Print the new result
+
+            time.sleep(0.1) # adjust delay as needed
+#           await asyncio.sleep(0.1)
+
+    except asyncio.CancelledError:
+        # handle task cancellation
+        pass
     finally:
-        if _distance_sensors:
-            _distance_sensors.close()
+        for _sensor in _sensors:
+            _sensor.stop()
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nCtrl-C caught, exiting…")
 

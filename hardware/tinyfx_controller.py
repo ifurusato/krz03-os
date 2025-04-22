@@ -49,14 +49,19 @@ class TinyFxController(Component):
             self.send_data('play {}'.format(key))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def channel_on(self, channel_id):
+    def channel_on(self, orientation):
         '''
-        Turn on the channel designated by:
-            Orientation.PORT : port light
-            Orientation.STBD : starboard light
-            Orientation.MAST : mast flashing light
+        Accepts an Orientation argument. Modify the channel designated by:
+
+            Orientation.NONE :  turn off all lights
+            Orientation.ALL :   turn on port, starboard and mast lights
+            Orientation.PORT :  turn on port light
+            Orientation.STBD :  turn on starboard light
+            Orientation.MAST :  turn on mast flashing light
         '''
-        match channel_id:
+        match orientation:
+            case Orientation.NONE:
+                self.send_data('off')
             case Orientation.ALL:
                 self.send_data('on')
             case Orientation.PORT:
@@ -65,6 +70,48 @@ class TinyFxController(Component):
                 self.send_data('stbd')
             case Orientation.MAST:
                 self.send_data('mast')
+            case Orientation.PIR:
+                self.send_data('pir get')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def on(self):
+        '''
+        A shortcut that turns on all channels.
+        '''
+        self.channel_on(Orientation.ALL)
+        self._log.info('lights on.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def off(self):
+        '''
+        A shortcut that turns off all channels.
+        '''
+        self.channel_on(Orientation.NONE)
+        self._log.info('lights off.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def pir(self, enabled):
+        '''
+        Enables or disables the PIR sensor.
+        '''
+        if enabled:
+            self.send_data('pir on')
+        else:
+            self.send_data('pir off')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def ram(self):
+        '''
+        Displays free RAM on the console.
+        '''
+        self.send_data('ram')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def flash(self):
+        '''
+        Displays flash memory info on the console.
+        '''
+        self.send_data('flash')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def send_data(self, data):
@@ -73,6 +120,7 @@ class TinyFxController(Component):
         '''
         try:
             payload = self._convert_to_payload(data)
+            self._log.debug('send payload {} as data: {}'.format(payload, data))
             self._write_payload(payload)
             self._write_completion_code()
             return self._read_response()
@@ -113,12 +161,12 @@ class TinyFxController(Component):
         Read the response from the I2C device.
         '''
         read_data = self._bus.read_byte_data(self._i2c_address, self._config_register)
-        self._log.debug("read data: '{}'".format(read_data))
         response = Response.from_value(read_data)
+        self._log.debug("read data: '{}' as response: {}".format(read_data, response))
         if response.value <= Response.OKAY.value:
-            self._log.debug("tinyfx response: {}".format(response.name))
+            self._log.info("tinyfx response: {}".format(response.name))
         elif read_data == 32:
-            self._log.debug("tinyfx response: okay")
+            self._log.info("tinyfx response: okay")
         else:
             self._log.error("tinyfx response: {}; data: 0x{:02X}".format(response.name, read_data))
         return response
@@ -129,41 +177,36 @@ class TinyFxController(Component):
         self._bus.close()
         self._log.info('closed.')
 
+    # direct commands ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Response(Enum):
     # this variable must include all entries, whitespace-delimited
-    __order__ = " INIT OKAY BAD_ADDRESS OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE UNKNOWN_ERROR VALUE_OFF VALUE_ON "
+    __order__ = " INIT BAD_ADDRESS BAD_REQUEST OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE UNKNOWN_ERROR PIR_ACTIVE PIR_IDLE OKAY "
     '''
     Provides an enumeration of response codes from the I2C Slave.
     These match the hard-coded values in the MicroPython file.
 
     # response codes: (note: extension values <= 0x4F are considered 'okay')
-    INIT              = 0x10
-    OKAY              = 0x4F
-    BAD_ADDRESS       = 0x71
-    OUT_OF_SYNC       = 0x72
-    INVALID_CHAR      = 0x73
-    SOURCE_TOO_LARGE  = 0x74
-    UNVALIDATED       = 0x75
-    EMPTY_PAYLOAD     = 0x76
-    PAYLOAD_TOO_LARGE = 0x77
-    UNKNOWN_ERROR     = 0x78
     '''
     INIT              = (  0, 'init',              0x10 )
-    OKAY              = (  1, 'okay',              0x4F )
-    BAD_ADDRESS       = (  2, 'bad address',       0x71 )
-    OUT_OF_SYNC       = (  3, 'out of sync',       0x72 )
-    INVALID_CHAR      = (  4, 'invalid character', 0x73 )
-    SOURCE_TOO_LARGE  = (  5, 'source too large',  0x74 )
-    UNVALIDATED       = (  6, 'unvalidated',       0x75 )
-    EMPTY_PAYLOAD     = (  7, 'empty payload',     0x76 )
-    PAYLOAD_TOO_LARGE = (  8, 'payload too large', 0x77 )
-    UNKNOWN_ERROR     = (  9, 'unknown error',     0x78 )
+    BAD_ADDRESS       = (  1, 'bad address',       0x41 )
+    BAD_REQUEST       = (  2, 'bad request',       0x42 )
+    OUT_OF_SYNC       = (  3, 'out of sync',       0x43 )
+    INVALID_CHAR      = (  4, 'invalid character', 0x44 )
+    SOURCE_TOO_LARGE  = (  5, 'source too large',  0x45 )
+    UNVALIDATED       = (  6, 'unvalidated',       0x46 )
+    EMPTY_PAYLOAD     = (  7, 'empty payload',     0x47 )
+    PAYLOAD_TOO_LARGE = (  8, 'payload too large', 0x48 )
+    UNKNOWN_ERROR     = (  9, 'unknown error',     0x49 )
 
     # example extension
-    VALUE_OFF         = ( 10, 'off',               0x30 )
-    VALUE_ON          = ( 11, 'on',                0x31 )
+    PIR_ACTIVE        = ( 11, 'pir active',        0x30 )
+    PIR_IDLE          = ( 12, 'pir idle',          0x31 )
+
+    OKAY              = ( 10, 'okay',              0x4F ) # all acceptable values less than 0x4F
 
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name, value):

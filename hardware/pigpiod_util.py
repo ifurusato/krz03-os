@@ -12,6 +12,7 @@
 
 import psutil
 import subprocess
+from datetime import datetime as dt, timedelta
 from colorama import init, Fore, Style
 init()
 
@@ -41,11 +42,10 @@ class PigpiodUtility:
         '''
         _log = Logger('pig-util', Level.INFO)
         if PigpiodUtility.is_pigpiod_running():
-            _log.info("pigpiod is already running.")
+            _log.debug("pigpiod is already running.")
         else:
-            _log.info("pigpiod is not running. Attempting to start it…")
+            _log.info("pigpiod is not running: attempting to start it…")
             PigpiodUtility.start_pigpiod(skip_check=True)
-
 
     @staticmethod
     def start_pigpiod(skip_check=False):
@@ -59,11 +59,31 @@ class PigpiodUtility:
             _log.info("pigpiod is already running.")
             return
         try:
+            start_time = dt.now()
             subprocess.run(['sudo', 'systemctl', 'start', 'pigpiod'], check=True)
-            _log.info(Fore.GREEN + "pigpiod service started successfully.")
+            PigpiodUtility.wait_for_daemon('pigpiod', timeout=10)
+            end_time = dt.now()
+            elapsed_time_ms = (end_time - start_time).total_seconds() * 1000
+            _log.info(Fore.GREEN + f'pigpiod service started, elapsed time: {elapsed_time_ms:.2f} ms')
         except subprocess.CalledProcessError as e:
             _log.info("failed to start pigpiod service: {}".format(e))
         except FileNotFoundError:
             _log.info("The 'systemctl' command is not found. Ensure it is installed and accessible.")
+
+    @staticmethod
+    def wait_for_daemon(service_name, timeout=10):
+        _log = Logger('pig-util', Level.INFO)
+        deadline = dt.now() + timedelta(seconds=timeout)
+        while dt.now() < deadline:
+            result = subprocess.run(["systemctl", "is-active", service_name], capture_output=True, text=True)
+            if result.stdout.strip() == "active":
+                _log.info(f"{service_name} is now active.")
+                return True
+            # busy-wait for 1 second
+            wait_until = dt.now() + timedelta(seconds=1)
+            while dt.now() < wait_until:
+                pass  # busy wait
+        _log.warning(f"timeout: {service_name} did not become active within {timeout} seconds.")
+        return False
 
 #EOF

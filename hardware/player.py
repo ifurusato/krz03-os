@@ -18,7 +18,7 @@ from core.logger import Logger, Level
 from core.component import Component
 from core.config_loader import ConfigLoader
 from hardware.sound import Sound
-from hardware.tinyfx_i2c_controller import TinyFxController
+from hardware.tinyfx_controller import TinyFxController
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 class Player(Component):
