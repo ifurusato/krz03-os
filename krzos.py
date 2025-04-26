@@ -60,7 +60,7 @@ from hardware.button import Button # toggle as enable/disable switch
 from hardware.sound import Sound
 from hardware.player import Player
 
-#from behave.behaviour_manager import BehaviourManager
+from behave.behaviour_manager import BehaviourManager
 #from behave.avoid import Avoid
 #from behave.roam import Roam
 #from behave.swerve import Swerve
@@ -258,7 +258,7 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_killswitch= _cfg.get('enable_killswitch') or 'k' in _pubs
         if _enable_killswitch:
-            self._killswitch = Button(self._config)
+            self._killswitch = Button(self._config, pin=18, momentary=False)
             self._killswitch.add_callback(self.shutdown)
 
         # add task selector ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -269,9 +269,9 @@ class KRZOS(Component, FiniteStateMachine):
         # create behaviours ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         _enable_behaviours = _cfg.get('enable_behaviours') or Util.is_true(arguments.behave)
         if _enable_behaviours:
+            self._behaviour_mgr = BehaviourManager(self._config, self._message_bus, self._message_factory, self._level) # a specialised subscriber
+            self._log.info('behaviour manager enabled.')
             _ = '''
-            self._behaviour_mgr = BehaviourManager(self._config, self._message_bus, self._level) # a specialised subscriber
-            self._log.info(Style.BRIGHT + 'behaviour manager enabled.')
             _bcfg = self._config['krzos'].get('behaviour')
             # create and register behaviours (listed in priority order)
             if _bcfg.get('enable_avoid_behaviour'):
@@ -311,7 +311,7 @@ class KRZOS(Component, FiniteStateMachine):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def await_start(self, arg=None):
-        self._log.warning(Fore.YELLOW + 'await start called… dummy: {}'.format(type(arg)))
+        self._log.warning('await start called…')
         _pushbutton = self._pushbutton
         self._pushbutton = None
         time.sleep(1)
@@ -372,7 +372,7 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.info('enabling message bus…')
         self._message_bus.enable()
         # that blocks so we never get here until the end…
-        self._log.info('main loop closed.')
+#       self._log.info('main loop closed.')
 
         # end main loop ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -546,9 +546,10 @@ class KRZOS(Component, FiniteStateMachine):
                 while not Component.close(self): # will call disable()
                     self._log.info('closing component…')
                 FiniteStateMachine.close(self)
-                self._log.info('application closed.')
+                # stop using logger here
+                print(Fore.CYAN + '\n-- application closed.\n' + Style.RESET_ALL)
             except Exception as e:
-                self._log.error('error closing application: {}\n{}'.format(e, traceback.format_exc()))
+                print(Fore.RED + 'error closing application: {}\n{}'.format(e, traceback.format_exc()) + Style.RESET_ALL)
             finally:
                 self._log.close()
                 self._closing = False
@@ -564,7 +565,7 @@ class KRZOS(Component, FiniteStateMachine):
                     finally:
                         print('\n')
                 else:
-                    self._log.info(Fore.WHITE + 'no threads remain upon closing.')
+                    print(Fore.WHITE + 'no threads remain upon closing.' + Style.RESET_ALL)
                 sys.exit(0)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

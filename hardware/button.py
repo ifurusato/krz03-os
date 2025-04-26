@@ -206,7 +206,7 @@ class Button(Component):
             line_offset: gpiod.LineSettings(
                 direction=gpiod.line.Direction.INPUT,
                 bias=Bias.PULL_UP, # set pull-up or pull-down
-                edge_detection=Edge.RISING
+                edge_detection=Edge.FALLING
             )   
         }   
         _chip_path = "/dev/gpiochip0"
@@ -244,13 +244,13 @@ class Button(Component):
                     if event_time_ms - _last_event_time >= debounce_time_ms:
                         for value in request.get_values():
                             if value is Value.ACTIVE:
-                                self._log.info(f"Valid rising edge ACTIVE on line {event.line_offset} at {event_time_ms} ms")
+                                self._log.info(Style.DIM + "valid rising edge ACTIVE on line {} at {}ms".format(event.line_offset, event_time_ms))
                                 callback(event)
                             elif value is Value.INACTIVE:
                                 if self._momentary:
                                     callback(event)
                                 else:
-                                    self._log.info(f"Valid rising edge INACTIVE on line {event.line_offset} at {event_time_ms} ms")
+                                    self._log.info(Style.DIM + "valid rising edge INACTIVE on line {} at {}ms".format(event.line_offset, event_time_ms))
                             else:
                                 raise Exception("unrecognised return value from gpiod '{}'".format(value))
                         _last_event_time = event_time_ms

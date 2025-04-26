@@ -17,20 +17,23 @@ import time
 from colorama import init, Fore, Style
 init()
 
-from core.logger import Level
+from core.logger import Logger, Level
 from core.config_loader import ConfigLoader
 from hardware.button import Button
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+_log = Logger('main', Level.INFO)
+
 enabled = True
 count = 0
 
 def shutdown(arg):
     global enabled, count
     count += 1
-    print('arg: {}; count: {}'.format(arg, count))
+    _log.info(Fore.BLUE + 'arg: {}; count: {}'.format(arg, count) + Style.RESET_ALL)
     if count > 2:
-        print('shutdown!')
+        _log.info(Fore.GREEN + 'shutdown!' + Style.RESET_ALL)
         enabled = False
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -41,7 +44,7 @@ def main():
         _momentary = True
         _pin = 17
 
-        print('button begin…')
+        _log.info('button begin…')
         _config = ConfigLoader(Level.INFO).configure()
         _button = Button(config=_config, pin=_pin, momentary=_momentary, level=Level.INFO)
         _button.add_callback(shutdown, 500)
@@ -54,9 +57,9 @@ def main():
         print('\n')
         print('Ctrl-C caught, exiting…')
     except RuntimeError as rte:
-        print(Fore.RED + 'runtime error in test: {}'.format(rte) + Style.RESET_ALL)
+        _log.error('runtime error in test: {}'.format(rte))
     except Exception as e:
-        print(Fore.RED + 'error in test: {}'.format(e) + Style.RESET_ALL)
+        _log.error('error in test: {}'.format(e))
         traceback.print_exc(file=sys.stdout)
     finally:
         pass

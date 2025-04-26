@@ -30,6 +30,40 @@ krzos:
         enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
         enable_sound_subscriber:           True            # enable sounds for various events
         enable_macro_subscriber:          False            # enable macro publisher
+        enable_behaviours:                 True            # enable BehaviourManager (Behaviours enabled individually)
+    behaviour:
+        enable_avoid_behaviour:          False             # enable avoidance behaviour
+        enable_roam_behaviour:           False             # enable roam behaviour
+        enable_swerve_behaviour:         False             # enable swerve behaviour
+        enable_moth_behaviour:           False             # enable moth behaviour
+        enable_sniff_behaviour:          False             # enable sniff behaviour
+        enable_idle_behaviour:            True             # enable idle behaviour
+        idle:
+            idle_threshold_sec:            10              # how many seconds before we trigger an idle behaviour
+            loop_freq_hz:                   1              # main loop delay in hz
+        sniff:
+            nada:                       False              # doesn't do anything
+#       avoid:
+#           min_distance:                20.0              # minimum distance in cm upon which we trigger avoidance behaviour
+#       roam:
+#           min_distance:                25.0              # minimum distance in cm
+#           max_distance:                60.0              # maximum distance in cm
+#           min_velocity:                 0.0              # minimum motor target velocity
+#           max_velocity:               100.0              # maximum motor target velocity
+#           cruising_speed:             'SLOW'             # cruising speed (recovery speed)
+#           cruise_wait_ticks:              3              # how many ticks to wait before cruising again
+#       swerve:
+#           reverse:                     True              # reverse effect of output function
+#           tolerance:                   20.0              # deadband tolerance as percentage
+#           multiplier:                   1.0              # multiplier on output function
+#           tick_modulo:                    2              # divider for frequency off external clock
+#       moth:
+#           anti_moth:                  False              # moth or anti-moth
+#       travel:
+#           accel_range_cm:              25.0              # the distance used for acceleration and deceleration (cm)
+#           cruising_speed:             'SLOW'             # cruising speed (recovery speed)
+#           turning_speed:              'HALF'             # speed necessary to create a curve
+#           targeting_speed:       'DEAD_SLOW'             # low velocity from which we're prepared to immediately halt upon reaching a step target 
     message_bus:
         max_age_ms:                        20.0            # maximum age of a message before expiry
         publish_delay_sec:                 0.05            # publishing delay loop
@@ -125,17 +159,17 @@ krzos:
             raw_battery_threshold:        11.00            # raw and 5v regulator thresholds set from known measurements:
             low_regulator_threshold:       3.10            # low regulator threshold
             loop_delay_sec:                  60            # sample loop delay (sec)
+        killswitch:                                        # application kill switch
+            pin:                             18            # GPIO or IO Expander pin used
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
             impl:                       'gpiod'            # either 'gpio', 'gpiod', 'ioe', 'gpiozero' or 'pigpio'
             edge_detect:               'rising'            # either 'falling', 'rising' or 'both'
-            momentary:                    False            # button or toggle?
-            pin:                             18            # GPIO or IO Expander pin used
+            momentary:                     True            # button or toggle?
+            pin:                             17            # GPIO or IO Expander pin used
             led_pin:                         13            # GPIO pin for LED on wait()
         rtof:                                              # ranging time of flight sensor (VL53L5CX)
             enabled:                       True            # GPIO or IO Expander pin used
-        killswitch:                                        # application kill switch
-            pin:                             17            # GPIO or IO Expander pin used
         player:                                            # Tiny FX sound player
             verbose:                       True            # verbose messaging
         distance_sensor:
