@@ -39,7 +39,13 @@ def main():
         _tinyfx = TinyFxController(_config, level=Level.INFO)
         _log.info('starting test…')
     
-        if setting.startswith('on'):
+        if setting.startswith('help'):
+            _tinyfx.help()
+
+        elif setting.startswith('exit'):
+            _tinyfx.exit()
+
+        elif setting.startswith('on'):
             _log.info(Fore.WHITE + 'setting ON')
             _tinyfx.on()
             

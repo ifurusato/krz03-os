@@ -33,19 +33,21 @@ class I2CSlave(object):
     This also provides an optional callback method that calls status()
     with an RGB value and optional message.
 
+    Values are for the Pimoroni TinyFX.
+
     :param: i2c_id        the I2C bus identifier; default is 0
-    :param: sda           the SDA pin; default is 24
-    :param: scl           the SCL pin; default is 25
-    :param: i2c_address   the I2C address of the device; default is 0x44
+    :param: sda           the SDA pin; default is 16
+    :param: scl           the SCL pin; default is 17
+    :param: i2c_address   the I2C address of the device; default is 0x45
     :param: blink         if True, will periodically call status()
                           to indicate the loop is operating.
     :param: callback      the optional callback method
     '''
     # default constants:
     I2C_ID      = 0
-    SDA_PIN     = 24
-    SCL_PIN     = 25
-    I2C_ADDRESS = 0x44
+    SDA_PIN     = 16
+    SCL_PIN     = 17
+    I2C_ADDRESS = 0x45
     MAX_CHARS   = 32
 
     # response codes: (note: extension values <= 0x4F are considered 'okay')

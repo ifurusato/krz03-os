@@ -37,6 +37,13 @@ class TinyFxController(Component):
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def help(self):
+        '''
+        Print help.
+        '''
+        self.send_data('help')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def play(self, key):
         '''
         A convenience method to play the sound corresponding to the key.
@@ -114,13 +121,20 @@ class TinyFxController(Component):
         self.send_data('flash')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def exit(self):
+        '''
+        Exits the main loop on the TinyFX.
+        '''
+        self.send_data('exit')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def send_data(self, data):
         '''
         Send a string of data over I2C.
         '''
         try:
             payload = self._convert_to_payload(data)
-            self._log.debug('send payload {} as data: {}'.format(payload, data))
+            self._log.info("send payload '{}' as data: '{}'".format(payload, data))
             self._write_payload(payload)
             self._write_completion_code()
             return self._read_response()
@@ -151,7 +165,7 @@ class TinyFxController(Component):
         '''
         Write a completion code to the I2C bus.
         '''
-        self._log.debug("writing completion code...")
+        self._log.info("writing completion code...")
         self._bus.write_byte_data(self._i2c_address, self._config_register, 0xFF)
         self._log.debug("write complete.")
 
@@ -162,7 +176,7 @@ class TinyFxController(Component):
         '''
         read_data = self._bus.read_byte_data(self._i2c_address, self._config_register)
         response = Response.from_value(read_data)
-        self._log.debug("read data: '{}' as response: {}".format(read_data, response))
+        self._log.info("read data: '{}' as response: {}".format(read_data, response))
         if response.value <= Response.OKAY.value:
             self._log.info("tinyfx response: {}".format(response.name))
         elif read_data == 32:
@@ -184,7 +198,7 @@ class TinyFxController(Component):
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Response(Enum):
     # this variable must include all entries, whitespace-delimited
-    __order__ = " INIT BAD_ADDRESS BAD_REQUEST OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE UNKNOWN_ERROR PIR_ACTIVE PIR_IDLE OKAY "
+    __order__ = " INIT OKAY BAD_ADDRESS BAD_REQUEST OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE UNKNOWN_ERROR PIR_ACTIVE PIR_IDLE "
     '''
     Provides an enumeration of response codes from the I2C Slave.
     These match the hard-coded values in the MicroPython file.
@@ -192,21 +206,21 @@ class Response(Enum):
     # response codes: (note: extension values <= 0x4F are considered 'okay')
     '''
     INIT              = (  0, 'init',              0x10 )
-    BAD_ADDRESS       = (  1, 'bad address',       0x41 )
-    BAD_REQUEST       = (  2, 'bad request',       0x42 )
-    OUT_OF_SYNC       = (  3, 'out of sync',       0x43 )
-    INVALID_CHAR      = (  4, 'invalid character', 0x44 )
-    SOURCE_TOO_LARGE  = (  5, 'source too large',  0x45 )
-    UNVALIDATED       = (  6, 'unvalidated',       0x46 )
-    EMPTY_PAYLOAD     = (  7, 'empty payload',     0x47 )
-    PAYLOAD_TOO_LARGE = (  8, 'payload too large', 0x48 )
-    UNKNOWN_ERROR     = (  9, 'unknown error',     0x49 )
+    OKAY              = (  1, 'okay',              0x4F ) # all acceptable values less than 0x4F
+
+    BAD_ADDRESS       = (  2, 'bad address',       0x71 )
+    BAD_REQUEST       = (  3, 'bad request',       0x72 )
+    OUT_OF_SYNC       = (  4, 'out of sync',       0x73 )
+    INVALID_CHAR      = (  5, 'invalid character', 0x74 )
+    SOURCE_TOO_LARGE  = (  6, 'source too large',  0x75 )
+    UNVALIDATED       = (  7, 'unvalidated',       0x76 )
+    EMPTY_PAYLOAD     = (  8, 'empty payload',     0x77 )
+    PAYLOAD_TOO_LARGE = (  9, 'payload too large', 0x78 )
+    UNKNOWN_ERROR     = ( 10, 'unknown error',     0x79 )
 
     # example extension
     PIR_ACTIVE        = ( 11, 'pir active',        0x30 )
     PIR_IDLE          = ( 12, 'pir idle',          0x31 )
-
-    OKAY              = ( 10, 'okay',              0x4F ) # all acceptable values less than 0x4F
 
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name, value):
@@ -218,7 +232,8 @@ class Response(Enum):
     @property
     def num(self):
         '''
-        Returns the original enum numerical value.
+        Returns the original enum numerical value. This is not particularly
+        useful and should not be considered stable across versions.
         '''
         return self._num
 

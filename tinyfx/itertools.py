@@ -55,14 +55,14 @@ def islice(p, start, stop=(), step=1):
 
 def tee(iterable, n=2):
     return [iter(iterable)] * n
-    
+
 def starmap(function, iterable):
     for args in iterable:
         yield function(*args)
-        
+
 def accumulate(iterable, func=lambda x, y: x + y):
     it = iter(iterable)
-    try: 
+    try:
         acc = next(it)
     except StopIteration:
         return
@@ -70,7 +70,7 @@ def accumulate(iterable, func=lambda x, y: x + y):
     for element in it:
         acc = func(acc, element)
         yield acc
-        
+
         if start >= stop:
             return
 

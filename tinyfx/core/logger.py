@@ -7,21 +7,21 @@
 #
 # author:   Murray Altheim
 # created:  2020-01-14
-# modified: 2024-06-07
+# modified: 2025-04-25
 
-# this is a radical simplification of the MROS Logger class, just using print
-# statements and not supporting log-to-file, log suppression, etc. As MicroPython
-# does not support Enums, a workaround is provided.
+# this is a simplification of the MROS Logger class, just using print statements
+# and not supporting log-to-file, log suppression, the notice() or critical()
+# levels, etc.
 #
 
 import math
+import time
 from colorama import Fore, Style
-from core.util import Util
 
 def enum(**enums: int):
     return type('Enum', (), enums)
 
-Level = enum(DEBUG=10, INFO=20, WARN=330, ERROR=40, CRITICAL=50)
+Level = enum(DEBUG=10, INFO=20, WARN=30, ERROR=40)
 # e.g., levels = (Level.ONE, Level.TWO)
 
 ## ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -30,7 +30,6 @@ Level = enum(DEBUG=10, INFO=20, WARN=330, ERROR=40, CRITICAL=50)
 #    INFO     = ( logging.INFO,     'INFO'     ) # 20
 #    WARN     = ( logging.WARN,     'WARN'     ) # 30
 #    ERROR    = ( logging.ERROR,    'ERROR'    ) # 40
-#    CRITICAL = ( logging.CRITICAL, 'CRITICAL' ) # 50
 #
 #    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 #    @staticmethod
@@ -43,8 +42,6 @@ Level = enum(DEBUG=10, INFO=20, WARN=330, ERROR=40, CRITICAL=50)
 #            return Level.WARN
 #        elif label.upper() == 'ERROR':
 #            return Level.ERROR
-#        elif label.upper() == 'CRITICAL':
-#            return Level.CRITICAL
 #        else:
 #            raise NotImplementedError
 
@@ -53,10 +50,8 @@ class Logger(object):
 
     __color_debug    = Fore.BLUE   + Style.DIM
     __color_info     = Fore.CYAN   + Style.NORMAL
-    __color_notice   = Fore.CYAN   + Style.BRIGHT
     __color_warning  = Fore.YELLOW + Style.NORMAL
     __color_error    = Fore.RED    + Style.NORMAL
-    __color_critical = Fore.WHITE  + Style.NORMAL
     __color_reset    = Style.RESET_ALL
 
     def __init__(self, name, level=Level.INFO):
@@ -64,23 +59,37 @@ class Logger(object):
         Writes to the console with the provided level.
 
         :param name:     the name identified with the log output
-        :param level:    the log level
-        '''
+    :param level:    the log level
+    '''
         # configuration ..........................
         self._include_timestamp = True
-        self._date_format       = '%Y-%m-%dT%H:%M:%S'
-#       self._date_format       = '%Y-%m-%dT%H:%M:%S.%f'
-#       self._date_format       = '%H:%M:%S'
         self.__DEBUG_TOKEN = 'DEBUG'
         self.__INFO_TOKEN  = 'INFO '
         self.__WARN_TOKEN  = 'WARN '
         self.__ERROR_TOKEN = 'ERROR'
         self.__FATAL_TOKEN = 'FATAL'
-        self._mf           = '{}{} : {}{}'
-
-        # create logger ..........................
+        self._name_format  = '{:<14} : '
+        # during sync (e.g., after NTP sync)
+        self._boot_time = time.time()  # seconds since epoch
+        self._boot_ticks = time.ticks_ms()
         self._name   = name
         self.level = level
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _get_timestamp(self):
+        while True:
+            ticks1 = time.ticks_ms()
+            t = time.localtime()
+            ticks2 = time.ticks_ms()
+            if ticks1 // 1000 == ticks2 // 1000:
+                ms = ticks1 % 1000
+                return "{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}.{:03d}Z".format(
+                    t[0], t[1], t[2], t[3], t[4], t[5], ms
+                )
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _get_time(self):
+        return self._get_timestamp()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -96,22 +105,6 @@ class Logger(object):
         Closes down logging, and informs the logging system to perform an
         orderly shutdown by flushing and closing all handlers.
 
-        This is not supported in this implementation, but raises no exception
-        when called.
-        '''
-        pass
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def suppress(self):
-        '''
-        This is not supported in this implementation, but raises no exception
-        when called.
-        '''
-        pass
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def release(self):
-        '''
         This is not supported in this implementation, but raises no exception
         when called.
         '''
@@ -142,15 +135,7 @@ class Logger(object):
             if self._log.is_at_least(Level.WARN):
                 # returns True for WARN or ERROR or CRITICAL
         '''
-        return self._level.value >= level.value
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def suppressed(self):
-        '''
-        Return False as suppression is not supported by this logger.
-        '''
-        return False
+        return level >= self._level
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def debug(self, message):
@@ -159,7 +144,13 @@ class Logger(object):
 
         The optional 'end' argument is for special circumstances where a different end-of-line is desired.
         '''
-        print(self._mf.format(Logger.__color_debug, self.__DEBUG_TOKEN, message, Logger.__color_reset))
+        if self.is_at_least(Level.DEBUG):
+            timestamp = self._get_time()
+            print(Fore.BLUE + "{} : ".format(timestamp) 
+                    + Style.DIM + Fore.RESET
+                    + self._name_format.format(self._name)
+                    + Logger.__color_debug + "{} : ".format(self.__DEBUG_TOKEN)
+                    + Fore.CYAN + "{}".format(message) + Logger.__color_reset)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def info(self, message):
@@ -168,16 +159,13 @@ class Logger(object):
 
         The optional 'end' argument is for special circumstances where a different end-of-line is desired.
         '''
-        print(self._mf.format(Logger.__color_info, self.__INFO_TOKEN, message, Logger.__color_reset))
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def notice(self, message):
-        '''
-        Functionally identical to info() except it prints the message brighter.
-
-        The optional 'end' argument is for special circumstances where a different end-of-line is desired.
-        '''
-        print(self._mf.format(Logger.__color_notice, self.__INFO_TOKEN, message, Logger.__color_reset))
+        if self.is_at_least(Level.INFO):
+            timestamp = self._get_time()
+            print(Fore.BLUE + "{} : ".format(timestamp) 
+                    + Style.DIM + Fore.RESET
+                    + self._name_format.format(self._name)
+                    + Logger.__color_info + "{} : ".format(self.__INFO_TOKEN)
+                    + Fore.CYAN + "{}".format(message) + Logger.__color_reset)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def warning(self, message):
@@ -186,7 +174,13 @@ class Logger(object):
 
         The optional 'end' argument is for special circumstances where a different end-of-line is desired.
         '''
-        print(self._mf.format(Logger.__color_warning, self.__WARN_TOKEN, message, Logger.__color_reset))
+        if self.is_at_least(Level.WARN):
+            timestamp = self._get_time()
+            print(Fore.BLUE + "{} : ".format(timestamp)
+                    + Style.DIM + Fore.RESET
+                    + self._name_format.format(self._name)
+                    + Logger.__color_warning + "{} : ".format(self.__WARN_TOKEN)
+                    + Fore.CYAN + "{}".format(message) + Logger.__color_reset)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def error(self, message):
@@ -195,98 +189,12 @@ class Logger(object):
 
         The optional 'end' argument is for special circumstances where a different end-of-line is desired.
         '''
-        print(self._mf.format(Logger.__color_error, self.__ERROR_TOKEN, Style.NORMAL + message, Logger.__color_reset))
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def critical(self, message):
-        '''
-        Prints a critical or otherwise application-fatal message.
-        '''
-        print(self._mf.format(Logger.__color_critical, self.__FATAL_TOKEN, Style.BRIGHT + message, Logger.__color_reset))
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def heading(self, title, message=None, info=None):
-        '''
-        Print a formatted, titled message to info(), inspired by maven console messaging.
-
-        :param title:    the required title of the heading.
-        :param message:  the optional message to display; if None only the title will be displayed.
-        :param info:     an optional second message to display right-justified; ignored if None.
-        '''
-        _H = '┈'
-        MAX_WIDTH = 100
-        MARGIN = 27
-        if title is None or len(title) == 0:
-            raise ValueError('no title parameter provided (required)')
-        _available_width = MAX_WIDTH - MARGIN
-        self.info(self._get_title_bar(title, _available_width))
-        if message:
-            if info is None:
-                info = ''
-            _min_msg_width = len(message) + 1 + len(info)
-            if _min_msg_width >= _available_width:
-                # if total length is greater than available width, just print
-                self.info(Fore.WHITE + Style.BRIGHT + '{} {}'.format(message, info))
-            else:
-                _message_2_right = info.rjust(_available_width - len(message) - 2)
-                self.info(Fore.WHITE + Style.BRIGHT + '{} {}'.format(message, _message_2_right))
-            # print footer
-            self.info(Fore.WHITE + Style.BRIGHT + Util.repeat(_H, _available_width-1))
-        # print spacer
-        self.info('')
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _get_title_bar(self, message, MAX_WIDTH):
-#       _H = '┈'
-#       _H = '━'
-        _H = '═'
-#       _L = '┥ '
-        _L = '╡ '
-#       _R = ' ┝'
-        _R = ' ╞'
-        _carrier_width = len(message) + 4
-        _hyphen_width = math.floor( ( MAX_WIDTH - _carrier_width ) / 2 )
-        if _hyphen_width <= 0:
-            return message
-        elif len(message) % 2 == 0: # message is even length
-            return Fore.WHITE + Style.BRIGHT + Util.repeat(_H, _hyphen_width) + _L + Fore.CYAN + Style.NORMAL\
-                    + message + Fore.WHITE + Style.BRIGHT + _R + Util.repeat(_H, _hyphen_width)
-        else:
-            return Fore.WHITE + Style.BRIGHT + Util.repeat(_H, _hyphen_width) + _L + Fore.CYAN + Style.NORMAL\
-                    + message + Fore.WHITE + Style.BRIGHT + _R + Util.repeat(_H, _hyphen_width-1)
-
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class LogStats(object):
-    '''
-    Provides a simple count for each call to the Logger.
-    '''
-    def __init__(self):
-        self._debug_count    = 0
-        self._info_count     = 0
-        self._warn_count     = 0
-        self._error_count    = 0
-        self._critical_count = 0
-        pass
-
-    def debug_count(self):
-        self._debug_count += 1
-
-    def info_count(self):
-        self._info_count += 1
-
-    def warn_count(self):
-        self._warn_count += 1
-
-    def error_count(self):
-        self._error_count += 1
-
-    def critical_count(self):
-        self._critical_count += 1
-
-    @property
-    def counts(self):
-        return ( self._debug_count, self._info_count, self._warn_count,
-                self._error_count, self._critical_count )
+        if self.is_at_least(Level.ERROR):
+            timestamp = self._get_time()
+            print(Fore.BLUE + "{} : ".format(timestamp) 
+                    + Style.DIM + Fore.RESET
+                    + self._name_format.format(self._name)
+                    + Logger.__color_error + "{} : ".format(self.__ERROR_TOKEN)
+                    + Fore.CYAN + "{}".format(message) + Logger.__color_reset)
 
 #EOF
