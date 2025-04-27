@@ -17,10 +17,12 @@ from hardware.player import Player
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def main():
 
+
     try:
-        for _sound in Sound:
-            Player.instance().play(_sound)
-            time.sleep(1.5)
+        Player.instance().play(Sound.SIGH)
+#       for _sound in Sound:
+#           Player.instance().play(_sound)
+#           time.sleep(1.5)
     except KeyboardInterrupt:
         print('done.')
 

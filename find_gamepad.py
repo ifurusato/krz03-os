@@ -104,7 +104,7 @@ class GamepadFinder(object):
         if config is None:
             raise ValueError('no configuration provided.')
         self._config = config
-        self._log.info('initialising...')
+        self._log.info('initialising…')
         _config = self._config['krzos'].get('hardware').get('gamepad')
         _loop_freq_hz = _config.get('loop_freq_hz')
 #       _loop_freq_hz = 20

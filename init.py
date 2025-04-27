@@ -50,7 +50,7 @@ try:
 
     _log = Logger('init', Level.INFO)
 
-    _log.info("start...")
+    _log.info("starting…")
     
     _devices='''
     0x0B   Rotary Encoder - stbd    (optional)
@@ -202,7 +202,7 @@ try:
     _log.info("done.")
 
 except KeyboardInterrupt:
-    _log.info('Ctrl-C caught; exiting...')
+    _log.info('Ctrl-C caught; exiting…')
 except Exception as e:
     _log.error('{} thrown by init: {}\n{}'.format(type(e), e, traceback.format_exc()))
 finally:

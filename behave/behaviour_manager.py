@@ -118,7 +118,7 @@ class BehaviourManager(Subscriber):
         are also Publisher subclasses, when the MessageBus started up.
         '''
         if not self.closed:
-            self._log.info('enable all behaviours...')
+            self._log.info('enable all behaviours…')
             for _key, _behaviour in self._behaviours.items():
                 if not _behaviour.enabled:
                     _behaviour.enable()
@@ -129,7 +129,7 @@ class BehaviourManager(Subscriber):
         '''
         Disable all registered behaviours.
         '''
-        self._log.info('disable all behaviours...')
+        self._log.info('disable all behaviours…')
         for _key, _behaviour in self._behaviours.items():
             _behaviour.disable()
             self._log.info('{} behaviour disabled.'.format(_behaviour.name))
@@ -158,7 +158,7 @@ class BehaviourManager(Subscriber):
         is a set of stored states upon releasing the BehaviourManager, those
         states will be restored.
         '''
-        self._log.info('suppress all behaviours...')
+        self._log.info('suppress all behaviours…')
         self._was_suppressed = {}
         for _key, _behaviour in self._behaviours.items():
             self._was_suppressed[_behaviour] = _behaviour.suppressed
@@ -189,7 +189,7 @@ class BehaviourManager(Subscriber):
         determine whether a given Behaviour is released.
         '''
         if not self.closed:
-            self._log.info('release all behaviours...')
+            self._log.info('release all behaviours…')
             for _key, _behaviour in self._behaviours.items():
                 if self._was_suppressed:
                     if not self._was_suppressed[_behaviour]:
@@ -243,7 +243,7 @@ class BehaviourManager(Subscriber):
         _event = message.event
         if message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected. [3]')
-        self._log.info(Fore.MAGENTA + 'pre-processing message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.label))
+        self._log.info(Fore.MAGENTA + 'pre-processing message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
         self._alter_behaviour(message)
 
         self._log.debug('awaiting subscriber process_message {}.'.format(_event.name))
@@ -267,48 +267,48 @@ class BehaviourManager(Subscriber):
         _behaviour = self._get_behavior_for_trigger_event(_event)
         if _behaviour is None:
             self._log.warning('cannot act: no behaviour associated with event {}, from {:d} registered behaviours ({}).'.format(
-                    _event.label, len(self._behaviours), self._behaviours))
+                    _event.name, len(self._behaviours), self._behaviours))
             return
 #       _trigger_behaviour = _behaviour.get_trigger_behaviour(event)
 #       self._log.info('designated trigger behaviour: ' + Fore.YELLOW + '{}'.format(_trigger_behaviour.name))
         if self._active_behaviour is None: # no current active behaviour so just release this one
-            self._log.info('no current behaviour; releasing behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name))
+            self._log.info('💔 no current behaviour; releasing behaviour (suppressed? {}) '.format(_behaviour.suppressed) + Fore.YELLOW + '{}'.format(_behaviour.name))
             self._active_behaviour = _behaviour
             _behaviour.on_trigger(message)
 
         elif self._active_behaviour is _behaviour:
             # if the current active behaviour is already this one, we ignore the message
-            self._log.info('the requested behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name) + Fore.CYAN + ' is already executing.')
+            self._log.info('💔 the requested behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name) + Fore.CYAN + ' is already executing.')
             _behaviour.on_trigger(message)
 
         elif self._active_behaviour.suppressed:
-            self._log.info('current behaviour was suppressed; releasing behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name))
+            self._log.info('💔 current behaviour was suppressed; releasing behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name))
             self._active_behaviour = _behaviour
             _behaviour.on_trigger(message)
 
         else:
-            self._log.info('there is a behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name)
-                    + Fore.CYAN + ' already running; comparing...')
+            self._log.info('💔 there is a behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name)
+                    + Fore.CYAN + ' already running; comparing…')
             _compare = _event.compare_to_priority_of(self._active_behaviour.trigger_event)
             if _compare == 1:
-                self._log.info('requested behaviour ' + Fore.YELLOW + '{}'.format(_event.label) + Fore.CYAN
+                self._log.info('requested behaviour ' + Fore.YELLOW + '{}'.format(_event.name) + Fore.CYAN
                         + ' is HIGHER priority than existing behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
                 # the current active behaviour is a lower priority so we suppress the existing and release the new one
-                self._log.info('suppressing old behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
+                self._log.info('💔 suppressing old behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
                 self._active_behaviour.suppress()
-                self._log.info('setting new behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name) + Fore.CYAN + ' as active...')
+                self._log.info('💔 setting new behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name) + Fore.CYAN + ' as active…')
                 self._active_behaviour = _behaviour
-                self._log.info('releasing new behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
+                self._log.info('💔 releasing new behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
                 self._active_behaviour.release()
                 self._log.info('done.')
             elif _compare == -1:
                 # the current active behaviour is a higher priority so we ignore the request to alter it
-                self._log.info('requested behaviour ' + Fore.YELLOW + '{}'.format(_event.label) + Fore.CYAN
+                self._log.info('💔 requested behaviour ' + Fore.YELLOW + '{}'.format(_event.name) + Fore.CYAN
                         + ' is LOWER priority than existing behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name)
                         + Fore.CYAN + ' (no change)')
             else: # _compare == 0:
                 # same priority, no change
-                self._log.info('requested behaviour ' + Fore.YELLOW + '{}'.format(_event.label) + Fore.CYAN
+                self._log.info('💔 requested behaviour ' + Fore.YELLOW + '{}'.format(_event.name) + Fore.CYAN
                         + ' has the SAME priority as existing behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name)
                         + Fore.CYAN + ' (no change)')
 
@@ -348,7 +348,7 @@ class BehaviourManager(Subscriber):
         '''
         Disable the behaviour manager and all behaviours.
         '''
-        self._log.debug('disabling behaviour manager and all behaviours...')
+        self._log.debug('disabling behaviour manager and all behaviours…')
         self.suppress_all_behaviours()
         self.disable_all_behaviours()
         Subscriber.disable(self)

@@ -29,7 +29,7 @@ def main():
     _log = Logger('test', Level.INFO)
 
     setting = sys.argv[1]
-    _log.info(Fore.CYAN + Style.DIM + '-- setting \"{}\"...'.format(setting) + Style.RESET_ALL)
+    _log.info(Fore.CYAN + Style.DIM + "-- setting '{}'…".format(setting) + Style.RESET_ALL)
     
     try:
     

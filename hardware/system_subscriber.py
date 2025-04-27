@@ -42,17 +42,6 @@ class SystemSubscriber(Subscriber):
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    async def _arbitrate_message(self, message):
-        '''
-        Pass the message on to the Arbitrator and acknowledge that it has been
-        sent (by setting a flag in the message).
-        '''
-        await self._message_bus.arbitrate(message.payload)
-        # increment sent acknowledgement count
-        message.acknowledge_sent()
-#       self._log.debug('arbitrated payload for event {}; value: {}'.format(message.payload.event.name, message.payload.value))
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):
         '''
         Process the message.

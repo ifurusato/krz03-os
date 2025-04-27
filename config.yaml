@@ -39,7 +39,7 @@ krzos:
         enable_sniff_behaviour:          False             # enable sniff behaviour
         enable_idle_behaviour:            True             # enable idle behaviour
         idle:
-            idle_threshold_sec:            10              # how many seconds before we trigger an idle behaviour
+            idle_threshold_sec:             5              # how many seconds before we trigger an idle behaviour
             loop_freq_hz:                   1              # main loop delay in hz
         sniff:
             nada:                       False              # doesn't do anything

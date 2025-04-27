@@ -145,6 +145,14 @@
     },
     {
         "index": 19,
+        "name": "glitch",
+        "mnemonic": "GLITCH",
+        "duration": 1.0,
+        "filename": "glitch.wav",
+        "description": "glitch."
+    },
+    {
+        "index": 20,
         "name": "gwolp",
         "mnemonic": "GWOLP",
         "duration": 1.0,
@@ -152,7 +160,7 @@
         "description": "gwolp."
     },
     {
-        "index": 20,
+        "index": 21,
         "name": "honk",
         "mnemonic": "HONK",
         "duration": 1.0,
@@ -160,7 +168,7 @@
         "description": "honk."
     },
     {
-        "index": 21,
+        "index": 22,
         "name": "hzah",
         "mnemonic": "HZAH",
         "duration": 1.0,
@@ -168,7 +176,7 @@
         "description": "hzah."
     },
     {
-        "index": 22,
+        "index": 23,
         "name": "ippurt",
         "mnemonic": "IPPURT",
         "duration": 1.0,
@@ -176,7 +184,7 @@
         "description": "ippurt."
     },
     {
-        "index": 23,
+        "index": 24,
         "name": "itiz",
         "mnemonic": "ITIZ",
         "duration": 1.0,
@@ -184,7 +192,7 @@
         "description": "itiz."
     },
     {
-        "index": 24,
+        "index": 25,
         "name": "izit",
         "mnemonic": "IZIT",
         "duration": 1.0,
@@ -192,7 +200,7 @@
         "description": "izit."
     },
     {
-        "index": 25,
+        "index": 26,
         "name": "pew-pew-pew",
         "mnemonic": "PEW_PEW_PEW",
         "duration": 1.0,
@@ -200,7 +208,7 @@
         "description": "pew pew pew."
     },
     {
-        "index": 26,
+        "index": 27,
         "name": "pizzle",
         "mnemonic": "PIZZLE",
         "duration": 1.0,
@@ -208,7 +216,15 @@
         "description": "pizzle."
     },
     {
-        "index": 27,
+        "index": 28,
+        "name": "sigh",
+        "mnemonic": "SIGH",
+        "duration": 1.0,
+        "filename": "sigh.wav",
+        "description": "sigh."
+    },
+    {
+        "index": 29,
         "name": "skid-fzzt",
         "mnemonic": "SKID_FZZT",
         "duration": 1.0,
@@ -216,7 +232,7 @@
         "description": "skid-fzzt."
     },
     {
-        "index": 28,
+        "index": 30,
         "name": "sonic-bat",
         "mnemonic": "SONIC_BAT",
         "duration": 1.0,
@@ -224,7 +240,7 @@
         "description": "sonic bat beep."
     },
     {
-        "index": 29,
+        "index": 31,
         "name": "telemetry",
         "mnemonic": "TELEMETRY",
         "duration": 1.0,
@@ -232,7 +248,7 @@
         "description": "telemetry."
     },
     {
-        "index": 30,
+        "index": 32,
         "name": "tika-tika",
         "mnemonic": "TIKA_TIKA",
         "duration": 1.0,
@@ -240,7 +256,7 @@
         "description": "tika-tika."
     },
     {
-        "index": 31,
+        "index": 32,
         "name": "tsk-tsk-tsk",
         "mnemonic": "TSK_TSK_TSK",
         "duration": 1.0,
@@ -248,7 +264,7 @@
         "description": "tsk-tsk-tsk."
     },
     {
-        "index": 32,
+        "index": 34,
         "name": "tick",
         "mnemonic": "TICK",
         "duration": 0.0,
@@ -256,7 +272,7 @@
         "description": "tick."
     },
     {
-        "index": 33,
+        "index": 35,
         "name": "tweak",
         "mnemonic": "TWEAK",
         "duration": 1.0,
@@ -264,7 +280,7 @@
         "description": "tweak."
     },
     {
-        "index": 34,
+        "index": 36,
         "name": "twiddle-pop",
         "mnemonic": "TWIDDLE_POP",
         "duration": 1.0,
@@ -272,7 +288,7 @@
         "description": "twiddle-pop."
     },
     {
-        "index": 35,
+        "index": 37,
         "name": "twit",
         "mnemonic": "TWIT",
         "duration": 1.0,
@@ -280,7 +296,7 @@
         "description": "twit."
     },
     {
-        "index": 36,
+        "index": 38,
         "name": "wow",
         "mnemonic": "WOW",
         "duration": 1.0,
@@ -288,7 +304,7 @@
         "description": "wow."
     },
     {
-        "index": 37,
+        "index": 39,
         "name": "zzt",
         "mnemonic": "ZZT",
         "duration": 1.0,

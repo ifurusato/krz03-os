@@ -292,7 +292,7 @@ class BNO055_IMU:
         Returns a tuple containing the calibration status followed by the
         Euler and Quaternion headings.
         '''
-        self._log.debug('starting sensor read...')
+        self._log.debug('starting sensor read…')
         _e_heading, _e_pitch, _e_roll, _e_yaw, _orig_quat_heading, self._euler_converted_heading, _q_pitch, _q_roll, _q_yaw = [None] * 9
         _quat_w = 0
         _quat_x = 0

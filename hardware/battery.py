@@ -55,7 +55,7 @@ class BatteryCheck(Publisher):
             raise ValueError('no configuration provided.')
         _cfg = config['krzos'].get('hardware').get('battery')
         self._counter                    = itertools.count()
-        # configuration ....................................
+        # configuration
         self._enable_battery_messaging   = _cfg.get('enable_battery_messaging')
         self._enable_regulator_messaging = _cfg.get('enable_regulator_messaging')
         _CHANNELS = ['in0/ref', 'in1/ref', 'in2/ref']
@@ -136,7 +136,7 @@ class BatteryCheck(Publisher):
             elif self._message_bus.get_task_by_name(BatteryCheck._LISTENER_LOOP_NAME):
                 self._log.warning('already enabled.')
             else:
-                self._log.info('creating task for battery listener loop...')
+                self._log.info('creating task for battery listener loop…')
                 self._message_bus.loop.create_task(self._battery_listener_loop(lambda: self.enabled), name=BatteryCheck._LISTENER_LOOP_NAME)
                 self._log.info('enabled.')
             self._log.info('enabled.')
@@ -149,7 +149,7 @@ class BatteryCheck(Publisher):
        Checks the battery voltage (default on channel 0), returning a message
        if the battery is low, otherwise None.
        '''
-#      self._log.debug('checking battery voltage {:5.2f} against threshold {:5.2f}...'.format(self._battery_voltage, self._raw_battery_threshold))
+#      self._log.debug('checking battery voltage {:5.2f} against threshold {:5.2f}…'.format(self._battery_voltage, self._raw_battery_threshold))
        if self._battery_voltage < self._raw_battery_threshold:
            self._log.warning('battery low: {:>5.2f}v'.format(self._battery_voltage))
            if self._enable_battery_messaging:
@@ -164,7 +164,7 @@ class BatteryCheck(Publisher):
        Checks the voltage on channel 1, returning a message if below the
        configured threshold, otherwise None.
        '''
-#      self._log.debug('checking channel a voltage {:5.2f} against threshold {:5.2f}...'.format(self._regulator_voltage, self._regulator_threshold))
+#      self._log.debug('checking channel a voltage {:5.2f} against threshold {:5.2f}…'.format(self._regulator_voltage, self._regulator_threshold))
        if self._regulator_voltage < self._regulator_threshold:
            self._log.warning('regulator low:  {:>5.2f}v'.format(self._regulator_voltage))
            if self._enable_regulator_messaging:
@@ -188,7 +188,7 @@ class BatteryCheck(Publisher):
                 self._battery_voltage = self._ads1015.get_compensated_voltage(channel=self._battery_channel, reference_voltage=self._reference)
                 self._regulator_voltage = self._ads1015.get_compensated_voltage(channel=self._regulator_channel, reference_voltage=self._reference)
 
-                # publish message if exceeds threshold...
+                # publish message if exceeds threshold…
                 _message = None
                 if self._enable_battery_messaging:
                     _message = self._check_battery_voltage()
@@ -202,8 +202,8 @@ class BatteryCheck(Publisher):
                     await Publisher.publish(self, _message)
 #                   self._log.debug('battery-published message:' + Fore.WHITE + ' {}.'.format(_message.name))
                 else:
-                    # nothing happening...
-#                   self._log.debug('[{:03d}] waiting for battery event...'.format(_count))
+                    # nothing happening
+#                   self._log.debug('[{:03d}] waiting for battery event…'.format(_count))
                     pass
                 await asyncio.sleep(self._loop_delay_sec)
 #               self._log.debug('[{:03d}] battery check ended.'.format(_count))

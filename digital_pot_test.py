@@ -53,7 +53,7 @@ def test_digital_potentiometer():
 #       if _i2c_scanner.has_hex_address([_i2c_address]):
 #       if _i2c_scanner.has_address([_i2c_address]):
 
-        _log.info('using digital potentiometer...')
+        _log.info('using digital potentiometer…')
         # configure digital potentiometer for motor speed
         _pot = DigitalPotentiometer(_config, i2c_address=None, level=_level)
 
@@ -62,12 +62,12 @@ def test_digital_potentiometer():
 
 #       else:
 #           raise Exception('no digital potentiometer available.')
-#           _log.info('using mock potentiometer...')
+#           _log.info('using mock potentiometer…')
 #           _pot = MockPotentiometer(_config, key_callback, Level.INFO)
 
 #       sys.exit(0)
         _last_scaled_value = 0.0
-        _log.info('starting test...')
+        _log.info('starting test…')
         _hz = 20
         _rate = Rate(_hz, Level.ERROR)
         while True:
@@ -85,7 +85,7 @@ def test_digital_potentiometer():
     
     except KeyboardInterrupt:
         print('\n')
-        _log.info('Ctrl-C caught; exiting...')
+        _log.info('Ctrl-C caught; exiting…')
     except DeviceNotFound as e:
         _log.error('no potentiometer found, exiting.')
     except Exception as e:

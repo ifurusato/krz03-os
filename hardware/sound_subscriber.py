@@ -47,19 +47,6 @@ class SoundSubscriber(Subscriber):
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    async def _arbitrate_message(self, message):
-        '''
-        Pass the message on to the Arbitrator and acknowledge that it has been
-        sent (by setting a flag in the message).
-        '''
-        await self._message_bus.arbitrate(message.payload)
-        message.acknowledge_sent()
-        _value = message.payload.value
-#       self._log.info('arbitrated message ' + Fore.WHITE + '{} '.format(message.name)
-#               + Fore.CYAN + 'for event \'{}\' with value type: '.format(message.event.name)
-#               + Fore.YELLOW + '{}'.format(type(_value)))
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):
         '''
         Process the message.

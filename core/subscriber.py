@@ -193,7 +193,7 @@ class Subscriber(Component, FiniteStateMachine):
             elif _peeked_message.gcd:
                 raise GarbageCollectedError('{} cannot consume: message has been garbage collected. [1]'.format(self.name))
     
-#           self._log.debug('consume() continuing for {}...'.format(self.name))
+#           self._log.debug('consume() continuing for {}…'.format(self.name))
             _ackd = _peeked_message.acknowledged_by(self)
             if not _ackd and self.acceptable(_peeked_message):
                 _event = asyncio.Event()
@@ -231,7 +231,7 @@ class Subscriber(Component, FiniteStateMachine):
     
                 # we've handled message so pass along to arbitrator
                 if _message.sent == 0:
-                    self._log.debug('sending message: {}; event: {} to arbitrator...'.format(_message.name, _message.event.name))
+                    self._log.debug('sending message: {}; event: {} to arbitrator…'.format(_message.name, _message.event.name))
                     await self._arbitrate_message(_message)
                     self._log.debug('message:' + Fore.WHITE + ' {}; event: {} sent to arbitrator; sent? {}'.format(_message.name, _message.event.name, _message.sent))
                     if _message.sent > 0:

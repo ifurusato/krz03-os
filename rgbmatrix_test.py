@@ -75,7 +75,7 @@ def test_rgbmatrix():
         _enable_stbd = 0x74 in _addresses
     
         _rgbmatrix = RgbMatrix(_enable_port, _enable_stbd, Level.INFO)
-        _log.info('starting test...')
+        _log.info('starting test…')
         _port_rgbmatrix = _rgbmatrix.get_rgbmatrix(Orientation.PORT)
         _stbd_rgbmatrix = _rgbmatrix.get_rgbmatrix(Orientation.STBD)
     
@@ -154,7 +154,7 @@ def test_rgbmatrix():
 #           _types = [ DisplayType.CPU ]
 
             for display_type in _types:
-                _log.info('rgbmatrix_test    :' + Fore.CYAN + Style.BRIGHT + ' INFO  : displaying {}...'.format(display_type.name))
+                _log.info('rgbmatrix_test    :' + Fore.CYAN + Style.BRIGHT + ' INFO  : displaying {}…'.format(display_type.name))
                 _rgbmatrix.set_display_type(display_type)
                 _rgbmatrix.enable()
                 time.sleep(7.0 if len(_types) == 1 else 2.0)
@@ -174,7 +174,7 @@ def test_rgbmatrix():
         
     except KeyboardInterrupt:
         print('\n')
-        print('rgbmatrix_test    :' + Fore.YELLOW + ' INFO  : Ctrl-C caught: exiting...' + Style.RESET_ALL)
+        print('rgbmatrix_test    :' + Fore.YELLOW + ' INFO  : Ctrl-C caught: exiting…' + Style.RESET_ALL)
     finally:
         if _rgbmatrix:
             _rgbmatrix.disable()

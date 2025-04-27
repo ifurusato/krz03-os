@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2022-07-12
-# modified: 2021-07-12
+# modified: 2025-04-27
 #
 # An Enum indicating what a Behaviour should do when triggered.
 
@@ -22,11 +22,13 @@ class TriggerBehaviour(Enum):
       release:   release the behaviour
       toggle:    toggle the suppress/release state of the behaviour
       execute:   execute the behaviour
+      ignore:    ignore the trigger
     '''
     SUPPRESS = ( 0, "suppress")
     RELEASE  = ( 1, "release")
     TOGGLE   = ( 2, "toggle")
     EXECUTE  = ( 3, "execute")
+    IGNORE   = ( 4, "ignore")
 
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name):

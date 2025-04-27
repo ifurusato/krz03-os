@@ -42,25 +42,25 @@ def main():
         if not _i2c_scanner.has_hex_address(['0x48']):
             raise DeviceNotFound('no ADS1015 available.')
 
-        _log.info('creating message bus...')
+        _log.info('creating message bus…')
         _message_bus = MessageBus(_config, _level)
-        _log.info('creating message factory...')
+        _log.info('creating message factory…')
         _message_factory = MessageFactory(_message_bus, _level)
 
         _start_time = dt.now()
 
-        _log.info('using ADS1015 ADC...')
+        _log.info('using ADS1015 ADC…')
         _battery = BatteryCheck(_config, _message_bus, _message_factory, Level.INFO)
 
-        _log.info('starting test...')
+        _log.info('starting test…')
 
-        # now in main application loop until quit or Ctrl-C...
-        _log.info(Fore.YELLOW + 'enabling message bus...')
+        # now in main application loop until quit or Ctrl-C.
+        _log.info(Fore.YELLOW + 'enabling message bus…')
         _message_bus.enable()
 #       _battery.enable()
 
         if _message_bus and _message_bus.enabled:
-            _log.info(Fore.YELLOW + 'disabling and closing message bus...')
+            _log.info(Fore.YELLOW + 'disabling and closing message bus…')
             _message_bus.disable()
             _message_bus.close()
 
@@ -68,7 +68,7 @@ def main():
         _log.info(Fore.YELLOW + 'complete: elapsed: {:d}ms'.format(_elapsed_ms))
 
     except KeyboardInterrupt:
-        print(Style.BRIGHT + 'caught Ctrl-C; exiting...')
+        print(Style.BRIGHT + 'caught Ctrl-C; exiting…')
     except DeviceNotFound as e:
         _log.error('no potentiometer found, exiting.')
     except Exception as e:
@@ -77,7 +77,7 @@ def main():
     finally:
         _log.info('exit.')
         if _message_bus:
-            _log.info('finally calling close...')
+            _log.info('finally calling close…')
             _message_bus.close()
 
 if __name__== "__main__":

@@ -50,6 +50,6 @@ try:
 
 except KeyboardInterrupt:
     print('\n')
-    print('Ctrl-C caught, exiting...')
+    print('Ctrl-C caught, exiting…')
 
 #EOF

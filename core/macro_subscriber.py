@@ -45,19 +45,6 @@ class MacroSubscriber(Subscriber):
         self._message_factory = message_factory
         self._macro_publisher = macro_publisher
         self.add_events([ Event.by_group(Group.MACRO), Event.AVOID ])
-#       self.add_events([ Event.by_group(Group.MACRO), Event.by_group(Group.BEHAVIOUR) ])
-
-#   async def _arbitrate_message(self, message):
-#       '''
-#       Pass the message on to the Arbitrator and acknowledge that it has been
-#       sent (by setting a flag in the message).
-#       '''
-#       await self._message_bus.arbitrate(message.payload)
-#       # increment sent acknowledgement count
-#       self._log.info('acknowledging message {}; with payload value: {:5.2f}cm'.format(message.name, message.payload.value))
-#       message.acknowledge_sent()
-#       self._log.info('arbitrated message:    ' + Fore.WHITE + '{}'.format(message.name)
-#               + Fore.CYAN + ' with payload for event: {}; value: {:5.2f}cm'.format(message.payload.event.name, message.payload.value))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):

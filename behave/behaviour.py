@@ -103,19 +103,26 @@ class Behaviour(ABC, Subscriber):
         _event = message.event
         _trigger_behaviour = self.get_trigger_behaviour(_event)
         if _trigger_behaviour is TriggerBehaviour.SUPPRESS:
+            self._log.info('on trigger: SUPPRESS')
             self.suppress()
         elif _trigger_behaviour is TriggerBehaviour.RELEASE:
+            self._log.info('on trigger: RELEASE')
             self.release()
         elif _trigger_behaviour is TriggerBehaviour.TOGGLE:
+            self._log.info('on trigger: TOGGLE')
             if self.suppressed:
                 self.release()
             else:
                 self.suppress()
         elif _trigger_behaviour is TriggerBehaviour.EXECUTE:
+            self._log.info('on trigger: EXECUTE')
             if self.is_active:
                 self.execute(message)
             else:
                 self._log.warning('behaviour {} not active.'.format(self.name))
+        elif _trigger_behaviour is TriggerBehaviour.IGNORE:
+            self._log.info('on trigger: IGNORE')
+            pass
         else:
             raise Exception('no trigger behaviour for event: {}'.format(_event.name))
 

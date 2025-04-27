@@ -96,7 +96,7 @@ def eyeballs_test():
         _log.info('eyeballs complete.')
 
     except KeyboardInterrupt:
-        _log.info('eyeballs    :' + Fore.YELLOW + ' INFO  : Ctrl-C caught: exiting...' + Style.RESET_ALL)
+        _log.info('eyeballs    :' + Fore.YELLOW + ' INFO  : Ctrl-C caught: exiting…' + Style.RESET_ALL)
     finally:
         if _eyeballs:
             _eyeballs.close()

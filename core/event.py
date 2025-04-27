@@ -31,10 +31,11 @@ class Group(Enum):
     THETA      = ( 10, "theta" )
     CHADBURN   = ( 11, "chadburn" )
     BEHAVIOUR  = ( 12, "behaviour" )
-    CLOCK      = ( 13, "clock" )
-    EXPERIMENT = ( 14, "experiment" )
+    IDLE       = ( 13, "idle" )
+    CLOCK      = ( 14, "clock" )
+    EXPERIMENT = ( 15, "experiment" )
     REMOTE     = ( 16, "remote" )
-    OTHER      = ( 16, "other" )
+    OTHER      = ( 17, "other" )
 
     def __new__(cls, *args, **kwds):
         obj = object.__new__(cls)
@@ -222,7 +223,10 @@ class Event(Enum):
     EVENT_R1               = ( 507, "cruise",                 164,   Group.BEHAVIOUR ) # R1 Button
     LIGHTS                 = ( 508, "lights",                 165,   Group.BEHAVIOUR ) # R2 Button
     VIDEO                  = ( 509, "video",                  175,   Group.BEHAVIOUR ) # L1 Button
-    IDLE                   = ( 510, "idle",                   180,   Group.BEHAVIOUR ) # A Button
+
+    # idle ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    INACTIVE               = ( 600, "inactive",               100,   Group.IDLE )
+    ACTIVE                 = ( 601, "active",                 100,   Group.IDLE )
 
     # clock (> 700) ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     TICK                   = ( 701, "tick",                   700,   Group.CLOCK )

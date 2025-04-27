@@ -35,20 +35,6 @@ class DistanceSensorsSubscriber(Subscriber):
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    async def _arbitrate_message(self, message):
-        '''
-        Pass the message on to the Arbitrator and acknowledge that it has been
-        sent (by setting a flag in the message).
-        '''
-        await self._message_bus.arbitrate(message.payload)
-        message.acknowledge_sent()
-        _value = message.payload.value
-        if self._verbose:
-            self._log.info('arbitrated message ' + Fore.WHITE + '{} '.format(message.name)
-                    + Fore.CYAN + 'for event \'{}\' with value type: '.format(message.event.name)
-                    + Fore.YELLOW + '{}'.format(type(_value)))
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_fore(self, event):
         match event:
             case Event.INFRARED_PORT:

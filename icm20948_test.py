@@ -52,7 +52,7 @@ try:
     _enable_stbd = 0x74 in _addresses
  
     _rgbmatrix = RgbMatrix(_enable_port, _enable_stbd, Level.INFO)
-    _log.info('starting test...')
+    _log.info('starting test…')
 #   _port_rgbmatrix = _rgbmatrix.get_rgbmatrix(Orientation.PORT)
 #   _stbd_rgbmatrix = _rgbmatrix.get_rgbmatrix(Orientation.STBD)
 
@@ -74,7 +74,7 @@ try:
 #   _icm20948.include_heading(HEADING_TEST)
 #   _icm20948.set_poll_rate_hz(2)
 
-    # just scan continually...
+    # just scan continually
     _icm20948.scan(enabled=True, callback=None)
 
 except KeyboardInterrupt:

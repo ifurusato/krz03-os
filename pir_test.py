@@ -20,8 +20,6 @@ from core.config_loader import ConfigLoader
 from core.message_bus import MessageBus
 from core.message_factory import MessageFactory
 
-# begin ....................................................
-
 _level = Level.INFO
 _log = Logger('test', _level)
 
@@ -32,16 +30,16 @@ try:
 
     _config = ConfigLoader(Level.INFO).configure()
 
-    _log.info('creating message bus...')
+    _log.info('creating message bus…')
     _message_bus = MessageBus(_config, _level)
-    _log.info('creating message factory...')
+    _log.info('creating message factory…')
     _message_factory = MessageFactory(_message_bus, _level)
 
     _pir_publisher = PirPublisher(_config, _message_bus, _message_factory)
 #   _pir_publisher.enable()
 
-    # now in main application loop until quit or Ctrl-C...
-    _log.info(Fore.YELLOW + 'enabling message bus...')
+    # now in main application loop until quit or Ctrl-C.
+    _log.info(Fore.YELLOW + 'enabling message bus…')
     _message_bus.enable()
 
     _log.info("polling pir sensor…")

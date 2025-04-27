@@ -65,7 +65,7 @@ class RangingToF(Component):
         Component.__init__(self, self._log, suppressed, enabled)
         if config is None:
             raise ValueError('no configuration provided.')
-        self._log.info('configuring time-of-flight sensor...')
+        self._log.info('configuring time-of-flight sensor…')
         _config = config['krzos'].get('hardware').get('rtof')
         _enabled = _config.get('enabled')
         self._log.info('enabled: {}'.format(_enabled))

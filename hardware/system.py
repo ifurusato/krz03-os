@@ -32,7 +32,7 @@ class System(object):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def set_nice(self):
         # set KRZOS as high priority process
-        self._log.info('setting process as high priority...')
+        self._log.info('setting process as high priority…')
         proc = psutil.Process(os.getpid())
         proc.nice(10)
 

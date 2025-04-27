@@ -112,10 +112,10 @@ class DistanceSensor(Component):
     def _compute_distance(self):
         '''
         Compute and update the distance based on the current pulse width,
-        returning the distance or -1 if out of range.
+        returning the distance or None if out of range.
         '''
         _pulse_width_us = self._pulse_width_us # capture current value
-        _distance = -1
+        _distance = None
         if _pulse_width_us is not None:
             if 1000 <= _pulse_width_us <= 1850:
                 distance_mm = (_pulse_width_us - 1000) * 3 / 4

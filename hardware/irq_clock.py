@@ -72,7 +72,7 @@ class IrqClock(Component):
         if self.enabled:
             if not self._initd:
                 try:
-                    self._log.info('importing pigpio...')
+                    self._log.info('importing pigpio…')
                     import pigpio
                     self._pi = pigpio.pi()
                     if not self._pi.connected:
@@ -144,7 +144,7 @@ class IrqClock(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
         try:
-            self._log.info('IRQ clock closing...')
+            self._log.info('IRQ clock closing…')
             if self._pi_callback:
                 self._pi_callback.cancel()
             self._log.info('IRQ clock closed.')
