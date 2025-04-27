@@ -73,22 +73,6 @@
     },
     {
         "index": 10,
-        "name": "chirp-4",
-        "mnemonic": "CHIRP_4",
-        "duration": 1.0,
-        "filename": "chirp-4.wav",
-        "description": "chirp 4."
-    },
-    {
-        "index": 11,
-        "name": "chirp-7",
-        "mnemonic": "CHIRP_7",
-        "duration": 1.0,
-        "filename": "chirp-7.wav",
-        "description": "chirp 7."
-    },
-    {
-        "index": 12,
         "name": "cricket",
         "mnemonic": "CRICKET",
         "duration": 1.0,
@@ -96,7 +80,7 @@
         "description": "cricket."
     },
     {
-        "index": 13,
+        "index": 11,
         "name": "dit-a",
         "mnemonic": "DIT_A",
         "duration": 0.0,
@@ -104,7 +88,7 @@
         "description": "dit A."
     },
     {
-        "index": 14,
+        "index": 12,
         "name": "dit-b",
         "mnemonic": "DIT_B",
         "duration": 0.0,
@@ -112,7 +96,7 @@
         "description": "dit B."
     },
     {
-        "index": 15,
+        "index": 13,
         "name": "dit-c",
         "mnemonic": "DIT_C",
         "duration": 0.0,
@@ -120,7 +104,7 @@
         "description": "dit C."
     },
     {
-        "index": 16,
+        "index": 14,
         "name": "dwerp",
         "mnemonic": "DWERP",
         "duration": 1.0,
@@ -128,7 +112,7 @@
         "description": "dwerp."
     },
     {
-        "index": 17,
+        "index": 15,
         "name": "earpit",
         "mnemonic": "EARPIT",
         "duration": 1.0,
@@ -136,7 +120,7 @@
         "description": "ear pit."
     },
     {
-        "index": 18,
+        "index": 16,
         "name": "glince",
         "mnemonic": "GLINCE",
         "duration": 1.0,
@@ -144,7 +128,7 @@
         "description": "glince."
     },
     {
-        "index": 19,
+        "index": 17,
         "name": "glitch",
         "mnemonic": "GLITCH",
         "duration": 1.0,
@@ -152,7 +136,7 @@
         "description": "glitch."
     },
     {
-        "index": 20,
+        "index": 18,
         "name": "gwolp",
         "mnemonic": "GWOLP",
         "duration": 1.0,
@@ -160,7 +144,7 @@
         "description": "gwolp."
     },
     {
-        "index": 21,
+        "index": 19,
         "name": "honk",
         "mnemonic": "HONK",
         "duration": 1.0,
@@ -168,7 +152,7 @@
         "description": "honk."
     },
     {
-        "index": 22,
+        "index": 20,
         "name": "hzah",
         "mnemonic": "HZAH",
         "duration": 1.0,
@@ -176,7 +160,7 @@
         "description": "hzah."
     },
     {
-        "index": 23,
+        "index": 21,
         "name": "ippurt",
         "mnemonic": "IPPURT",
         "duration": 1.0,
@@ -184,7 +168,7 @@
         "description": "ippurt."
     },
     {
-        "index": 24,
+        "index": 22,
         "name": "itiz",
         "mnemonic": "ITIZ",
         "duration": 1.0,
@@ -192,7 +176,7 @@
         "description": "itiz."
     },
     {
-        "index": 25,
+        "index": 23,
         "name": "izit",
         "mnemonic": "IZIT",
         "duration": 1.0,
@@ -200,7 +184,15 @@
         "description": "izit."
     },
     {
-        "index": 26,
+        "index": 24,
+        "name": "muskogee",
+        "mnemonic": "MUSKOGEE",
+        "duration": 1.0,
+        "filename": "muskogee.wav",
+        "description": "muskogee."
+    },
+    {
+        "index": 25,
         "name": "pew-pew-pew",
         "mnemonic": "PEW_PEW_PEW",
         "duration": 1.0,
@@ -208,7 +200,7 @@
         "description": "pew pew pew."
     },
     {
-        "index": 27,
+        "index": 26,
         "name": "pizzle",
         "mnemonic": "PIZZLE",
         "duration": 1.0,
@@ -216,12 +208,20 @@
         "description": "pizzle."
     },
     {
-        "index": 28,
+        "index": 27,
         "name": "sigh",
         "mnemonic": "SIGH",
         "duration": 1.0,
         "filename": "sigh.wav",
         "description": "sigh."
+    },
+    {
+        "index": 28,
+        "name": "skadoodle",
+        "mnemonic": "SKADOODLE",
+        "duration": 1.0,
+        "filename": "skadoodle.wav",
+        "description": "skadoodle: gamepad connected."
     },
     {
         "index": 29,

@@ -235,7 +235,7 @@ class Idle(Behaviour, Publisher):
                 self._log.info(Fore.YELLOW + '🔶 activity after {:4.2f} seconds of being idle.'.format(self.elapsed_seconds))
                 _message = self._message_factory.create_message(Event.IDLE, True)
                 self._queue_publisher.put(_message)
-                Player.play(Sound.TWIT)
+                Player.play(Sound.GLITCH)
 
         await Subscriber.process_message(self, message)
 

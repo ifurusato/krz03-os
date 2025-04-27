@@ -30,7 +30,7 @@ JSONEncoder.default = _default
 class Sound(Enum):
     __order__ = " %ORDER"
 
-    #                idx   name            mnemonic     dur(s)  filename                description
+    #                idx   name            mnemonic     dur(s)  filename           description
 %ENUM
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name, mnemonic, duration, filename, description):

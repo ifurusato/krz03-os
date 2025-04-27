@@ -17,12 +17,15 @@ from hardware.player import Player
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def main():
 
+    ALL_SOUNDS = False
 
     try:
-        Player.instance().play(Sound.SIGH)
-#       for _sound in Sound:
-#           Player.instance().play(_sound)
-#           time.sleep(1.5)
+        if ALL_SOUNDS:
+            for _sound in Sound:
+                Player.instance().play(_sound)
+                time.sleep(1.5)
+        else:
+            Player.instance().play(Sound.SKADOODLE)
     except KeyboardInterrupt:
         print('done.')
 

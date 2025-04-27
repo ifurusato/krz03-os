@@ -81,7 +81,7 @@ class GamepadPublisher(Publisher):
                     time.sleep(0.5)
                     if self._gamepad.has_connection() or _count > 5:
                         if self._play_sound:
-                            Player.instance().play(Sound.MARTINI)
+                            Player.instance().play(Sound.SKADOODLE)
                         break
             except ConnectionError as e:
                 self._log.warning('unable to connect to gamepad: {}'.format(e))
