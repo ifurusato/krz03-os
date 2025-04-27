@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-22
-# modified: 2024-10-31
+# modified: 2025-04-27
 #
 
 import sys, traceback, time
@@ -19,6 +19,8 @@ init()
 
 from core.logger import Logger, Level
 from core.component import Component
+from hardware.player import Player
+from hardware.sound import Sound
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Button(Component):
@@ -32,18 +34,26 @@ class Button(Component):
     This introduces a slight delay on returning a value in order
     to debounce the switch.
 
+    This supports RPi.GPIO, gpiod, gpiozero, or IO Expander implementations:
+
+      * https://pypi.org/project/RPi.GPIO/
+            or: https://pypi.org/project/rpi-lgpio/
+      * https://libgpiod.readthedocs.io/en/latest/
+      * https://gpiozero.readthedocs.io/en/latest/
+      * https://github.com/pimoroni/ioe-python
+
     :param config:        the application configuration
     :param pin:           the optional pin number (overrides config)
     :param impl:          the chosen implementation for GPIO handling
     :param waitable:      if True support wait()
     :param level:         the log level
     '''
-    def __init__(self, config, pin=None, impl=None, waitable=False, momentary=False, level=Level.INFO):
+    def __init__(self, config, name='', pin=None, impl=None, waitable=False, momentary=False, level=Level.INFO):
         _cfg = config['krzos'].get('hardware').get('button')
         self._pin = _cfg.get('pin') if pin is None else pin
-        self._log = Logger('button:{}'.format(self._pin), level)
+        self._log = Logger('btn:{}-{}'.format(self._pin, name), level)
         Component.__init__(self, self._log, suppressed=False, enabled=False)
-        self._impl = impl if impl is not None else _cfg.get('impl') # either 'gpio' or 'ioe' or 'gpiozero'
+        self._impl = impl if impl is not None else _cfg.get('impl') # either 'gpio', 'gpiod', 'gpiozero' or 'ioe'
         self._ioe = None
         self._pi  = None
         self._momentary            = momentary
@@ -85,13 +95,13 @@ class Button(Component):
 
         elif self._impl == 'gpiod':
 
-            # https://libgpiod.readthedocs.io/en/latest/
             if not self._momentary:
+                # if latching, we need to check that it's not already triggered
                 _enabled = self.gpiod_get_value(pin=self._pin)
                 if not _enabled:
-                    raise RuntimeError('cannot start: toggle not enabled.')
-            else:
-                pass
+                    Player.play(Sound.GWOLP)
+                    raise RuntimeError('cannot start, toggle switch not enabled.')
+
             # monitoring is established by add_callback()
 
         elif self._impl == 'ioe':
@@ -112,7 +122,7 @@ class Button(Component):
                 _pigpiod_util = PigpiodUtility()
                 _pigpiod_util.ensure_running()
 
-            self._pi = pigpio.pi()  # Initialize pigpio
+            self._pi = pigpio.pi()  # initialize pigpio
             if self._pi is None:
                 raise Exception('unable to instantiate pigpio.pi().')
             elif self._pi._notify is None:

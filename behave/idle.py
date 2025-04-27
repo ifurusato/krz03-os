@@ -93,18 +93,18 @@ class Idle(Behaviour, Publisher):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
-        Publisher.enable(self)
-        if self.enabled:
+        print('🍎 idle enable called.')
+        if not self.enabled:
+            Publisher.enable(self)
             if self._message_bus.get_task_by_name(Idle._LISTENER_LOOP_NAME) or self._idle_loop_running:
-                raise Exception('already enabled.')
-#               self._log.warning('already enabled.')
+                self._log.warning('message bus already had idle task.')
             else:
                 self._log.info('creating task for idle listener loop...')
                 self._idle_loop_running = True
                 self._message_bus.loop.create_task(self._idle_listener_loop(lambda: self.enabled), name=Idle._LISTENER_LOOP_NAME)
                 self._log.info('enabled.')
         else:
-            self._log.warning('failed to enable idle publisher.')
+            self._log.warning('already enabled idle publisher.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def _idle_listener_loop(self, f_is_enabled):

@@ -246,19 +246,20 @@ class KRZOS(Component, FiniteStateMachine):
         _enable_tinyfx_controller = _cfg.get('enable_tinyfx_controller')
         if _enable_tinyfx_controller:
             from hardware.tinyfx_controller import TinyFxController
-
             self._log.info('configure tinyfx controller…')
             self._tinyfx = TinyFxController(self._config)
+            self._log.info('instantiate sound player…')
+            Player.instance(self._tinyfx)
 
         _enable_pushbutton= _cfg.get('enable_pushbutton')
         if _enable_pushbutton:
-            self._pushbutton = Button(self._config, pin=17, momentary=True) # TODO from config
+            self._pushbutton = Button(self._config, 'trig', pin=17, momentary=True) # TODO from config
             self._pushbutton.add_callback(self.await_start)
 #           self._pushbutton.add_callback(self.shutdown)
 
         _enable_killswitch= _cfg.get('enable_killswitch') or 'k' in _pubs
         if _enable_killswitch:
-            self._killswitch = Button(self._config, pin=18, momentary=False)
+            self._killswitch = Button(self._config, 'kill', pin=18, momentary=False)
             self._killswitch.add_callback(self.shutdown)
 
         # add task selector ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -364,7 +365,7 @@ class KRZOS(Component, FiniteStateMachine):
 
         if self._tinyfx:
             # instantiate singleton with existing TinyFX
-            Player.instance(self._tinyfx).play(Sound.BEEP)
+            Player.play(Sound.BEEP)
 
         # ════════════════════════════════════════════════════════════════════
         # now in main application loop until quit or Ctrl-C…
@@ -497,7 +498,7 @@ class KRZOS(Component, FiniteStateMachine):
             self._log.warning('already closing.')
         elif self.enabled:
             if self._tinyfx:
-                Player.instance().play(Sound.HZAH)
+                Player.play(Sound.HZAH)
             self._log.info('disabling…')
             if self._task_selector:
                 self._task_selector.close()
@@ -713,9 +714,9 @@ def main(argv):
         print('\n')
         print(Fore.MAGENTA + Style.BRIGHT + 'caught Ctrl-C; exiting…' + Style.RESET_ALL)
     except RuntimeError as rte:
-        print(Fore.RED + 'runtime error starting krzos: {}'.format(rte) + Style.RESET_ALL)
+        _log.error('runtime error starting krzos: {}'.format(rte))
     except Exception:
-        print(Fore.RED + Style.BRIGHT + 'error starting krzos: {}'.format(traceback.format_exc()) + Style.RESET_ALL)
+        _log.error('error starting krzos: {}'.format(traceback.format_exc()))
     finally:
         if _krzos and not _krzos.closed:
             _krzos.close()

@@ -154,8 +154,8 @@ krzos:
         battery:
             enable_battery_messaging:     False            # if True we enable low battery messages to be sent
             enable_regulator_messaging:    True            # if True we enable low regulator messages to be sent
-            battery_channel:                  0            # AD channel for raw battery voltage
-            regulator_channel:                1            # AD channel for regulated 3V3
+            battery_channel:                  1            # AD channel for raw battery voltage
+            regulator_channel:                2            # AD channel for regulated 3V3
             raw_battery_threshold:        11.00            # raw and 5v regulator thresholds set from known measurements:
             low_regulator_threshold:       3.10            # low regulator threshold
             loop_delay_sec:                  60            # sample loop delay (sec)

@@ -114,13 +114,15 @@ class BehaviourManager(Subscriber):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable_all_behaviours(self):
         '''
-        Enable all registered behaviours.
+        Enable all registered behaviours. Some may already be enabled if they
+        are also Publisher subclasses, when the MessageBus started up.
         '''
         if not self.closed:
             self._log.info('enable all behaviours...')
             for _key, _behaviour in self._behaviours.items():
-                _behaviour.enable()
-                self._log.info('{} behaviour enabled.'.format(_behaviour.name))
+                if not _behaviour.enabled:
+                    _behaviour.enable()
+                    self._log.info('{} behaviour enabled.'.format(_behaviour.name))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable_all_behaviours(self):
@@ -348,7 +350,7 @@ class BehaviourManager(Subscriber):
         '''
         self._log.debug('disabling behaviour manager and all behaviours...')
         self.suppress_all_behaviours()
-        self.enable_all_behaviours()
+        self.disable_all_behaviours()
         Subscriber.disable(self)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
