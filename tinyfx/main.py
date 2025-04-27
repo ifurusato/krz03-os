@@ -11,17 +11,32 @@
 #
 # control for TinyFX
 
-import machine
+import os
+import gc
 import _thread
 import utime
+import machine
+from machine import Pin, Timer
+
+import itertools
+from colorama import Fore, Style
 from rp2040_slave import RP2040_Slave
+
+from tiny_fx import TinyFX
+from picofx import MonoPlayer
+#from picofx import ColourPlayer
+from picofx.mono import StaticFX
+from triofx import TrioFX
+from rgb_blink import RgbBlinkFX
+from i2c_settable_blink import I2CSettableBlinkFX
+from pir import PassiveInfrared
+from sound_dictionary import _sounds
 
 #from plasma import WS2812
 #from motor_controller import MotorController
 #from motor import motor2040
 
 from colors import*
-from colorama import Fore, Style
 from stringbuilder import StringBuilder
 from core.logger import Level, Logger
 
@@ -30,13 +45,15 @@ from core.logger import Level, Logger
 # constants ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
 ID                =  0
-SDA               = 20
-SCL               = 21
+SDA               = 16
+SCL               = 17
 ADDRESS           = 0x45
 
 # response codes:
 INIT              = 0x10
-OKAY              = 0x4F # all acceptable responses must be less than this
+PIR_ACTIVE        = 0x30
+PIR_IDLE          = 0x31
+OKAY              = 0x4F   # all acceptable responses must be less than this
 BAD_ADDRESS       = 0x71
 BAD_REQUEST       = 0x72
 OUT_OF_SYNC       = 0x73
@@ -49,8 +66,15 @@ RUNTIME_ERROR     = 0x79
 UNKNOWN_ERROR     = 0x80
 
 VERBOSE           = False
-DEFAULT_SPEED     = 0.5 # if speed is not specified on motor commands
-ERROR_LIMIT       = 10  # max errors before exiting main loop
+ERROR_LIMIT       = 10     # max errors before exiting main loop
+
+# keys of PIR triggered sound
+#   arming-tone, beep, beep-hi, blip, boink, buzz, chatter, chirp, chirp-4,
+#   chirp-7, cricket, dit_a, dit_b, dit_c, dwerp, earpit, glince, glitch,
+#   gwolp, honk, hzah, ippurt, itiz, izit, pew-pew-pew, pizzle, silence,
+#   skid-fzzt, sonic-bat, telemetry, tick, tika-tika, tsk-tsk-tsk, tweak,
+#   twiddle-pop, twit, wow, zzt
+PIR_SOUND          = 'cricket'
 
 # functions ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -62,8 +86,12 @@ def process_buffer(buffer):
     '''
     try:
         _string = buffer.to_string()
+        _log.debug("process_buffer() value: '{}'".format(_string))
         if _string == 'exit':
             enabled = False
+        elif _string.startswith('play'):
+            key = _string[5:]
+            play(key)
         else:
             thread_id = _thread.start_new_thread(process_payload, (_string,))
     except RuntimeError as rte:
@@ -74,7 +102,7 @@ def process_buffer(buffer):
         raise I2CSlaveError(UNKNOWN_ERROR, "unknown error processing payload: {}".format(e))
 
 def process_payload(payload):
-    global is_running
+    global is_running, response, pir_enabled
     if is_running:
         _log.error("Error: function is already running, ignoring subsequent call.")
         return False
@@ -83,9 +111,61 @@ def process_payload(payload):
     try:
         command, speed, duration = parse_payload(payload)
         if command == 'help':
+            print(Fore.CYAN + '''
+tinyfx commands:
+    on                turn on port, stbd and mast LEDs
+    off               turn off port, stbd and mast LEDs
+    mast|ch4          turn on mast LED
+    stbd|ch5          turn on stbd LED
+    port|ch6          turn on port LED
+    flash             show flash memory info
+    ram               show free memory info
+    play [key]        play sound
+    pir get           return pir state
+    pir on            enable pir sensor
+    pir off           disable pir sensor
+    exit              exit processing loop
+    ''' + Style.RESET_ALL)
             pass
-        elif command.startswith('ena'):
-            pass
+        elif payload   == 'ch4' or payload == 'mast':
+            blink_fx.on()
+        elif payload == 'ch5' or payload == 'stbd':
+            stbd_trio_fx.on()
+        elif payload == 'ch6' or payload == 'port':
+            port_trio_fx.on()
+        elif payload == 'on':
+            blink_fx.on()
+            port_trio_fx.on()
+            stbd_trio_fx.on()
+        elif payload == 'off':
+            blink_fx.off()
+            port_trio_fx.off()
+            stbd_trio_fx.off()
+        elif payload == 'flash':
+            stat = os.statvfs('/') # get filesystem stats
+            total_space = int(( stat[0] * stat[2] ) / 1000) # Block size * Total blocks
+            free_space  = int(( stat[0] * stat[3] ) / 1000) # Block size * Free blocks
+            print("total flash: {}KB".format(total_space))
+            print("free flash:  {}KB".format(free_space))
+        elif payload == 'ram':
+            gc.collect() 
+            ram_mb = gc.mem_free() / 1024
+            print("free ram: {:.2f}KB".format(ram_mb))
+        elif payload == 'pir get':
+            if pir_sensor.triggered:
+                response = PIR_ACTIVE
+                show_color(COLOR_ORANGE)
+            else:
+                response = PIR_IDLE
+                show_color(COLOR_VIOLET)
+        elif payload == 'pir on':
+            pir_enabled = True
+            show_color(COLOR_GREEN)
+        elif payload == 'pir off':
+            pir_enabled = False
+            show_color(COLOR_GREEN)
+        else:
+            raise ValueError("unrecognised payload: '{}'".format(payload))
         return True
     finally:
         is_running = False
@@ -104,17 +184,31 @@ def parse_payload(payload):
     if len(_split) >= 2:
          speed = float(_split[1])
     else:
-         speed = DEFAULT_SPEED
+         speed = 0.0
     if len(_split) >= 3:
          duration = float(_split[2])
     return cmd, speed, duration
+
+def reenable_pir(arg=None):
+    '''
+    Disables the PIR sensor so that it doesn't retrigger before it resets.
+    '''
+    global pir_enabled
+    show_color(COLOR_BLACK)
+    pir_enabled = True
+
+def play(key):
+    for name, filename in _sounds:
+        if name == key:
+            _log.info("play key: '{}' from file: ".format(key) + Fore.YELLOW + "'{}'".format(filename))
+            tiny.wav.play_wav(filename)
 
 def show_color(color):
     '''
     Display the color on the RGB LED in GRB order.
     '''
-#   _led.set_rgb(0, color[0], color[1], color[2])
-    print('show_color: R{}, G{}, B{}'.format(color[0], color[1], color[2]))
+    _log.debug('show_color: R{}, G{}, B{}'.format(color[0], color[1], color[2]))
+    rgbled.set_rgb(*color)
     pass
 
 def reset_transaction():
@@ -138,9 +232,9 @@ class I2CSlaveError(Exception):
 _log = Logger('main', Level.INFO)
 _log.info(Fore.WHITE + "initialising…")
 
-# RGB LED
-#_led = WS2812(motor2040.NUM_LEDS, 1, 0, motor2040.LED_DATA)
-#_led.start()
+tiny = TinyFX(wav_root='/sounds')       # create a new TinyFX object to interact with the board
+rgbled = tiny.rgb                       # get internal RGBLED
+pir_sensor = PassiveInfrared()
 
 # indicate startup, waiting 5 seconds so it can be interrupted…
 _limit = 5
@@ -152,26 +246,50 @@ for i in range(_limit):
     utime.sleep_ms(950)
 utime.sleep_ms(50)
 
-# initialize an empty buffer list for sequential write sequences
-data_buf = []
-addr     = 0x00
+player = MonoPlayer(tiny.outputs)       # create a new effect player to control TinyFX's mono outputs
+#rgb_player = ColourPlayer(tiny.rgb)    # create a new effect player to control TinyFX's RGB output
 
-# create motor controller
-#motor_ctrl = MotorController()
+blink_fx     = I2CSettableBlinkFX(1, speed=0.5, phase=0.0, duty=0.015) # ch4
+stbd_trio_fx = TrioFX(2, brightness=0.8) # ch5
+port_trio_fx = TrioFX(3, brightness=0.8) # ch6
+
+# set up the effects to play
+player.effects = [
+    None, #TrioFX(2, brightness=0.5),  # UNUSED
+    None, #TrioFX(3, brightness=1.0),  # UNUSED
+    None, # StaticFX(0.7),
+    blink_fx,
+    stbd_trio_fx,
+    port_trio_fx
+]
+
+# reset rgbled
+show_color(COLOR_BLACK)
+
+_log.info("starting player…")
+player.start()
+
+# indicate startup
+tiny.wav.play_wav('arming-tone.wav')
 
 # established I2C slave on ID=0; SDA=20; SCL=21 at 0x44
 _log.info("I2C slave starting…")
 s_i2c = RP2040_Slave(ID,sda=SDA,scl=SCL,slaveAddress=ADDRESS)
 state = s_i2c.I2CStateMachine.I2C_START
+# initialize an empty buffer list for sequential write sequences
+data_buf = []
+addr     = 0x00
 currentTransaction = s_i2c.I2CTransaction(addr, data_buf)
 
 _log.info(Fore.WHITE + "main loop starting…")
-show_color(COLOR_DARK_GREEN)
-is_running = False
-enabled    = True
-errors     = 0
+show_color(COLOR_GREEN)
 
-while enabled and errors < ERROR_LIMIT:
+pir_enabled = False # default disabled
+is_running  = False
+enabled     = True
+errors      = 0
+
+while enabled and errors < ERROR_LIMIT and player.is_running():
     try:
         state = s_i2c.handle_event()
 
@@ -209,6 +327,16 @@ while enabled and errors < ERROR_LIMIT:
                         _log.debug("[{}] data: '{}'; append character: '{}'".format(_index, _data_rx, _char))
                         _buffer.append(_char)
                         currentTransaction.data_byte.append(_data_rx)
+
+                if pir_enabled:
+                    if pir_sensor.triggered:
+                        pir_enabled = False # don't permit reentry
+                        show_color(COLOR_ORANGE)
+                        _timer = Timer()
+                        _timer.init(mode=Timer.ONE_SHOT, period=4000, callback=reenable_pir)
+                        play(PIR_SOUND)
+                    utime.sleep(0.05)
+
                 _index += 1
                 # end while loop ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -233,7 +361,7 @@ while enabled and errors < ERROR_LIMIT:
 
         if state == s_i2c.I2CStateMachine.I2C_FINISH:
             _log.debug('register: {}; received: {}'.format(currentTransaction.address, currentTransaction.data_byte))
-            _log.info('finished.')
+            _log.info('finished processing request.')
             reset_transaction()
 
     except KeyboardInterrupt:

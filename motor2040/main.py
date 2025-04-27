@@ -194,7 +194,7 @@ state = s_i2c.I2CStateMachine.I2C_START
 currentTransaction = s_i2c.I2CTransaction(addr, data_buf)
 
 _log.info(Fore.WHITE + "main loop starting…")
-show_color(COLOR_DARK_GREEN)
+show_color(COLOR_GREEN)
 is_running = False
 enabled    = True
 errors     = 0

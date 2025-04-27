@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2019-2024 by Murray Altheim. All rights reserved. This file is part
+# Copyright 2019-2025 by Murray Altheim. All rights reserved. This file is part
 # of the MR01 Robot Operating System (MROS) project, released under the MIT
 # License. Please see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
 # created:  2020-01-14
-# modified: 2025-04-25
-
+# modified: 2025-04-26
+#
 # this is a simplification of the MROS Logger class, just using print statements
 # and not supporting log-to-file, log suppression, the notice() or critical()
 # levels, etc.
@@ -23,27 +23,6 @@ def enum(**enums: int):
 
 Level = enum(DEBUG=10, INFO=20, WARN=30, ERROR=40)
 # e.g., levels = (Level.ONE, Level.TWO)
-
-## ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#class Level(Enum):
-#    DEBUG    = ( logging.DEBUG,    'DEBUG'    ) # 10
-#    INFO     = ( logging.INFO,     'INFO'     ) # 20
-#    WARN     = ( logging.WARN,     'WARN'     ) # 30
-#    ERROR    = ( logging.ERROR,    'ERROR'    ) # 40
-#
-#    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-#    @staticmethod
-#    def from_string(label):
-#        if label.upper()   == 'DEBUG':
-#            return Level.DEBUG
-#        elif label.upper() == 'INFO':
-#            return Level.INFO
-#        elif label.upper() == 'WARN':
-#            return Level.WARN
-#        elif label.upper() == 'ERROR':
-#            return Level.ERROR
-#        else:
-#            raise NotImplementedError
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Logger(object):

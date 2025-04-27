@@ -158,6 +158,10 @@ IO Expander as well as the Encoder and Potentiometer.
 The original PiconZero library has been included and significantly refactored as
 a Python class, so it is not an external dependency.
 
+To improve performance, if you don't need the avahi-daemon, disable it:
+
+   sudo systemctl disable avahi-daemon
+
 
 Status
 ******

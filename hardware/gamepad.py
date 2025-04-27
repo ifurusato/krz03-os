@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2020-2024 by Murray Altheim. All rights reserved. This file is part
+# Copyright 2020-2025 by Murray Altheim. All rights reserved. This file is part
 # of the Robot Operating System project, released under the MIT License. Please
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
 # created:  2020-08-05
-# modified: 2024-10-31
+# modified: 2024-12-03
 #
 # This class interprets the signals arriving from the 8BitDo N30 Pro gamepad,
 # a paired Bluetooth device.

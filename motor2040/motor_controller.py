@@ -12,6 +12,7 @@
 import utime
 from motor import FAST_DECAY, SLOW_DECAY, Motor, motor2040
 
+from colorama import Fore, Style
 from core.logger import Level, Logger
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -42,6 +43,31 @@ class MotorController(object):
         self._deceleration_delay = 0.2   # for acceleration or any loops
         self._delta              = 0.025 # iterative delta
         self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def help(self):
+        print(Fore.CYAN + '''
+motor2040 commands:
+
+    enable            enable all motors
+    disable           disable all motors
+    stop              stop all motors
+    coast             coast all motors to stop
+    brake             brake all motors to stop
+    slow-decay        mode change
+    fast-decay        mode change
+    accelerate        accelerate from zero to speed
+    decelerate        decelerate from speed to zero
+    all [speed] [duration]     set speed of all motors
+    crab [speed] [duration]    set crab speed
+    rotate [speed] [duration]  set rotation speed
+    pfwd [speed] [duration]    set speed of port-forward motor
+    sfwd [speed] [duration]    set speed of stbd-forward motor
+    paft [speed] [duration]    set speed of port-aft motor
+    saft [speed] [duration]    set speed of stbd-aft motor
+
+where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
+    ''' + Style.RESET_ALL)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
