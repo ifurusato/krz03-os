@@ -59,14 +59,9 @@ class BehaviourManager(Subscriber):
         self._was_suppressed   = None
         self._clip_event_list  = True #_cfg.get('clip_event_list') # used for printing only
         self._clip_length      = 42   #_cfg.get('clip_length')
-#       methods = [func for func in dir(BehaviourManager) if callable(getattr(BehaviourManager, func)) and not func.startswith("__")]
-#       methods = [func for func in dir(BehaviourManager) if callable(getattr(BehaviourManager, func))]
-#       for method in methods:
-#           print(method)
         self._behaviours       = {}
         self._find_behaviours()
-        for _key, _behaviour in self._behaviours.items():
-            print('-- key: {}; behaviour: {}'.format(_key, _behaviour))
+        self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _find_behaviours(self):
@@ -95,10 +90,15 @@ class BehaviourManager(Subscriber):
                                         self._level
                                     )
                                     # we don't need this if there is self-registration
-                                    self._behaviours[_behaviour.trigger_event] = _behaviour
+                                    self._behaviours[_behaviour.name] = _behaviour
                     except Exception as e:
                         stack_trace = traceback.format_exc()
                         self._log.error("{} thrown loading filename '{}' for behaviour: {}\n{}".format(type(e), filename, e, stack_trace))
+        # list registered behaviours
+        if len(self._behaviours) > 0:
+            self._log.info("registered {} behaviours:".format(len(self._behaviours)))
+            for _key, _behaviour in self._behaviours.items():
+                self._log.info("  key: '{}'\t behaviour: {}".format(_key, _behaviour.name))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def start(self):
@@ -219,7 +219,7 @@ class BehaviourManager(Subscriber):
         called directly.
         '''
         if behaviour.trigger_event not in self._behaviours:
-            self._behaviours[behaviour.trigger_event] = behaviour
+            self._behaviours[behaviour.name] = behaviour
             self.add_event(behaviour.trigger_event)
             self._log.info("added behaviour '{}' linked to trigger event '{}' to manager.".format(behaviour.name, behaviour.trigger_event))
         else:

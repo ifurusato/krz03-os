@@ -225,8 +225,7 @@ class Event(Enum):
     VIDEO                  = ( 509, "video",                  175,   Group.BEHAVIOUR ) # L1 Button
 
     # idle ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    INACTIVE               = ( 600, "inactive",               100,   Group.IDLE )
-    ACTIVE                 = ( 601, "active",                 100,   Group.IDLE )
+    IDLE                   = ( 600, "idle",                   100,   Group.IDLE )
 
     # clock (> 700) ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     TICK                   = ( 701, "tick",                   700,   Group.CLOCK )

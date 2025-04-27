@@ -30,7 +30,8 @@ class DistanceSensorsSubscriber(Subscriber):
     '''
     def __init__(self, config, message_bus, level=Level.INFO):
         Subscriber.__init__(self, DistanceSensorsSubscriber.CLASS_NAME, config, message_bus=message_bus, suppressed=False, enabled=False, level=level)
-        self.add_events([ Group.BUMPER, Group.INFRARED ])
+#       self.add_events([Group.BUMPER, Group.INFRARED])
+        self.add_events(Event.by_groups([Group.BUMPER, Group.INFRARED]))
         self._verbose = False
         self._log.info('ready.')
 

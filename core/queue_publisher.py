@@ -97,11 +97,11 @@ class QueuePublisher(Publisher):
             if not self.suppressed:
                 while not self._queue.empty:
                     _message = self._queue.poll()
+                    await Publisher.publish(self, _message)
                     self._log.info('[{:03d}] published message '.format(_count)
                             + Fore.WHITE + '{} '.format(_message.name)
                             + Fore.CYAN + 'for event \'{}\' with group \'{}\' and value: '.format(_message.event.name, _message.event.group.name)
                             + Fore.YELLOW + '{}'.format(_message.payload.value))
-                    await Publisher.publish(self, _message)
             else:
                 self._log.info('suppressed.')
             await asyncio.sleep(self._publish_delay_sec)
@@ -112,7 +112,7 @@ class QueuePublisher(Publisher):
         '''
         Disable this publisher.
         '''
-        Publisher.disable(self) 
         self.clear()
+        Publisher.disable(self) 
 
 #EOF

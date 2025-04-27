@@ -18,6 +18,7 @@
 
 import os, sys, signal, time, traceback
 import argparse
+import itertools
 from pathlib import Path
 from colorama import init, Fore, Style
 init()
@@ -28,7 +29,7 @@ globals.init()
 from core.logger import Logger, Level
 from core.event import Event, Group
 from core.component import Component
-from core.fsm import FiniteStateMachine
+from core.fsm import FiniteStateMachine, State
 from core.orientation import Orientation
 from core.util import Util
 from core.message import Message, Payload
@@ -55,7 +56,7 @@ from hardware.imu import IMU
 from hardware.task_selector import TaskSelector
 from hardware.i2c_scanner import I2CScanner
 from hardware.distance_sensors_publisher import DistanceSensorsPublisher
-from hardware.button import Button # toggle as enable/disable switch
+from hardware.button import Button
 
 from hardware.sound import Sound
 from hardware.player import Player
@@ -254,8 +255,8 @@ class KRZOS(Component, FiniteStateMachine):
         _enable_pushbutton= _cfg.get('enable_pushbutton')
         if _enable_pushbutton:
             self._pushbutton = Button(self._config, 'trig', pin=17, momentary=True) # TODO from config
-            self._pushbutton.add_callback(self.await_start)
-#           self._pushbutton.add_callback(self.shutdown)
+            Player.play(Sound.BEEP)
+            self._pushbutton.add_callback(self._await_start)
 
         _enable_killswitch= _cfg.get('enable_killswitch') or 'k' in _pubs
         if _enable_killswitch:
@@ -308,16 +309,13 @@ class KRZOS(Component, FiniteStateMachine):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def has_await_pushbutton(self):
-        return self._pushbutton is not None
+        return self._pushbutton != None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def await_start(self, arg=None):
-        self._log.warning('await start called…')
-        _pushbutton = self._pushbutton
+    def _await_start(self, arg=None):
+        self._log.info('await start callback triggered…')
+        self._pushbutton.close()
         self._pushbutton = None
-        time.sleep(1)
-        _pushbutton.close()
-        _pushbutton = None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def start(self, dummy=None):
@@ -482,6 +480,9 @@ class KRZOS(Component, FiniteStateMachine):
         This halts any motor activity, demands a sudden halt of all tasks,
         then shuts down the OS.
         '''
+        if self._pushbutton:
+            self._pushbutton.cancel()
+            self._pushbutton = None
         self._log.info(Fore.MAGENTA + 'shutting down…')
         self.close()
         # we never get here if we shut down properly
@@ -554,19 +555,20 @@ class KRZOS(Component, FiniteStateMachine):
             finally:
                 self._log.close()
                 self._closing = False
-                _threads = sys._current_frames().items()
-                if len(_threads) > 1:
-                    try:
-                        print(Fore.WHITE + '{} threads remain upon closing.'.format(len(_threads)) + Style.RESET_ALL)
-                        frames = sys._current_frames()
-                        for thread_id, frame in frames.items():
-                            print(Fore.WHITE + '    remaining frame: ' + Fore.YELLOW + "Thread ID: {}, Frame: {}".format(thread_id, frame) + Style.RESET_ALL)
-                    except Exception as e:
-                        print('error showing frames: {}\n{}'.format(e, traceback.format_exc()))
-                    finally:
-                        print('\n')
-                else:
-                    print(Fore.WHITE + 'no threads remain upon closing.' + Style.RESET_ALL)
+                if REPORT_REMAINING_FRAMES:
+                    _threads = sys._current_frames().items()
+                    if len(_threads) > 1:
+                        try:
+                            print(Fore.WHITE + '{} threads remain upon closing.'.format(len(_threads)) + Style.RESET_ALL)
+                            frames = sys._current_frames()
+                            for thread_id, frame in frames.items():
+                                print(Fore.WHITE + '    remaining frame: ' + Fore.YELLOW + "Thread ID: {}, Frame: {}".format(thread_id, frame) + Style.RESET_ALL)
+                        except Exception as e:
+                            print('error showing frames: {}\n{}'.format(e, traceback.format_exc()))
+                        finally:
+                            print('\n')
+                    else:
+                        print(Fore.WHITE + 'no threads remain upon closing.' + Style.RESET_ALL)
                 sys.exit(0)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -679,6 +681,8 @@ def parse_args(passed_args=None):
 
 # main ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+REPORT_REMAINING_FRAMES = False # debugging
+
 def main(argv):
 
     _krzos = None
@@ -702,13 +706,23 @@ def main(argv):
                 if not _args.start:
                     _log.info('configure only: ' + Fore.YELLOW + 'specify the -s argument to start krzos.')
             if _args.start:
+                _counter = itertools.count() 
                 if _krzos.has_await_pushbutton():
                     while _krzos.has_await_pushbutton():
-                        _log.info(Fore.YELLOW + 'waiting for pushbutton…')
-                        time.sleep(1)
-                    _krzos.start()
+                        if next(_counter) % 20 == 0:
+                            _log.info(Fore.YELLOW + 'waiting for pushbutton…')
+                        time.sleep(0.1)
+                    match _krzos.state:
+                        case State.INITIAL: # expected state
+                            _krzos.start()
+                            # does not return here til we close down
+                        case State.CLOSED:
+                            _log.info(Fore.WHITE + 'closed before starting.')
+                        case _:
+                            _log.warning('closed with invalid state: {}'.format(_krzos.state))
                 else:
                     _krzos.start()
+#               _log.info(Fore.WHITE + 'returned from main loop.')
                     # krzos is now running…
     except KeyboardInterrupt:
         print('\n')

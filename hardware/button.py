@@ -12,7 +12,7 @@
 
 import sys, traceback, time
 import itertools
-from threading import Thread
+import threading
 import RPi.GPIO as GPIO
 from colorama import init, Fore, Style
 init()
@@ -56,10 +56,10 @@ class Button(Component):
         self._impl = impl if impl is not None else _cfg.get('impl') # either 'gpio', 'gpiod', 'gpiozero' or 'ioe'
         self._ioe = None
         self._pi  = None
+        self._stop_event = None
         self._momentary            = momentary
         self._pigpio_callback      = None
         self._gpiod_monitor_thread = None
-        self._gpiod_running        = False
         self._callbacks = [] # list of callback functions
         # configuration:
         if waitable:
@@ -97,10 +97,9 @@ class Button(Component):
 
             if not self._momentary:
                 # if latching, we need to check that it's not already triggered
-                _enabled = self.gpiod_get_value(pin=self._pin)
-                if not _enabled:
+                if not self.gpiod_get_value(pin=self._pin):
                     Player.play(Sound.GWOLP)
-                    raise RuntimeError('cannot start, toggle switch not enabled.')
+                    raise RuntimeError('cannot start, toggle switch is not enabled.')
 
             # monitoring is established by add_callback()
 
@@ -163,8 +162,9 @@ class Button(Component):
                 self._log.error('{} error adding callback: {}\n{}'.format(type(e), e, traceback.format_exc()))
         elif self._impl == 'gpiod':
             _debounce_time_ms = 300
+            self._stop_event = threading.Event()
             _is_daemon = True
-            self._gpiod_monitor_thread = Thread(target=self._monitor_gpiod, args=(self._pin, _debounce_time_ms, callback_method), daemon=_is_daemon)
+            self._gpiod_monitor_thread = threading.Thread(target=self._monitor_gpiod, args=(self._pin, _debounce_time_ms, callback_method, self._stop_event), daemon=_is_daemon)
             self._gpiod_monitor_thread.start()
         elif self._impl == 'pigpio':
             self._pigpio_callback = self._pi.callback(self._pin, pigpio.RISING_EDGE, self.__pigpio_callback)
@@ -205,6 +205,15 @@ class Button(Component):
 
     # gpiod ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
+    def cancel(self):
+        '''
+        Sets the stop event, cancelling the gpiod callback thread.
+        If not in gpiod mode this does nothing.
+        '''
+        if self._stop_event:
+            self._stop_event.set()
+            self._log.info('cancelled gpiod callback.')
+
     def gpiod_get_value(self, pin=None):
         '''
         Returns the value of the GPIO pin using gpiod, True is HIGH, False is LOW.
@@ -229,7 +238,7 @@ class Button(Component):
                 else:
                     raise Exception("unrecognised return value from gpiod '{}'".format(value))
 
-    def _monitor_gpiod(self, line_offset, debounce_time_ms, callback):
+    def _monitor_gpiod(self, line_offset, debounce_time_ms, callback, stop_event):
         '''
         Monitor GPIO for rising edges and trigger a callback.
         '''
@@ -246,9 +255,8 @@ class Button(Component):
         _chip_path = "/dev/gpiochip0"
         _last_event_time = 0
         self._log.info('monitoring pin {} using gpiod…'.format(line_offset))
-        self._gpiod_running = True
         with gpiod.request_lines(_chip_path, consumer="gpiod-callback-monitor", config=_config) as request:
-            while self._gpiod_running:
+            while not stop_event.is_set():
                 for event in request.read_edge_events():
                     event_time_ms = event.timestamp_ns // 1_000_000
                     if event_time_ms - _last_event_time >= debounce_time_ms:
@@ -265,6 +273,7 @@ class Button(Component):
                                 raise Exception("unrecognised return value from gpiod '{}'".format(value))
                         _last_event_time = event_time_ms
                 time.sleep(0.5)
+        self._log.debug('exited gpiod monitor thread.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -306,7 +315,7 @@ class Button(Component):
         elif self._impl == 'gpiod':
             self._log.debug('cancelling gpiod callback…')
             if self._gpiod_monitor_thread:
-                self._gpiod_running = False
+                self.cancel()
         elif self._impl == 'pigpio':
             if self._pigpio_callback:
                 self._log.debug('cancelling pigpio callback…')

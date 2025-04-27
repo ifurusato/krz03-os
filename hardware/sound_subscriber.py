@@ -35,7 +35,7 @@ class SoundSubscriber(Subscriber):
     '''
     def __init__(self, config, message_bus, level=Level.INFO):
         Subscriber.__init__(self, SoundSubscriber.CLASS_NAME, config, message_bus=message_bus, suppressed=False, enabled=False, level=level)
-        self.add_events([ Group.SYSTEM,
+        self.add_events(Event.by_groups([
                 Group.GAMEPAD,
                 Group.STOP,
                 Group.IMU,
@@ -43,7 +43,16 @@ class SoundSubscriber(Subscriber):
                 Group.INFRARED,
                 Group.BEHAVIOUR,
                 Group.REMOTE
-            ])
+            ])) 
+#       self.add_events([ Group.SYSTEM,
+#               Group.GAMEPAD,
+#               Group.STOP,
+#               Group.IMU,
+#               Group.BUMPER,
+#               Group.INFRARED,
+#               Group.BEHAVIOUR,
+#               Group.REMOTE
+#           ])
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

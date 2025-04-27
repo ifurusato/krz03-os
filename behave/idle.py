@@ -43,11 +43,12 @@ class Idle(Behaviour, Publisher):
     Extends both Behaviour and Publisher to implement a idle behaviour.
     This polls the MessageBus value for last message timestamp, and
     after a certain amount of time has passed with no sensor events it
-    then triggers publication of an Event.INACTIVE message.
+    then triggers publication of an Event.IDLE message with a value of
+    False (inactive).
 
     As a Behaviour, this is also a Subscriber to the MessageBus so that
     it can capture messages in order to subsequently publish an
-    Event.ACTIVE message.
+    Event.IDLE message with a value of True (active).
 
     :param name:            the name of this behaviour
     :param config:          the application configuration
@@ -59,7 +60,6 @@ class Idle(Behaviour, Publisher):
         self._is_idle             = False
         Behaviour.__init__(self, Idle.CLASS_NAME, config, message_bus, message_factory, suppressed=False, enabled=True, level=level)
         Publisher.__init__(self, Idle.CLASS_NAME, config, message_bus, message_factory, suppressed=False, level=level)
-#       Subscriber.__init__(self, 'idle', config, message_bus=message_bus, suppressed=False, enabled=False, level=level)
         # subscribe to all non-IDLE events
         self.add_events([member for member in Group if member not in (Group.NONE, Group.IDLE, Group.OTHER)])
         _cfg = self._config['krzos'].get('behaviour').get('idle')
@@ -80,31 +80,9 @@ class Idle(Behaviour, Publisher):
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    async def process_message(self, message):
-        '''
-        Process the message. If it's not an IDLE message this indicates activity.
-
-        A Subscriber method.
-
-        :param message:  the message to process.
-        '''
-        if message.gcd:
-            raise GarbageCollectedError('cannot process message: message has been garbage collected.')
-        _event = message.event
-        if _event.group == Group.IDLE:
-            self._log.warning('unexpected IDLE message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
-            # we shouldn't see this but do nothing
-        else:
-            if self._is_idle:
-                # indicates a state-change activity, so publish an ACTIVE message
-                self._is_idle = False
-                self._log.debug('group: {}: message {}; '.format(_event.group.name, message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
-                self._log.info(Fore.YELLOW + '🔶 activity after {:4.2f} seconds of being idle.'.format(self.elapsed_seconds))
-                _message = self._message_factory.create_message(Event.ACTIVE, dt.now())
-                self._queue_publisher.put(_message)
-                Player.play(Sound.TWIT)
-
-        await Subscriber.process_message(self, message)
+    @property
+    def name(self):
+        return Idle.CLASS_NAME
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -138,16 +116,12 @@ class Idle(Behaviour, Publisher):
     @property
     def trigger_event(self):
         '''
-        This returns the event used to enable/disable the behaviour manually,
-        depending on the current state of the idle process.
+        This returns the event used to enable/disable the behaviour manually.
 
-        The priority of this event determines the priority of this Behaviour
-        when compared to other Behaviours.
+        Note: the priority of this event determines the priority of this
+        Behaviour when compared to other Behaviours.
         '''
-        if self.is_idle:
-            return Event.ACTIVE
-        else:
-            return Event.INACTIVE
+        return Event.IDLE
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def start(self):
@@ -196,27 +170,30 @@ class Idle(Behaviour, Publisher):
 #                   self._log.info(Style.DIM + 'elapsed: {:4.02f}s'.format(self._elapsed_sec))
                     if self._elapsed_sec > self._idle_threshold_sec:
                         if self._is_idle:
-                            self._log.info(Style.DIM + '[{:005d}] already idle.'.format(_count))
+#                           self._log.info(Style.DIM + '[{:005d}] already idle.'.format(_count))
+                            pass
                         else:
                             # change state only if not already idle
                             self._is_idle = True
                             self._log.info('[{:005d}] idle threshold met; '.format(_count)
                                     + Fore.YELLOW + '{}'.format(Util.get_formatted_time('elapsed time since last message:', _elapsed_ms)))
 
-                            _message = self._message_factory.create_message(Event.INACTIVE, dt.now())
+                            _message = self._message_factory.create_message(Event.IDLE, False)
                             self._log.info('idle publishing message for event: {}; value: {}'.format(_message.event.name, _message.value))
 
                             self._log.debug('key-publishing message:' + Fore.WHITE + ' {}; event: {}'.format(_message.name, _message.event.name))
                             await Publisher.publish(self, _message)
                             self._log.debug('key-published message:' + Fore.WHITE + ' {}; event: {}'.format(_message.name, _message.event.name))
-                            Player.play(Sound.PIZZLE)
+                            Player.play(Sound.SIGH)
 
                     elif self._is_idle:
-                        self._log.info(Style.DIM + '[{:005d}] idle; '.format(_count)
-                                + Style.DIM + '{}'.format(Util.get_formatted_time('elapsed time since last message:', _elapsed_ms)))
+                        if _count % 10 == 0:
+                            self._log.info(Style.DIM + '[{:005d}] idle; '.format(_count)
+                                    + Style.DIM + '{}'.format(Util.get_formatted_time('elapsed time since last message:', _elapsed_ms)))
                     else:
-                        self._log.info(Fore.BLUE + '[{:005d}] not idle; '.format(_count)
-                                + Style.DIM + '{}'.format(Util.get_formatted_time('elapsed time since last message:', _elapsed_ms)))
+                        if _count % 5 == 0:
+                            self._log.info(Fore.BLUE + '[{:005d}] waiting; '.format(_count)
+                                    + Style.DIM + '{}'.format(Util.get_formatted_time('elapsed time since last message:', _elapsed_ms)))
             else:
                 self._log.info(Fore.BLACK + '[{:005d}] idle suppressed.'.format(_count))
 
@@ -228,12 +205,39 @@ class Idle(Behaviour, Publisher):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _hello(self):
         '''
-        Publishes an initial INACTIVE message so that it can be used to calculate
+        Publishes an initial IDLE message so that it can be used to calculate
         the elapsed time, otherwise the idle process cannot begin.
         '''
         self._log.info('publishing initial idle message…')
-        _message = self._message_factory.create_message(Event.INACTIVE, dt.now())
+        _message = self._message_factory.create_message(Event.IDLE, False)
         self._queue_publisher.put(_message)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    async def process_message(self, message):
+        '''
+        Process the message. If it's not an IDLE message this indicates activity.
+
+        A Subscriber method.
+
+        :param message:  the message to process.
+        '''
+        if message.gcd:
+            raise GarbageCollectedError('cannot process message: message has been garbage collected.')
+        _event = message.event
+        if _event.group == Group.IDLE:
+            self._log.warning('unexpected IDLE message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
+            # we shouldn't see this but do nothing
+        else:
+            if self._is_idle:
+                # indicates a state-change activity, so publish an IDLE message
+                self._is_idle = False
+                self._log.debug('group: {}: message {}; '.format(_event.group.name, message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
+                self._log.info(Fore.YELLOW + '🔶 activity after {:4.2f} seconds of being idle.'.format(self.elapsed_seconds))
+                _message = self._message_factory.create_message(Event.IDLE, True)
+                self._queue_publisher.put(_message)
+                Player.play(Sound.TWIT)
+
+        await Subscriber.process_message(self, message)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def execute(self, message):

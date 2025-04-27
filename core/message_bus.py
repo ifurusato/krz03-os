@@ -516,6 +516,11 @@ class MessageBus(Component):
             self._log.info(Fore.MAGENTA + 'starting shutdown procedure…')
             if signal:
                 self._log.info('received exit signal {}…'.format(signal))
+            if self.loop.is_running():
+                self._log.info('stopping event loop…')
+                self.loop.stop()
+                self._log.info('event loop stopped.')
+            # cancel all running tasks
             tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
             if len(tasks) > 0:
                 self._log.info('nacking outstanding tasks:')
@@ -523,14 +528,12 @@ class MessageBus(Component):
                     self._log.info('  task: {}'.format(task.get_name()))
                 self._log.info('cancelling {:d} outstanding tasks…'.format(len(tasks)))
                 [task.cancel() for task in tasks]
-                _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=False)
+                _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=True) # return_exceptions was False
                 self._log.info('gathered tasks: {}'.format(_gathered_tasks))
             else:
                 self._log.info('no outstanding tasks.')
-            if self.loop.is_running():
-                self._log.info('stopping event loop…')
-                self.loop.stop()
-                self._log.info('event loop stopped.')
+            self._log.info(Fore.MAGENTA + 'closing async generators…')
+            await loop.shutdown_asyncgens()
             self._log.info(Fore.MAGENTA + 'async sleeping…')
             await asyncio.sleep(0.3)
             self._log.info(Fore.MAGENTA + 'continuing to shut down…')

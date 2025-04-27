@@ -17,7 +17,7 @@ from colorama import init, Fore, Style
 init()
 
 from core.logger import Logger, Level
-from core.event import Event
+from core.event import Event, Group
 from core.util import Util
 from core.subscriber import Subscriber
 from behave.behaviour import Behaviour
@@ -26,6 +26,8 @@ from behave.trigger_behaviour import TriggerBehaviour
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Sniff(Behaviour):
+
+    CLASS_NAME = 'sniff'
     '''
     Implements a sniffing behaviour, whatever that is.
 
@@ -37,11 +39,14 @@ class Sniff(Behaviour):
     '''
     def __init__(self, config, message_bus=None, message_factory=None, level=Level.INFO):
         Behaviour.__init__(self, 'sniff', config, message_bus, message_factory, suppressed=False, enabled=True, level=level)
+        self.add_events([Event.by_group(Group.IDLE)])
         _cfg = self._config['krzos'].get('behaviour').get('sniff')
-#       if not isinstance(motor_ctrl, MotorController):
-#           raise ValueError('wrong type for motor_ctrl argument: {}'.format(type(motor_ctrl)))
-        self._motor_ctrl = None # TODO get from Component registry
         self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def name(self):
+        return Sniff.CLASS_NAME
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_trigger_behaviour(self, event):
@@ -63,6 +68,26 @@ class Sniff(Behaviour):
     @property
     def name(self):
         return 'sniff'
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    async def process_message(self, message):
+        '''
+        Process the message. If it's not an IDLE message this indicates activity.
+
+        A Subscriber method.
+
+        :param message:  the message to process.
+        '''
+        if message.gcd:
+            raise GarbageCollectedError('cannot process message: message has been garbage collected.')
+        _event = message.event
+        if _event.group is Group.IDLE:
+            if _event is Event.IDLE:
+                self._log.info(Fore.WHITE + 'idle message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))
+                # TODO what to do?
+            else:
+                self._log.info(Fore.WHITE + 'message {}; '.format(message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
+        await Subscriber.process_message(self, message)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def execute(self, message):
