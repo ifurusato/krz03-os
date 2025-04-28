@@ -28,7 +28,7 @@ class Player(Component):
 
     This is a singleton class; obtain its instance and play a sound via:
 
-        Player.instance().play(Sound.CHIRP_1)
+        Player.instance().play(Sound.CHIRP)
 
     Unlike the version of this on the MR01 this does not use threads, nor
     does it support looping.
