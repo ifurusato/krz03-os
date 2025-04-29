@@ -57,6 +57,7 @@ from hardware.task_selector import TaskSelector
 from hardware.i2c_scanner import I2CScanner
 from hardware.distance_sensors_publisher import DistanceSensorsPublisher
 from hardware.button import Button
+from hardware.eyeballs import Eyeballs
 
 from hardware.sound import Sound
 from hardware.player import Player
@@ -120,6 +121,7 @@ class KRZOS(Component, FiniteStateMachine):
         self._motor_controller            = None
         self._tinyfx                      = None
         self._pushbutton                  = None
+        self._eyeballs                    = None
         self._killswitch                  = None
         self._started                     = False
         self._closing                     = False
@@ -262,6 +264,10 @@ class KRZOS(Component, FiniteStateMachine):
         if _enable_killswitch:
             self._killswitch = Button(self._config, 'kill', pin=18, momentary=False)
             self._killswitch.add_callback(self.shutdown)
+
+        _enable_eyeballs = _cfg.get('enable_eyeballs')
+        if _enable_eyeballs:
+            self._eyeballs = Eyeballs()
 
         # add task selector ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -498,6 +504,8 @@ class KRZOS(Component, FiniteStateMachine):
         elif self._closing:
             self._log.warning('already closing.')
         elif self.enabled:
+            if self._eyeballs:
+                self._eyeballs.disable()
             if self._tinyfx:
                 Player.play(Sound.HZAH)
             self._log.info('disabling…')

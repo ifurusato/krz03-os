@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-10-23
-# modified: 2024-10-31
+# modified: 2025-04-29
 #
 # The basic idea:
 #
@@ -99,7 +99,23 @@ class Eyeball(Enum):
                 [ 0, 0, 1, 0, 0 ],
                 [ 0, 1, 0, 0, 0 ]
             ])
-    CONFUSED_PORT = ( 7, 'confused-port', Color.CORAL,
+    LOOK_UP   = ( 7, 'look-up', Color.ORANGE,
+            [
+                [ 0, 0, 0, 0, 0 ],
+                [ 0, 0, 1, 0, 0 ],
+                [ 0, 1, 0, 1, 0 ],
+                [ 1, 0, 0, 0, 1 ],
+                [ 0, 0, 0, 0, 0 ]
+            ])
+    LOOK_DOWN = ( 8, 'look-down', Color.ORANGE,
+            [
+                [ 0, 0, 0, 0, 0 ],
+                [ 1, 0, 0, 0, 1 ],
+                [ 0, 1, 0, 1, 0 ],
+                [ 0, 0, 1, 0, 0 ],
+                [ 0, 0, 0, 0, 0 ]
+            ])
+    CONFUSED_PORT = ( 9, 'confused-port', Color.CORAL,
             [
                 [ 0, 1, 0, 0, 0 ],
                 [ 0, 0, 1, 0, 0 ],
@@ -107,7 +123,7 @@ class Eyeball(Enum):
                 [ 0, 0, 1, 0, 0 ],
                 [ 0, 1, 0, 0, 0 ]
             ])
-    CONFUSED_STBD = ( 8, 'confused-stbd', Color.CORAL,
+    CONFUSED_STBD = ( 10, 'confused-stbd', Color.CORAL,
             [
                 [ 0, 0, 0, 1, 0 ],
                 [ 0, 0, 1, 0, 0 ],
@@ -115,7 +131,15 @@ class Eyeball(Enum):
                 [ 0, 0, 1, 0, 0 ],
                 [ 0, 0, 0, 1, 0 ]
             ])
-    WOW1      = ( 9, 'wow-1', Color.YELLOW,
+    SLEEPY    = ( 11, 'sleepy', Color.DARK_GREY,
+            [
+                [ 0, 0, 0, 0, 0 ],
+                [ 1, 0, 0, 0, 1 ],
+                [ 1, 0, 0, 0, 1 ],
+                [ 0, 1, 1, 1, 0 ],
+                [ 0, 0, 0, 0, 0 ]
+            ])
+    WOW1      = ( 12, 'wow-1', Color.YELLOW,
             [
                 [ 0, 0, 0, 0, 0 ],
                 [ 0, 0, 0, 0, 0 ],
@@ -123,7 +147,7 @@ class Eyeball(Enum):
                 [ 0, 0, 0, 0, 0 ],
                 [ 0, 0, 0, 0, 0 ]
             ])
-    WOW2      = ( 10, 'wow-2', Color.YELLOW,
+    WOW2      = ( 13, 'wow-2', Color.YELLOW,
             [
                 [ 0, 0, 0, 0, 0 ],
                 [ 0, 1, 1, 1, 0 ],
@@ -131,7 +155,7 @@ class Eyeball(Enum):
                 [ 0, 1, 1, 1, 0 ],
                 [ 0, 0, 0, 0, 0 ]
             ])
-    WOW3      = ( 11, 'wow-3', Color.YELLOW,
+    WOW3      = ( 14, 'wow-3', Color.YELLOW,
             [
                 [ 0, 1, 1, 1, 0 ],
                 [ 1, 0, 0, 0, 1 ],
@@ -139,7 +163,7 @@ class Eyeball(Enum):
                 [ 1, 0, 0, 0, 1 ],
                 [ 0, 1, 1, 1, 0 ]
             ])
-    BLANK     = ( 12, 'blank', Color.LIGHT_GREY,
+    BLANK     = ( 15, 'blank', Color.LIGHT_GREY,
             [
                 [ 0, 0, 0, 0, 0 ],
                 [ 0, 0, 0, 0, 0 ],
@@ -147,7 +171,7 @@ class Eyeball(Enum):
                 [ 0, 0, 0, 0, 0 ],
                 [ 0, 0, 0, 0, 0 ]
             ])
-    SAD       = ( 13, 'sad', Color.BLUE_VIOLET,
+    SAD       = ( 16, 'sad', Color.BLUE_VIOLET,
             [
                 [ 0, 0, 0, 0, 0 ],
                 [ 1, 1, 1, 1, 1 ],
@@ -155,7 +179,7 @@ class Eyeball(Enum):
                 [ 0, 0, 1, 0, 0 ],
                 [ 0, 0, 1, 0, 0 ]
             ])
-    DEAD      = ( 14, 'dead', Color.GREY,
+    DEAD      = ( 17, 'dead', Color.GREY,
             [
                 [ 1, 0, 0, 0, 1 ],
                 [ 0, 1, 0, 1, 0 ],

@@ -113,10 +113,34 @@ class Eyeballs(Component):
         self._show()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def look_up(self):
+        self._log.info('look up…')
+        _eyeball = Eyeball.LOOK_UP
+        self.set_matrix(_eyeball.array, self._port_rgbmatrix, _eyeball.color)
+        self.set_matrix(_eyeball.array, self._stbd_rgbmatrix, _eyeball.color)
+        self._show()
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def look_down(self):
+        self._log.info('look down…')
+        _eyeball = Eyeball.LOOK_DOWN
+        self.set_matrix(_eyeball.array, self._port_rgbmatrix, _eyeball.color)
+        self.set_matrix(_eyeball.array, self._stbd_rgbmatrix, _eyeball.color)
+        self._show()
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def confused(self):
         self._log.info('confused…')
         self.set_matrix(Eyeball.CONFUSED_STBD.array, self._port_rgbmatrix, Eyeball.CONFUSED_STBD.color)
         self.set_matrix(Eyeball.CONFUSED_PORT.array, self._stbd_rgbmatrix, Eyeball.CONFUSED_PORT.color)
+        self._show()
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def sleepy(self):
+        self._log.info('sleepy…')
+        _eyeball = Eyeball.SLEEPY
+        self.set_matrix(_eyeball.array, self._port_rgbmatrix, _eyeball.color)
+        self.set_matrix(_eyeball.array, self._stbd_rgbmatrix, _eyeball.color)
         self._show()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

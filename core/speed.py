@@ -28,7 +28,7 @@ class Speed(Enum):
     via the configure() method.
     '''
     #                                                  proportional power
-    #                    name                   speed      astern  ahead
+    #                    label                  speed      astern  ahead
     STOP          = ( 1, 'stop',                  0.0,      0.0,   0.0 )
     DEAD_SLOW     = ( 2, 'dead slow',            20.0,      0.0,   0.0 )
     SLOW          = ( 3, 'slow',                 30.0,      0.0,   0.0 )
@@ -40,8 +40,8 @@ class Speed(Enum):
     MAXIMUM       = ( 9, 'maximum speed',       100.0,      0.0,   0.0 )
 
     # ignore the first param since it's already set by __new__
-    def __init__(self, num, name, velocity, astern, ahead):
-        self._name     = name
+    def __init__(self, num, label, velocity, astern, ahead):
+        self._label     = label
         self._velocity = velocity
         self._astern   = astern
         self._ahead    = ahead
@@ -53,8 +53,8 @@ class Speed(Enum):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
-    def name(self):
-        return self._name
+    def label(self):
+        return self._label
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -102,6 +102,10 @@ class Speed(Enum):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @staticmethod
     def from_string(value):
+        '''
+        Returns the Speed corresponding to the argument, e.g., "SLOW" returns Speed.SLOW.
+        No match raises a NotImplementedError.
+        '''
         for s in Speed:
             if value.upper() == s.name:
                 return s

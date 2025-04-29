@@ -25,7 +25,7 @@ from hardware.eyeballs import Eyeballs
 @pytest.mark.unit
 def eyeballs_test():
 
-    _wait_for_button = True
+    _wait_for_button = False
     _eyeballs = None
 
     try:
@@ -50,6 +50,28 @@ def eyeballs_test():
         time.sleep(2)
         _eyeballs.clear()
 
+        _eyeballs.sleepy()
+        time.sleep(2)
+        _eyeballs.clear()
+
+        _eyeballs.look_port()
+        time.sleep(2)
+        _eyeballs.clear()
+
+        _eyeballs.look_stbd()
+        time.sleep(2)
+        _eyeballs.clear()
+
+        _eyeballs.look_up()
+        time.sleep(2)
+        _eyeballs.clear()
+
+        _eyeballs.look_down()
+        time.sleep(2)
+        _eyeballs.clear()
+
+        return
+
         _eyeballs.happy()
         time.sleep(2)
         _eyeballs.clear()
@@ -62,35 +84,27 @@ def eyeballs_test():
         time.sleep(2)
         _eyeballs.clear()
 
-        _eyeballs.look_port()
-        time.sleep(2)
-        _eyeballs.clear()
-
-        _eyeballs.look_stbd()
-        time.sleep(2)
-        _eyeballs.clear()
-
         _eyeballs.confused()
         time.sleep(2)
         _eyeballs.clear()
 
-#       _eyeballs.drugged()
-#       time.sleep(2)
-#       _eyeballs.clear()
+        _eyeballs.drugged()
+        time.sleep(2)
+        _eyeballs.clear()
 
         _eyeballs.sad()
         time.sleep(2)
         _eyeballs.clear()
 
-        _eyeballs.blank()
-        time.sleep(2)
-        _eyeballs.clear()
+#       _eyeballs.blank()
+#       time.sleep(2)
+#       _eyeballs.clear()
 
-        _eyeballs.wow(7)
-        time.sleep(2)
+#       _eyeballs.wow(7)
+#       time.sleep(2)
 
-        _eyeballs.dead(include_fade=True)
-        time.sleep(2)
+#       _eyeballs.dead(include_fade=True)
+#       time.sleep(2)
         _eyeballs.clear()
 
         _log.info('eyeballs complete.')

@@ -26,6 +26,7 @@ krzos:
         enable_gamepad_publisher:         False            # enable gamepad support
         enable_killswitch:                 True            # enable toggle kill switch
         enable_pushbutton:                 True            # enable pushbutton
+        enable_eyeballs  :                 True            # enable eyeballs
         # subscribers ......................................
         enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
         enable_sound_subscriber:           True            # enable sounds for various events
@@ -45,13 +46,13 @@ krzos:
             nada:                       False              # doesn't do anything
 #       avoid:
 #           min_distance:                20.0              # minimum distance in cm upon which we trigger avoidance behaviour
-#       roam:
-#           min_distance:                25.0              # minimum distance in cm
-#           max_distance:                60.0              # maximum distance in cm
-#           min_velocity:                 0.0              # minimum motor target velocity
-#           max_velocity:               100.0              # maximum motor target velocity
-#           cruising_speed:             'SLOW'             # cruising speed (recovery speed)
-#           cruise_wait_ticks:              3              # how many ticks to wait before cruising again
+        roam:
+            min_distance:                25.0              # minimum distance in cm
+            max_distance:                60.0              # maximum distance in cm
+            min_velocity:                 0.0              # minimum motor target velocity
+            max_velocity:               100.0              # maximum motor target velocity
+            cruising_speed:             'SLOW'             # cruising speed (recovery speed)
+            cruise_wait_ticks:              3              # how many ticks to wait before cruising again
 #       swerve:
 #           reverse:                     True              # reverse effect of output function
 #           tolerance:                   20.0              # deadband tolerance as percentage

@@ -77,6 +77,7 @@ class Idle(Behaviour, Publisher):
         self._queue_publisher = _component_registry.get('pub:queue')
         if self._queue_publisher is None:
             raise Exception('no queue publisher available.')
+        self._eyeballs = _component_registry.get('eyeballs')
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -184,6 +185,8 @@ class Idle(Behaviour, Publisher):
                             self._log.debug('key-publishing message:' + Fore.WHITE + ' {}; event: {}'.format(_message.name, _message.event.name))
                             await Publisher.publish(self, _message)
                             self._log.debug('key-published message:' + Fore.WHITE + ' {}; event: {}'.format(_message.name, _message.event.name))
+                            if self._eyeballs:
+                                self._eyeballs.sleepy()
                             Player.play(Sound.SIGH)
 
                     elif self._is_idle:
@@ -235,6 +238,8 @@ class Idle(Behaviour, Publisher):
                 self._log.info(Fore.YELLOW + '🔶 activity after {:4.2f} seconds of being idle.'.format(self.elapsed_seconds))
                 _message = self._message_factory.create_message(Event.IDLE, True)
                 self._queue_publisher.put(_message)
+                if self._eyeballs:
+                    self._eyeballs.happy()
                 Player.play(Sound.GLITCH)
 
         await Subscriber.process_message(self, message)
@@ -269,6 +274,8 @@ class Idle(Behaviour, Publisher):
         '''
         Disable this publisher.
         '''
+        if self._eyeballs:
+            self._eyeballs.clear()
         Behaviour.disable(self)
         Publisher.disable(self)
         self._log.info('disabled idle publisher.')
