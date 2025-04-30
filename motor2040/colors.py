@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-14
-# modified: 2025-04-21
+# modified: 2025-04-30
 #
 # color constants ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -20,12 +20,12 @@ COLOR_CYAN         = (  0, 255, 255)
 COLOR_MAGENTA      = (255,   0, 255)
 COLOR_YELLOW       = (250, 150,   0)
 
-COLOR_YELLOW_GREEN = ( 64, 255,   0)
-COLOR_DARK_RED     = ( 28,   0,   0)
-COLOR_DARK_GREEN   = (  0,  28,   0)
-COLOR_DARK_BLUE    = (  0,   0,  28)
-COLOR_DARK_CYAN    = (  0,  28,  28)
-COLOR_DARK_GREY    = ( 28,  28,  28)
+COLOR_YELLOW_GREEN = ( 96, 255,   0)
+COLOR_DARK_RED     = ( 32,   0,   0)
+COLOR_DARK_GREEN   = (  0,  32,   0)
+COLOR_DARK_BLUE    = (  0,   0,  32)
+COLOR_DARK_CYAN    = (  0,  32,  32)
+COLOR_DARK_GREY    = ( 32,  32,  32)
 COLOR_ORANGE       = (220,  96,   0)
 COLOR_INDIGO       = (  0,  75, 130)
 COLOR_VIOLET       = ( 138, 43, 226)
