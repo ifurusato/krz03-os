@@ -107,7 +107,6 @@ class Controller(object):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def process_payload(self, payload):
-        print("💮 process_payload: '{}'".format(payload))
         if self.is_running:
             self._log.error("Error: function is already running, ignoring subsequent call.")
             return False
@@ -116,7 +115,7 @@ class Controller(object):
         try:
             show_color(COLOR_YELLOW)
             _command, _speed, _stbd_speed, _duration = payload.values
-            self._log.info("🐠 payload: cmd: '{}'; port: {}; stbd: {}; duration: {}".format(_command, _speed, _stbd_speed, _duration))
+            self._log.info("payload: cmd: '{}'; port: {}; stbd: {}; duration: {}".format(_command, _speed, _stbd_speed, _duration))
             if _command.startswith('enab'):
                 self._motor_ctrl.enable()
             elif _command.startswith('disa'):
@@ -204,20 +203,9 @@ class Controller(object):
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_START:
                     self._log.debug('I2C_START')
-                    print("💮 START.")
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_RECEIVE:
 
-#                   # read all data bytes until RX FIFO is empty
-#                   while self.s_i2c.Available():
-#                       _data_rx = self.s_i2c.Read_Data_Received()
-#                       self.currentTransaction.append_data_byte(_data_rx)
-#                       print("data_rx: '{}'; char: '{}'; length: {}; as string: '{}'".format(
-#                           _data_rx,
-#                           chr(_data_rx),
-#                           self.currentTransaction.data_length(),
-#                           self.currentTransaction.data_as_string()
-#                       ))
                     rx_step         = 0
                     rx_count        = 0
                     expected_length = 0
@@ -227,75 +215,52 @@ class Controller(object):
 
                         if rx_step == 0:
                             if byte == 0x01:
+                                # start marker detected
                                 rx_step = 1
                                 rx_count = 0
-                                print("Start marker detected.")
                             else:
-                                print(f"Ignoring unexpected byte: {byte}")
+                                self._log.debug("ignoring unexpected byte: '{}'".format(byte))
 
                         elif rx_step == 1:
                             expected_length = byte
-                            print(f"Payload length: {expected_length}")
                             rx_step = 2
                             self.currentTransaction.reset()  # Safe to call now, after marker and length
 
                         elif rx_step == 2:
                             self.currentTransaction.append_data_byte(byte)
                             rx_count += 1
-                            print("data_rx: '{}'; char: '{}'; length: {}; as string: '{}'".format(
-                                byte,
-                                chr(byte) if 32 <= byte <= 126 else '.',
-                                self.currentTransaction.data_length(),
-                                self.currentTransaction.data_as_string()
-                            ))
                             if rx_count >= expected_length:
                                 rx_step = 3  # expect end marker next
 
                         elif rx_step == 3:
                             if byte == 0x01:
-                                print("End marker detected. Message complete.")
+                                # end marker detected, message complete
                                 try:
                                     payload = Payload.from_bytes(self.currentTransaction.data_as_bytes())
-                                    print("Parsed payload:", payload.to_string())
                                 except Exception as e:
-                                    print("Error parsing payload:", e)
+                                    self._log.error("error parsing payload: {}".format(e))
                             else:
-                                print(f"Invalid end marker: {byte}")
-                            # Exit or flag completion — this assumes the outer state machine will handle state transition
-                            break  # stop reading once message is processed
+                                self._log.error("invalid end marker: {}".format(byte))
+                            break # stop reading once message is processed
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_REQUEST:
                     response = OKAY
                     self._log.debug('sending response: 0x{:02X}…'.format(response))
                     while (self.s_i2c.is_Master_Req_Read()):
-                        print("💮 REQUEST:: response: '{}'".format(response))
                         self.s_i2c.Slave_Write_Data(response)
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_FINISH:
 
-                    print("💮 a. FINISH.")
-                    self._log.info("register address: {}".format(self.currentTransaction.address))
-                    print("💮 b. FINISH.")
-                    self._log.info("register received: '{}'".format(self.currentTransaction.data_as_string()))
-                    print("💮 c. FINISH.")
-                    self._log.info("register length: {} chars.".format(self.currentTransaction.data_length()))
-                    print("💮 d. FINISH.")
-
-#                   self._log.info("register address: {}; received: '{}'; length: {} chars.".format(
-#                           self.currentTransaction.address,
-#                           self.currentTransaction.data_as_string(),
-#                           self.currentTransaction.data_length()))
-
+                    #self._log.debug("register address: {}".format(self.currentTransaction.address))
+                    #self._log.debug("register received: '{}'".format(self.currentTransaction.data_as_string()))
+                    #self._log.debug("register length: {} chars.".format(self.currentTransaction.data_length()))
                     if self.currentTransaction.data_length() == Payload.PACKET_LENGTH:
-                        print("💮 e. FINISH: payload '{}'".format(self.currentTransaction.data_as_string()))
                         _payload = Payload.from_bytes(self.currentTransaction.data_as_bytes())
                         self.process_payload(_payload)
                     else:
-                        print("💮 f. FINISH ERROR: package failed with length: {:d} chars (expected 12).".format(self.currentTransaction.data_length()))
                         raise I2CSlaveError(PAYLOAD_TOO_LARGE,
                                 "package failed with length: {:d} chars (expected 12).".format(self.currentTransaction.data_length()))
-                    print("💮 g. FINISH.")
-                    self._log.info('finished.')
+                    self._log.debug('finished.')
                     self.reset_transaction()
 
             except KeyboardInterrupt:

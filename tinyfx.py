@@ -52,6 +52,9 @@ def main():
         elif setting.startswith('ram'):
             _tinyfx.ram()
 
+        elif setting.startswith('sounds'):
+            _tinyfx.sounds()
+
         elif setting.startswith('flash'):
             _tinyfx.flash()
 

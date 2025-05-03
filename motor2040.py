@@ -69,8 +69,6 @@ def main():
 
     try:
 
-        time.sleep(8)
-
         # parse the arguments
         _args = parse_args()
 
@@ -98,6 +96,8 @@ def main():
 
         # Convert response byte to status enum or meaning
         _response = Response.from_value(_read_data)
+
+        print("response: '{}'".format(_response))
 
         if _response.value <= Response.OKAY.value:
             print("response: {}".format(_response.name))

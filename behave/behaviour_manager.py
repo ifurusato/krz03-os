@@ -129,7 +129,7 @@ class BehaviourManager(Subscriber):
         '''
         Disable all registered behaviours.
         '''
-        self._log.info('disable all behaviours…')
+        self._log.info('💙 disable all behaviours…')
         for _key, _behaviour in self._behaviours.items():
             _behaviour.disable()
             self._log.info('{} behaviour disabled.'.format(_behaviour.name))
@@ -348,7 +348,7 @@ class BehaviourManager(Subscriber):
         '''
         Disable the behaviour manager and all behaviours.
         '''
-        self._log.debug('disabling behaviour manager and all behaviours…')
+        self._log.info('💙 disabling behaviour manager and all behaviours…')
         self.suppress_all_behaviours()
         self.disable_all_behaviours()
         Subscriber.disable(self)
