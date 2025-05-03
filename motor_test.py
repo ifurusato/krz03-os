@@ -9,21 +9,18 @@
 # created:  2024-08-13
 # modified: 2025-05-03
 #
-# A script that sends the command line argument as a packet to an I2C slave.
-#
-# see smbus2
-# https://smbus2.readthedocs.io/en/latest/#smbus2.SMBus.write_block_data
-#
 
-import time
 import argparse
 import sys, traceback
-from smbus import SMBus
-from enum import Enum
+from colorama import init, Fore, Style
+init()
 
-from hardware.payload import Payload 
+from core.logger import Logger, Level
+from core.config_loader import ConfigLoader
+
+from hardware.motor_controller import MotorController
+from motor2040.payload import Payload
 from hardware.response import Response
-
 
 HELP = '''
 motor2040 commands:
@@ -46,13 +43,6 @@ motor2040 commands:
 where SPEED (0.0 - 1.0) and DURATION (seconds) are real numbers, e.g., "all_0.6_4.2"
 '''
 
-# constants ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
-I2C_SLAVE_ADDRESS = 0x44
-CONFIG_REGISTER   = 1
-
-# main ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
 def parse_args():
     # create the argument parser
     parser = argparse.ArgumentParser(description="Process command and optional speeds/duration.")
@@ -67,42 +57,27 @@ def parse_args():
 
 def main():
 
+    _motor_ctrl = None
+    _log = Logger('main', Level.INFO)
+
     try:
 
         # parse the arguments
         _args = parse_args()
 
-        # create the Payload object using the parsed arguments
-        _payload = Payload(
-            command  = _args.command,
-            port     = _args.port,
-            stbd     = _args.stbd,
-            duration = _args.duration
-        )
-        print("payload: {}".format(_payload.to_string()))
+        _log.info('motor controller begin…')
+        _config = ConfigLoader(Level.INFO).configure()
 
+        _motor_ctrl = MotorController(_config, Level.INFO)
 
-        # send over I2C
-        _i2cbus = SMBus(1)
+        _payload = _motor_ctrl.get_payload(_args.command, _args.port, _args.stbd, _args.duration)
 
-        print("writing payload: '{}'…".format(_payload.to_string()))
-
-        _i2cbus.write_block_data(I2C_SLAVE_ADDRESS, CONFIG_REGISTER, list(_payload.to_bytes()))
-     
-        print('payload written.')
-
-        # Read 1-byte response
-        _read_data = _i2cbus.read_byte_data(I2C_SLAVE_ADDRESS, CONFIG_REGISTER)
-
-        # Convert response byte to status enum or meaning
-        _response = Response.from_value(_read_data)
-
-        print("response: '{}'".format(_response))
+        _response = _motor_ctrl.send_payload(_payload)
 
         if _response.value <= Response.OKAY.value:
-            print("response: {}".format(_response.name))
+            _log.info("response: {}".format(_response.name))
         else:
-            print("ERROR response: {}".format(_response.name))
+            _log.error("error response: {}".format(_response.name))
 
     except ValueError as e:
         # Handle any validation errors
@@ -113,6 +88,8 @@ def main():
         print('ERROR: {} encountered: {}\n{}'.format(type(e), e, traceback.format_exc()))
     finally:
         print('complete.')
+        if _motor_ctrl:
+            _motor_ctrl.close()
 
 if __name__ == "__main__":
     main()

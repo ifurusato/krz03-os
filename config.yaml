@@ -173,6 +173,9 @@ krzos:
             enabled:                       True            # GPIO or IO Expander pin used
         player:                                            # Tiny FX sound player
             verbose:                       True            # verbose messaging
+        motor_controller:
+            i2c_address:                   0x44            # I2C address of the Motor 2040
+            config_register:                  1            # register on the RP2040
         distance_sensor:
             pin_port:                        24            # the port input pin
             pin_cntr:                        25            # the center input pin
