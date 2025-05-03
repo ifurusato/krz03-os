@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-14
-# modified: 2025-04-30
+# modified: 2025-05-03
 #
 # control for Motor 2040
 
@@ -22,8 +22,8 @@ from motor import motor2040
 
 from colors import*
 from colorama import Fore, Style
-from stringbuilder import StringBuilder
 from core.logger import Level, Logger
+from payload import Payload
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -60,6 +60,7 @@ UNKNOWN_ERROR     = 0x80
 VERBOSE           = False
 DEFAULT_SPEED     = 0.5 # if speed is not specified on motor commands
 ERROR_LIMIT       = 10  # max errors before exiting main loop
+MAX_PAYLOAD_LENGTH = 12  # fixed-size payload with CRC
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Controller(object):
@@ -67,15 +68,15 @@ class Controller(object):
         super().__init__()
         self._log = Logger('ctrl', level)
         # initialize an empty buffer list for sequential write sequences
-        data_buf = []
-        addr     = 0x00
+        self.data_buf = []
+        self.addr     = 0x00
         # create motor controller
         self._motor_ctrl = MotorController()
         # established I2C slave on ID=0; SDA=20; SCL=21 at 0x44
         self._log.info("I2C slave starting…")
         self.s_i2c = RP2040_Slave(ID,sda=SDA,scl=SCL,slaveAddress=ADDRESS)
         self.state = self.s_i2c.I2CStateMachine.I2C_START
-        self.currentTransaction = self.s_i2c.I2CTransaction(addr, data_buf)
+        self.currentTransaction = self.s_i2c.I2CTransaction(self.addr, self.data_buf)
         self._log.info(Fore.WHITE + "main loop starting…")
         show_color(COLOR_GREEN)
         self.is_running = False
@@ -83,27 +84,30 @@ class Controller(object):
         self.errors     = 0
         self._log.info('ready.')
 
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def process_buffer(self, buffer):
-        '''
-        Processes the payload to determine the command, and optional speed and
-        duration, creating a new Thread to handle the request.
-        '''
-        try:
-            _string = buffer.to_string()
-            if _string == 'exit':
-                self.enabled = False
-            else:
-                thread_id = _thread.start_new_thread(self.process_payload, (_string,))
-        except RuntimeError as rte:
-            self._log.error("runtime error: '{}'…".format(rte))
-            raise I2CSlaveError(RUNTIME_ERROR, "runtime error processing payload: {}".format(rte))
-        except Exception as e:
-            self._log.error("unknown error: '{}'…".format(e))
-            raise I2CSlaveError(UNKNOWN_ERROR, "unknown error processing payload: {}".format(e))
+#   # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+#   def process_buffer(self, buffer):
+#       '''
+#       Processes the payload to determine the command, and optional speed and
+#       duration, creating a new Thread to handle the request.
+#       '''
+#       try:
+#           _string = buffer.to_string()
+#           if _command == 'help':
+#               self._motor_ctrl.help()
+#           elif _string == 'exit':
+#               self.enabled = False
+#           else:
+#               thread_id = _thread.start_new_thread(self.process_payload, (_string,))
+#       except RuntimeError as rte:
+#           self._log.error("runtime error: '{}'…".format(rte))
+#           raise I2CSlaveError(RUNTIME_ERROR, "runtime error processing payload: {}".format(rte))
+#       except Exception as e:
+#           self._log.error("unknown error: '{}'…".format(e))
+#           raise I2CSlaveError(UNKNOWN_ERROR, "unknown error processing payload: {}".format(e))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def process_payload(self, payload):
+        print("💮 process_payload: '{}'".format(payload))
         if self.is_running:
             self._log.error("Error: function is already running, ignoring subsequent call.")
             return False
@@ -111,32 +115,33 @@ class Controller(object):
         self.is_running = True
         try:
             show_color(COLOR_YELLOW)
-            _command, _speed, _duration = self.parse_payload(payload)
-            if _command == 'help':
-                self._motor_ctrl.help()
-            elif _command.startswith('ena'):
+            _command, _speed, _stbd_speed, _duration = payload.values
+            self._log.info("🐠 payload: cmd: '{}'; port: {}; stbd: {}; duration: {}".format(_command, _speed, _stbd_speed, _duration))
+            if _command.startswith('enab'):
                 self._motor_ctrl.enable()
-            elif _command.startswith('dis'):
+            elif _command.startswith('disa'):
                 self._motor_ctrl.disable()
-            elif _command == 'stop':
+            elif _command.startswith('stop'):
                 self._motor_ctrl.stop()
-            elif _command == 'coast':
+            elif _command.startswith('coas'):
                 self._motor_ctrl.coast()
-            elif _command == 'brake':
+            elif _command.startswith('brak'):
                 self._motor_ctrl.brake()
             elif _command.startswith('slow'):
                 self._motor_ctrl.slow_decay()
             elif _command.startswith('fast'):
                 self._motor_ctrl.fast_decay()
-            elif _command.startswith('acc'):
+            elif _command.startswith('acce'):
                 self._motor_ctrl.accelerate(_speed)
-            elif _command.startswith('dec'):
+            elif _command.startswith('dece'):
                 self._motor_ctrl.decelerate(0.0)
-            elif _command == 'all':
-                self._motor_ctrl.all(_speed, _duration)
-            elif _command == 'crab':
+            elif _command.startswith('forw'):
+                self._motor_ctrl.forward(_speed, _stbd_speed, _duration)
+            elif _command.startswith('reve'):
+                self._motor_ctrl.reverse(_speed, _stbd_speed, _duration)
+            elif _command.startswith('crab'):
                 self._motor_ctrl.crab(_speed, _duration)
-            elif _command.startswith('rot'):
+            elif _command.startswith('rota'):
                 self._motor_ctrl.rotate(_speed, _duration)
             elif _command == 'pfwd':
                 self._motor_ctrl.pfwd(_speed, _duration)
@@ -152,24 +157,44 @@ class Controller(object):
             show_color(COLOR_GREEN)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def parse_payload(self, payload):
+    def parse_payload(payload):
         '''
-        Parses the '_' delimited payload, returning a tuple of
-        command, speed and duration; the last two are optional.
+        Parses the '_' and 'd' delimited payload, returning a tuple
+        of command, port speed, starboard speed, and duration; all
+        but the command are optional.
         '''
-        _split = payload.split("_")
-        _command = None
-        _speed = None
-        _duration = None
-        if len(_split) >= 1:
-             _command = _split[0]
-        if len(_split) >= 2:
-             _speed = float(_split[1])
+        # extract optional duration
+        if 'd' in payload:
+            main_part, duration_str = payload.split('d', 1)
+            try:
+                _duration = float(duration_str)
+            except ValueError:
+                raise ValueError("invalid duration value: '{}'".format(duration_str))
         else:
-             _speed = DEFAULT_SPEED
-        if len(_split) >= 3:
-             _duration = float(_split[2])
-        return _command, _speed, _duration
+            main_part = payload
+            _duration = None
+        # extract parts from remaining string
+        parts = main_part.split('_')
+        if not parts:
+            raise ValueError("input string is empty or malformed.")
+        cmd = parts[0]
+        # try to extract port speed, default if missing or invalid
+        if len(parts) >= 2:
+            try:
+                _port = float(parts[1])
+            except ValueError:
+                raise ValueError(f"invalid port value: '{parts[1]}'")
+        else:
+            _port = DEFAULT_SPEED
+        # try to extract STBD, fallback to PORT
+        if len(parts) >= 3:
+            try:
+                _stbd = float(parts[2])
+            except ValueError:
+                raise ValueError(f"invalid starboard value: '{parts[2]}'")
+        else:
+            _stbd = _port
+        return cmd, _port, _stbd, _duration
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def start(self):
@@ -179,67 +204,104 @@ class Controller(object):
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_START:
                     self._log.debug('I2C_START')
+                    print("💮 START.")
+
                 if self.state == self.s_i2c.I2CStateMachine.I2C_RECEIVE:
-                    if self.currentTransaction.address == 0x00:
-                        # first byte received is the register address
-                        self.currentTransaction.address = self.s_i2c.Read_Data_Received()
 
-                    _index = 0
-                    _expected_length = 0
-                    _validated = False
-                    _buffer = StringBuilder()
+#                   # read all data bytes until RX FIFO is empty
+#                   while self.s_i2c.Available():
+#                       _data_rx = self.s_i2c.Read_Data_Received()
+#                       self.currentTransaction.append_data_byte(_data_rx)
+#                       print("data_rx: '{}'; char: '{}'; length: {}; as string: '{}'".format(
+#                           _data_rx,
+#                           chr(_data_rx),
+#                           self.currentTransaction.data_length(),
+#                           self.currentTransaction.data_as_string()
+#                       ))
+                    rx_step         = 0
+                    rx_count        = 0
+                    expected_length = 0
 
-                    # read all data byte received until RX FIFO is empty
-                    while (self.s_i2c.Available()):
+                    while self.s_i2c.Available():
+                        byte = self.s_i2c.Read_Data_Received()
 
-                        _data_rx = self.s_i2c.Read_Data_Received()
-                        _int  = int(_data_rx)
-                        _char = chr(_data_rx)
-
-                        if _data_rx == 0x00:
-                            self._log.debug('[{}] 0x00 start bit.'.format(_index))
-                        elif _data_rx == 0x01:
-                            self._log.debug('[{}] 0x01 validated.'.format(_index))
-                            _validated = True
-                        elif _data_rx == 0xFF:
-                            self._log.debug('[{}] 0xFF end of record.'.format(_index))
-                        else:
-                            if _index == 0:
-                                _expected_length = int(_data_rx)
-                                self._log.debug("[{}] data: '{}'; set expected length to {} chars.".format(_index, _data_rx, _expected_length))
+                        if rx_step == 0:
+                            if byte == 0x01:
+                                rx_step = 1
+                                rx_count = 0
+                                print("Start marker detected.")
                             else:
-                                self._log.debug("[{}] data: '{}'; append character: '{}'".format(_index, _data_rx, _char))
-                                _buffer.append(_char)
-                                self.currentTransaction.data_byte.append(_data_rx)
-                        _index += 1
-                        # end while loop ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                                print(f"Ignoring unexpected byte: {byte}")
 
-                    if _validated:
-                        if _buffer.length() > 0:
-                            if _expected_length == _buffer.length():
-                                self.process_buffer(_buffer)
+                        elif rx_step == 1:
+                            expected_length = byte
+                            print(f"Payload length: {expected_length}")
+                            rx_step = 2
+                            self.currentTransaction.reset()  # Safe to call now, after marker and length
+
+                        elif rx_step == 2:
+                            self.currentTransaction.append_data_byte(byte)
+                            rx_count += 1
+                            print("data_rx: '{}'; char: '{}'; length: {}; as string: '{}'".format(
+                                byte,
+                                chr(byte) if 32 <= byte <= 126 else '.',
+                                self.currentTransaction.data_length(),
+                                self.currentTransaction.data_as_string()
+                            ))
+                            if rx_count >= expected_length:
+                                rx_step = 3  # expect end marker next
+
+                        elif rx_step == 3:
+                            if byte == 0x01:
+                                print("End marker detected. Message complete.")
+                                try:
+                                    payload = Payload.from_bytes(self.currentTransaction.data_as_bytes())
+                                    print("Parsed payload:", payload.to_string())
+                                except Exception as e:
+                                    print("Error parsing payload:", e)
                             else:
-                                raise I2CSlaveError(PAYLOAD_TOO_LARGE,
-                                        "package failed with expected length: {:d}; actual length: {:d}.".format(_expected_length, _buffer.length()))
-                        else:
-                            raise I2CSlaveError(EMPTY_PAYLOAD, 'empty payload.')
-
-                    else:
-                        raise I2CSlaveError(UNVALIDATED, "unvalidated buffer: '{}'".format(_buffer.to_string()))
+                                print(f"Invalid end marker: {byte}")
+                            # Exit or flag completion — this assumes the outer state machine will handle state transition
+                            break  # stop reading once message is processed
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_REQUEST:
                     response = OKAY
                     self._log.debug('sending response: 0x{:02X}…'.format(response))
                     while (self.s_i2c.is_Master_Req_Read()):
+                        print("💮 REQUEST:: response: '{}'".format(response))
                         self.s_i2c.Slave_Write_Data(response)
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_FINISH:
-                    self._log.debug('register: {}; received: {}'.format(self.currentTransaction.address, self.currentTransaction.data_byte))
+
+                    print("💮 a. FINISH.")
+                    self._log.info("register address: {}".format(self.currentTransaction.address))
+                    print("💮 b. FINISH.")
+                    self._log.info("register received: '{}'".format(self.currentTransaction.data_as_string()))
+                    print("💮 c. FINISH.")
+                    self._log.info("register length: {} chars.".format(self.currentTransaction.data_length()))
+                    print("💮 d. FINISH.")
+
+#                   self._log.info("register address: {}; received: '{}'; length: {} chars.".format(
+#                           self.currentTransaction.address,
+#                           self.currentTransaction.data_as_string(),
+#                           self.currentTransaction.data_length()))
+
+                    if self.currentTransaction.data_length() == Payload.PACKET_LENGTH:
+                        print("💮 e. FINISH: payload '{}'".format(self.currentTransaction.data_as_string()))
+                        _payload = Payload.from_bytes(self.currentTransaction.data_as_bytes())
+                        self.process_payload(_payload)
+                    else:
+                        print("💮 f. FINISH ERROR: package failed with length: {:d} chars (expected 12).".format(self.currentTransaction.data_length()))
+                        raise I2CSlaveError(PAYLOAD_TOO_LARGE,
+                                "package failed with length: {:d} chars (expected 12).".format(self.currentTransaction.data_length()))
+                    print("💮 g. FINISH.")
                     self._log.info('finished.')
                     self.reset_transaction()
 
             except KeyboardInterrupt:
                 pass
+            except Exception as e:
+                self._log.error('{} thrown on transaction: {}'.format(type(e), e))
             except I2CSlaveError as se:
                 self._log.error('I2C slave error {} on transaction: {}'.format(se.code, se))
                 self.reset_transaction()
@@ -247,8 +309,7 @@ class Controller(object):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def reset_transaction(self):
-        self.currentTransaction.address = 0x00
-        self.currentTransaction.data_byte = []
+        self.currentTransaction.reset()
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class I2CSlaveError(Exception):

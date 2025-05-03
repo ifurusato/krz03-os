@@ -182,6 +182,24 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
         self._execute_duration(duration)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def forward(self, port_speed=DEFAULT_SPEED, stbd_speed=DEFAULT_SPEED, duration=None):
+        self._log.info('forward: port speed={}; stbd speed: {}; duration={}.'.format(port_speed, stbd_speed, duration))
+        self.set_speed(MotorController.PFWD, port_speed)
+        self.set_speed(MotorController.SFWD, -1.0 * stbd_speed)
+        self.set_speed(MotorController.PAFT, port_speed)
+        self.set_speed(MotorController.SAFT, -1.0 * stbd_speed)
+        self._execute_duration(duration)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def reverse(self, port_speed=DEFAULT_SPEED, stbd_speed=DEFAULT_SPEED, duration=None):
+        self._log.info('reverse: port speed={}; stbd speed: {}; duration={}.'.format(port_speed, stbd_speed, duration))
+        self.set_speed(MotorController.PFWD, -1.0 * port_speed)
+        self.set_speed(MotorController.SFWD, stbd_speed)
+        self.set_speed(MotorController.PAFT, -1.0 * port_speed)
+        self.set_speed(MotorController.SAFT, stbd_speed)
+        self._execute_duration(duration)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def crab(self, speed=DEFAULT_SPEED, duration=None):
         self._log.info('crab: speed={}; duration={}.'.format(speed, duration))
         self.set_speed(MotorController.PFWD, speed)
