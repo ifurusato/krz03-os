@@ -69,6 +69,7 @@ def main():
         _config = ConfigLoader(Level.INFO).configure()
 
         _motor_ctrl = MotorController(_config, Level.INFO)
+        _motor_ctrl.enable()
 
         _payload = _motor_ctrl.get_payload(_args.command, _args.port, _args.stbd, _args.duration)
 

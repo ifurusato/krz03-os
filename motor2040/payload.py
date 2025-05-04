@@ -12,7 +12,7 @@
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
 class Payload:
-    PACKET_LENGTH    = 12  # 11-byte payload + 1-byte CRC
+    PACKET_LENGTH    = 15  # 14-byte payload + 1-byte CRC
     DEFAULT_SPEED    = 0.5
     DEFAULT_DURATION = 0.0
     '''
@@ -25,18 +25,22 @@ class Payload:
 
     -- Packet Format
 
-    Each packet is exactly 12 bytes (96 bits):
+    Each packet is exactly 15 bytes (120 bits):
 
       * Command (4 chars): ASCII string identifying the command (e.g., 'fore', 'stop')
-      * Port speed (2 digits): Encoded from a float in the range 0.0–1.0, as "00"–"99"
-      * Starboard speed (2 digits): Same as port speed
-      * Duration (3 digits): Optional; float 0.0–99.9, encoded as "000"–"999" (tenths of a second)
+      * Port speed (3 digits): Encoded from a float in the range 0.0–1.0, as "000"–"100"
+      * Starboard speed (3 digits): Same as port speed
+      * Duration (4 digits): Optional; float 0.0–999.9, encoded as "0000"–"9999" (tenths of a second)
       * CRC (1 byte): A CRC-8-CCITT checksum for error detection
 
-    All values are encoded into an 11-character ASCII payload, followed by a 1-byte
-    checksum.
+    All values are encoded into a 14-character ASCII payload, followed by a 1-byte
+    checksum. This format ensures the message is compact, human-readable for debugging,
+    and robust against transmission errors.
     '''
     def __init__(self, command, port=None, stbd=None, duration=None):
+        '''
+        Initialize a Payload instance with a command, port and starboard speeds, and an optional duration.
+        '''
         if len(command) != 4:
             raise ValueError("Command must be exactly 4 characters.")
         self._command = command
@@ -46,25 +50,36 @@ class Payload:
 
     @property
     def command(self):
+        '''
+        Return the 4-character command string.
+        '''
         return self._command
 
     @property
     def port(self):
+        '''
+        Return the port motor speed as a float (0.0–1.0).
+        '''
         return self._port
 
     @property
     def stbd(self):
+        '''
+        Return the starboard motor speed as a float (0.0–1.0).
+        '''
         return self._stbd
 
     @property
-    def duration(self):
-        return self._duration
-
-    @property
     def values(self):
+        '''
+        Return all values (command, port, starboard, duration) as a tuple.
+        '''
         return self._command, self._port, self._stbd, self._duration
 
     def _validate_speed(self, value, label):
+        '''
+        Ensure speed is within valid range or assign default.
+        '''
         if value is None:
             value = Payload.DEFAULT_SPEED
         if not (0.0 <= value <= 1.0):
@@ -72,26 +87,33 @@ class Payload:
         return value
 
     def _validate_duration(self, value):
+        '''
+        Ensure duration is within valid range or assign default.
+        '''
         if value is None:
             value = Payload.DEFAULT_DURATION
-        if not (0.0 <= value <= 99.0):
-            raise ValueError(f"Duration must be between 0.0 and 99.0, got {value}")
+        if not (0.0 <= value <= 999.9):
+            raise ValueError(f"Duration must be between 0.0 and 999.9, got {value}")
         return value
 
     def _format_speed(self, speed):
-        if not (0.0 <= speed <= 1.0):
-            raise ValueError("Speed must be between 0.0 and 1.0")
-        return f"{int(round(speed * 100)):02d}"
+        '''
+        Convert float speed to 3-digit ASCII string (e.g., 0.5 → '050').
+        '''
+        return f"{int(round(speed * 100)):03d}"
 
     def _format_duration(self, duration):
-        if duration is None:
-            return "000"
-        if not (0.0 <= duration <= 99.9):
-            raise ValueError("Duration must be between 0.0 and 99.9")
-        return f"{int(round(duration * 10)):03d}"
+        '''
+        Convert float duration to 4-digit ASCII string in tenths of a second.
+        '''
+        return f"{int(round(duration * 10)):04d}"
 
     @staticmethod
     def _crc8_ccitt(data):
+        '''
+        Compute CRC-8-CCITT checksum over the given byte sequence.
+        Polynomial: x^8 + x^2 + x + 1 (0x07)
+        '''
         crc = 0
         for b in data:
             crc ^= b
@@ -104,7 +126,7 @@ class Payload:
 
     def to_bytes(self):
         '''
-        Compose the 12-byte packet (payload + CRC).
+        Encode payload to bytes: 14 ASCII characters + 1 CRC byte = 15 bytes.
         '''
         port_str = self._format_speed(self._port)
         stbd_str = self._format_speed(self._stbd)
@@ -116,12 +138,13 @@ class Payload:
     @classmethod
     def from_bytes(cls, packet_bytes):
         '''
-        Decode a 12-byte packet and return a Payload instance.
+        Decode a 15-byte packet (14 bytes ASCII + 1 CRC) into a Payload instance.
+        Validates CRC and formats fields back to floats.
         '''
         if len(packet_bytes) != cls.PACKET_LENGTH:
-            raise ValueError("Expected 12-byte packet")
-        payload = packet_bytes[:11]
-        received_crc = packet_bytes[11]
+            raise ValueError("Expected 15-byte packet")
+        payload = packet_bytes[:14]
+        received_crc = packet_bytes[14]
         expected_crc = cls._crc8_ccitt(payload)
         if received_crc != expected_crc:
             raise ValueError(f"CRC mismatch: got {received_crc:02X}, expected {expected_crc:02X}")
@@ -130,13 +153,16 @@ class Payload:
         except UnicodeDecodeError:
             raise ValueError("Payload is not valid ASCII.")
         command = payload_str[:4]
-        port = int(payload_str[4:6]) / 100
-        stbd = int(payload_str[6:8]) / 100
-        dur_raw = payload_str[8:11]
-        duration = int(dur_raw) / 10 if dur_raw != "000" else None
+        port = int(payload_str[4:7]) / 100
+        stbd = int(payload_str[7:10]) / 100
+        dur_raw = payload_str[10:14]
+        duration = int(dur_raw) / 10 if dur_raw != "0000" else None
         return cls(command, port, stbd, duration)
 
     def to_string(self) -> str:
+        '''
+        Return a human-readable string representation of the payload.
+        '''
         duration_str = f"{self._duration:.1f}s" if self._duration is not None else "None"
         return (
             f"Command: '{self._command}', "
@@ -146,12 +172,15 @@ class Payload:
         )
 
     def __repr__(self):
+        '''
+        Return a concise string representation for debugging.
+        '''
         return f"Payload(command='{self._command}', port={self._port}, stbd={self._stbd}, duration={self._duration})"
 
-    # Optional: for I2C 4-bit nibble use
     def to_nibbles(self):
         '''
-        Convert 12-byte packet to 24 nibbles (ints 0–15).
+        Convert 15-byte packet to 30 nibbles (4-bit integers).
+        Useful for 4-bit I2C or SPI protocols.
         '''
         pkt = self.to_bytes()
         return [(byte >> 4) & 0xF for byte in pkt] + [byte & 0xF for byte in pkt]
@@ -159,11 +188,11 @@ class Payload:
     @classmethod
     def from_nibbles(cls, nibbles):
         '''
-        Reconstruct packet from 24 nibbles.
+        Reconstruct Payload from 30 nibbles (integers 0–15).
         '''
-        if len(nibbles) != 24:
-            raise ValueError("Expected 24 nibbles (4-bit values)")
-        bytes_out = bytearray((nibbles[i] << 4) | nibbles[i + 12] for i in range(12))
+        if len(nibbles) != 30:
+            raise ValueError("Expected 30 nibbles (4-bit values)")
+        bytes_out = bytearray((nibbles[i] << 4) | nibbles[i + 15] for i in range(15))
         return cls.from_bytes(bytes_out)
 
 #EOF

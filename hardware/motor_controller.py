@@ -22,14 +22,24 @@ from hardware.response import Response
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class MotorController(Component):
-
+    '''
+    A motor controller connected over I2C to a Motor 2040. This class must
+    be explicitly enabled prior to use.
+    '''
     def __init__(self, config, level=Level.INFO):
         self._log = Logger('motor_ctrl', level)
-        Component.__init__(self, self._log, suppressed=False, enabled=True)
+        Component.__init__(self, self._log, suppressed=False, enabled=False)
         _cfg = config['krzos'].get('hardware').get('motor_controller') 
         self._i2c_slave_address = _cfg.get('i2c_address') # 0x44
         self._config_register = _cfg.get('config_register') # 1
+        self._i2cbus = None
+        self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def enable(self):
+        Component.enable(self)
         self._i2cbus = SMBus(1)
+
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
