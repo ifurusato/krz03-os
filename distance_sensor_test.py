@@ -25,24 +25,28 @@ _config = ConfigLoader(Level.INFO).configure()
 
 _message_bus = None # can't use in tests
 
-_cntr_sensor = DistanceSensor(_config, Orientation.CNTR, _message_bus)
-_cntr_sensor.enable()
+_orientation = Orientation.STBD
+_sensor = DistanceSensor(_config, _orientation, _message_bus)
+_sensor.enable()
 
 try:
     print("measuring distances…")
     while True:
-        distance_mm = _cntr_sensor.get_distance()
-        if distance_mm > 0:
-            print("distance: {}mm".format(distance_mm))
+        distance_mm = _sensor.distance
+        if distance_mm:
+            if distance_mm > 0:
+                print("{} distance: {}mm".format(_sensor.name, distance_mm))
+            else:
+                print(Style.DIM + "distance: out of range" + Style.RESET_ALL)
         else:
-            print(Style.DIM + "distance: out of range" + Style.RESET_ALL)
+            print("out of range.")
         time.sleep(0.1)
 #       await asyncio.sleep(0.1)  # Adjust delay as needed
 except KeyboardInterrupt:
-    _cntr_sensor.disable()
+    _sensor.disable()
 except Exception as e:
-    print(e)
+    print('{} raised handling distance sensor: {}'.format(type(e), e))
 finally:
-    _cntr_sensor.stop()
+    _sensor.stop()
     print('complete.')
 

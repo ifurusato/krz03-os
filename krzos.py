@@ -45,9 +45,11 @@ from hardware.system_publisher import SystemPublisher
 
 from core.subscriber import Subscriber, GarbageCollector
 from hardware.system_subscriber import SystemSubscriber
+from hardware.distance_sensors import DistanceSensors
 from hardware.distance_sensors_subscriber import DistanceSensorsSubscriber
 from hardware.sound_subscriber import SoundSubscriber
 
+from hardware.pigpiod_util import PigpiodUtility
 from hardware.system import System
 from hardware.rtof import RangingToF
 from hardware.rgbmatrix import RgbMatrix # used for ICM20948
@@ -58,7 +60,6 @@ from hardware.i2c_scanner import I2CScanner
 from hardware.distance_sensors_publisher import DistanceSensorsPublisher
 from hardware.button import Button
 from hardware.eyeballs import Eyeballs
-
 from hardware.sound import Sound
 from hardware.player import Player
 
@@ -107,9 +108,10 @@ class KRZOS(Component, FiniteStateMachine):
         self._gamepad_publisher           = None
         self._queue_publisher             = None
         self._rtof_publisher              = None
-        self._distance_sensors_publisher  = None
         self._system_publisher            = None
         self._system_subscriber           = None
+        self._distance_sensors            = None
+        self._distance_sensors_publisher  = None
         self._distance_sensors_subscriber = None
         self._sound_subscriber            = None
         self._task_selector               = None
@@ -168,10 +170,6 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.info('argument config-file: {}'.format(arguments.config_file))
         self._log.info('argument level:       {}'.format(arguments.level))
 
-        # confirm external services are running ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
-#       PigUtil.ensure_pigpiod_is_running()
-
         # establish basic subsumption components ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
         self._log.info('configure subsumption components…')
@@ -226,7 +224,8 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_distance_sensors = _cfg.get('enable_distance_sensors')
         if _enable_distance_sensors:
-            self._distance_sensors_publisher = DistanceSensorsPublisher(self._config, self._message_bus, self._message_factory, level=self._level)
+            self._distance_sensors = DistanceSensors(self._config, level=self._level)
+            self._distance_sensors_publisher = DistanceSensorsPublisher(self._config, self._message_bus, self._message_factory, self._distance_sensors, level=self._level)
 
         # optionally used by ICM20948
         self._rgbmatrix = RgbMatrix(enable_port=True, enable_stbd=True, level=self._level)
@@ -251,13 +250,15 @@ class KRZOS(Component, FiniteStateMachine):
             from hardware.tinyfx_controller import TinyFxController
             self._log.info('configure tinyfx controller…')
             self._tinyfx = TinyFxController(self._config)
+            self._tinyfx.enable()
             self._log.info('instantiate sound player…')
             Player.instance(self._tinyfx)
 
         _enable_pushbutton= _cfg.get('enable_pushbutton')
         if _enable_pushbutton:
             self._pushbutton = Button(self._config, 'trig', pin=17, momentary=True) # TODO from config
-            Player.play(Sound.BEEP)
+            if _enable_tinyfx_controller:
+                Player.play(Sound.BEEP)
             self._pushbutton.add_callback(self._await_start)
 
         _enable_killswitch= _cfg.get('enable_killswitch') or 'k' in _pubs
@@ -351,6 +352,8 @@ class KRZOS(Component, FiniteStateMachine):
                 self._tinyfx.channel_on(Orientation.PORT)
                 time.sleep(0.1)
                 self._tinyfx.channel_on(Orientation.STBD)
+
+        PigpiodUtility.ensure_pigpiod_is_running()
 
         # begin main loop ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -447,9 +450,9 @@ class KRZOS(Component, FiniteStateMachine):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_distance_sensors(self):
         '''
-        Returns the DistanceSensorsPublisher, None if not used.
+        Returns the DistanceSensors, None if not used.
         '''
-        return self._distance_sensors_publisher
+        return self._distance_sensors
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_motor_controller(self):
@@ -513,6 +516,7 @@ class KRZOS(Component, FiniteStateMachine):
                 self._task_selector.close()
             if self._queue_publisher:
                 self._queue_publisher.disable()
+            PigpiodUtility.stop_pigpiod()
             Component.disable(self)
             FiniteStateMachine.disable(self)
             self._log.info('disabled.')

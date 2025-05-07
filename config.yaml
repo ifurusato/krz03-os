@@ -22,7 +22,7 @@ krzos:
         enable_imu_publisher:             False            # enable IMU publisher
         enable_pir_publisher:              True            # enable PIR publisher
         enable_remote_ctrl_publisher:     False            # enable Remote Control Publisher
-        enable_rtof_publisher:            False            # enable Ranging ToF publisher
+        enable_rtof_publisher:             True            # enable Ranging ToF publisher
         enable_gamepad_publisher:         False            # enable gamepad support
         enable_killswitch:                 True            # enable toggle kill switch
         enable_pushbutton:                 True            # enable pushbutton
@@ -47,12 +47,11 @@ krzos:
 #       avoid:
 #           min_distance:                20.0              # minimum distance in cm upon which we trigger avoidance behaviour
         roam:
-            min_distance:                25.0              # minimum distance in cm
-            max_distance:                60.0              # maximum distance in cm
             min_velocity:                 0.0              # minimum motor target velocity
             max_velocity:               100.0              # maximum motor target velocity
             cruising_speed:             'SLOW'             # cruising speed (recovery speed)
             cruise_wait_ticks:              3              # how many ticks to wait before cruising again
+            loop_delay_ms:                200              # asyncio loop delay in milliseconds
 #       swerve:
 #           reverse:                     True              # reverse effect of output function
 #           tolerance:                   20.0              # deadband tolerance as percentage
@@ -136,10 +135,10 @@ krzos:
             regulator_5v_threshold:           4.85         # alarm under voltage
             regulator_3v3_threshold:          3.2          # alarm under voltage
             temperature_threshold:           60.0          # alarm over temperature
-        distance_sensors:
-            loop_freq_hz:                    20            # main loop delay in hz
-            sense_threshold:                150            # threshold in millimeters to react to an obstacle
-            bump_threshold:                  70            # threshold in millimeters to consider as a bump
+        distance_sensors:                                  # distance sensors publisher (not hardware)
+            loop_freq_hz:                      20          # main loop delay in hz
+            sense_threshold:                  150          # threshold in millimeters to react to an obstacle
+            bump_threshold:                    70          # threshold in millimeters to consider as a bump
         imu:
             initial_calibration:          False            # if True, calibrate the IMU upon starting
             active_mode:                  False            # uses asyncio loop in active mode
@@ -173,9 +172,10 @@ krzos:
             enabled:                       True            # GPIO or IO Expander pin used
         player:                                            # Tiny FX sound player
             verbose:                       True            # verbose messaging
-        motor_controller:
-            i2c_address:                   0x44            # I2C address of the Motor 2040
-            config_register:                  1            # register on the RP2040
+        distance_sensors:
+            max_distance:                     300          # maximum distance in mm
+            min_distance:                      80          # minimum distance in mm
+            reverse:                        False          # reverse normalisation curve
         distance_sensor:
             pin_port:                        24            # the port input pin
             pin_cntr:                        25            # the center input pin
@@ -210,6 +210,10 @@ krzos:
             include_accel_gyro:            True            # if true, poll heading data
             include_heading:               True            # if true, poll accelerometer and gyroscope data
             play_sound:                    True            # if True, play sound to indicate calibration
+        motor_controller:
+            i2c_address:                   0x44            # I2C address of the Motor 2040
+            bus_number:                       1
+            config_register:                  1            # register on the RP2040
         tinyfx-controller:
             i2c_address:                   0x45
             bus_number:                       1

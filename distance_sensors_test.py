@@ -12,38 +12,51 @@
 
 import asyncio
 import time
+from hardware.distance_sensors import DistanceSensors
 from hardware.distance_sensor import DistanceSensor
 
 from core.logger import Logger, Level
 from core.orientation import Orientation
 from core.config_loader import ConfigLoader
 
+WEIGHTED = True
+
 async def main():
 
     _config = ConfigLoader(Level.INFO).configure()
-    _port_sensor = DistanceSensor(_config, Orientation.PORT)
-    _cntr_sensor = DistanceSensor(_config, Orientation.CNTR)
-    _stbd_sensor = DistanceSensor(_config, Orientation.STBD)
-    _sensors = [ _port_sensor, _cntr_sensor, _stbd_sensor ]
+    _sensors = DistanceSensors(_config)
+
+    _port_sensor = _sensors.get(Orientation.PORT)
+    _cntr_sensor = _sensors.get(Orientation.CNTR)
+    _stbd_sensor = _sensors.get(Orientation.STBD)
 
     # start all sensors
-    for _sensor in _sensors:
-        _sensor.enable()
+    _sensors.enable()
+
+    print("found {} sensors.".format(len(_sensors.sensors)))  # This should print 3 if you have 3 sensors
 
     try:
         print("measuring distances…")
         while True:
-            distances = []
-            for _sensor in _sensors:
-                distance_mm = _sensor.get_distance()
-                if distance_mm > 0:
-                    distances.append("{:>8}mm".format(distance_mm))
-                else:
-                    distances.append("         ·")
+            if WEIGHTED:
 
-            result_line = " | ".join(distances)
-            print(f"\r{' ' * 100}", end="")  # Clear the current line
-            print(f"\r\t{result_line}", end="")  # Print the new result
+                _port, _stbd = _sensors.get_weighted_averages()
+                print("port: {:4.2f};\t stbd: {:4.2f}".format(_port, _stbd))
+
+            else:
+                distances = []
+                for _sensor in _sensors:
+                    distance_mm = _sensor.distance
+                    if distance_mm is None:
+                        distances.append("       eor")
+                    elif distance_mm > 0:
+                        distances.append("{:>8}mm".format(distance_mm))
+                    else:
+                        distances.append("         ·")
+
+                result_line = " | ".join(distances)
+                print(f"\r{' ' * 100}", end="")  # Clear the current line
+                print(f"\r\t{result_line}", end="")  # Print the new result
 
             time.sleep(0.1) # adjust delay as needed
 #           await asyncio.sleep(0.1)

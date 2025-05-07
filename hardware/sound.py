@@ -124,6 +124,15 @@ class Sound(Enum):
                 return s
         raise NotImplementedError
 
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @classmethod
+    def from_name(cls, name: str):
+        name = name.lower()
+        for sound in cls:
+            if sound.value[1].lower() == name:
+                return sound
+        raise ValueError(f"No Sound enum with name '{name}'")
+
     # JSON serialisation ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @staticmethod
     def export():

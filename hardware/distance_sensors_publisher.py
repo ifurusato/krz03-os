@@ -26,7 +26,7 @@ from core.event import Event
 from core.orientation import Orientation
 from core.message_factory import MessageFactory
 from core.publisher import Publisher
-from hardware.distance_sensor import DistanceSensor
+from hardware.distance_sensors import DistanceSensors
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DistanceSensorsPublisher(Publisher):
@@ -38,9 +38,10 @@ class DistanceSensorsPublisher(Publisher):
     :param config:            the application configuration
     :param message_bus:       the asynchronous message bus
     :param message_factory:   the factory for creating messages
+    :param distance_sensors:  the optional DistanceSensors object (will create if not provided)
     :param level:             the log level
     '''
-    def __init__(self, config, message_bus, message_factory, level=Level.INFO):
+    def __init__(self, config, message_bus, message_factory, distance_sensors=None, level=Level.INFO):
         if not isinstance(level, Level):
             raise ValueError('wrong type for log level argument: {}'.format(type(level)))
         self._level = level
@@ -49,16 +50,23 @@ class DistanceSensorsPublisher(Publisher):
         if config is None:
             raise ValueError('no configuration provided.')
         _cfg = config['krzos'].get('publisher').get('distance_sensors')
-        _loop_freq_hz         = _cfg.get('loop_freq_hz')
+        _loop_freq_hz          = _cfg.get('loop_freq_hz')
         self._publish_delay_sec = 1.0 / _loop_freq_hz
-        self._sense_threshold = _cfg.get('sense_threshold')
-        self._bump_threshold  = _cfg.get('bump_threshold')
-        self._exit_on_cancel  = True # FIXME
+        self._sense_threshold  = _cfg.get('sense_threshold')
+        self._bump_threshold   = _cfg.get('bump_threshold')
+        self._exit_on_cancel   = True # FIXME
         # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        self._port_sensor = DistanceSensor(config, Orientation.PORT)
-        self._cntr_sensor = DistanceSensor(config, Orientation.CNTR)
-        self._stbd_sensor = DistanceSensor(config, Orientation.STBD)
-        self._sensors = [ self._port_sensor, self._cntr_sensor, self._stbd_sensor ]
+        self._reverse_curve    = False # reverse normalisation curve
+        self._default_distance = 300   # max sensor range in mm
+        self._min_distance     = 80    # minimum distance for scaling
+        # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+        if distance_sensors:
+            self._sensors = distanceSensors
+        else:
+            self._sensors = DistanceSensors(config)
+        self._port_sensor = self._sensors.get(Orientation.PORT)
+        self._cntr_sensor = self._sensors.get(Orientation.CNTR)
+        self._stbd_sensor = self._sensors.get(Orientation.STBD)
         self._verbose = False
         self._log.info('ready.')
 
@@ -74,6 +82,41 @@ class DistanceSensorsPublisher(Publisher):
                 self._log.info('enabled.')
         else:
             self._log.warning('failed to enable publisher.')
+
+    # weighted averages support ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+    @staticmethod
+    def normalize_distance(dist, min_dist=80, max_dist=300, reverse=False):
+        '''
+        Normalize distance to a value between 0.0 and 1.0 (or reversed),
+        using quadratic easing.
+        
+        - reverse=False: 1.0 at max_dist, 0.0 at min_dist (default behavior)
+        - reverse=True:  0.0 at max_dist, 1.0 at min_dist (flipped)
+        '''
+        dist = max(min(dist, max_dist), min_dist)
+        normalized = (dist - min_dist) / (max_dist - min_dist)
+        value = normalized ** 2  # Quadratic easing
+        return 1.0 - value if reverse else value
+
+    def get_weighted_averages(self):
+        # read current distances or substitute default
+        port = self._port_sensor.distance or self._default_distance
+        cntr = self._cntr_sensor.distance or self._default_distance
+        stbd = self._stbd_sensor.distance or self._default_distance
+        # compute pairwise averages
+        port_avg = (port + cntr) / 2
+        stbd_avg = (stbd + cntr) / 2
+        # normalize
+        port_norm = normalize_distance(port_avg,
+                min_dist=self._min_distance,
+                max_dist=self._default_distance,
+                reverse=self._reverse_curve)
+        stbd_norm = normalize_distance(stbd_avg,
+                min_dist=self._min_distance,
+                max_dist=self._default_distance,
+                reverse=self._reverse_curve)
+        return (port_norm, stbd_norm)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _get_bumper_event(self, orientation):
@@ -104,7 +147,7 @@ class DistanceSensorsPublisher(Publisher):
                 _sensor.enable()
             while f_is_enabled():
                 for _sensor in self._sensors:
-                    _distance_mm = _sensor.get_distance()
+                    _distance_mm = _sensor.distance
                     if _distance_mm is not None:
                         if _distance_mm < self._bump_threshold:
                             if self._verbose:

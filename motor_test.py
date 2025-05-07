@@ -12,6 +12,8 @@
 
 import argparse
 import sys, traceback
+import time
+from datetime import datetime as dt
 from colorama import init, Fore, Style
 init()
 
@@ -22,26 +24,8 @@ from hardware.motor_controller import MotorController
 from motor2040.payload import Payload
 from hardware.response import Response
 
-HELP = '''
-motor2040 commands:
-
-    enable                     enable all motors
-    disable                    disable all motors
-    stop                       stop all motors
-    coast                      coast all motors to stop
-    brake                      brake all motors to stop
-    slow-decay                 mode change
-    fast-decay                 mode change
-    all_SPEED[_DURATION]       set speed of all motors
-    crab_SPEED[_DURATION]      set crab speed
-    rotate_SPEED[_DURATION]    set rotation speed
-    pfwd_SPEED[_DURATION]      set speed of port-forward motor
-    sfwd_SPEED[_DURATION]      set speed of stbd-forward motor
-    paft_SPEED[_DURATION]      set speed of port-aft motor
-    saft_SPEED[_DURATION]      set speed of stbd-aft motor
-
-where SPEED (0.0 - 1.0) and DURATION (seconds) are real numbers, e.g., "all_0.6_4.2"
-'''
+import time
+from datetime import datetime as dt
 
 def parse_args():
     # create the argument parser
@@ -55,15 +39,13 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def main():
 
-    _motor_ctrl = None
     _log = Logger('main', Level.INFO)
+    _motor_ctrl = None
 
     try:
-
-        # parse the arguments
-        _args = parse_args()
 
         _log.info('motor controller begin…')
         _config = ConfigLoader(Level.INFO).configure()
@@ -71,25 +53,32 @@ def main():
         _motor_ctrl = MotorController(_config, Level.INFO)
         _motor_ctrl.enable()
 
-        _payload = _motor_ctrl.get_payload(_args.command, _args.port, _args.stbd, _args.duration)
+        # parse the arguments
+        _args = parse_args()
 
-        _response = _motor_ctrl.send_payload(_payload)
+        start_time = dt.now()
+        payload = _motor_ctrl.get_payload(_args.command, _args.port, _args.stbd, _args.duration)
+        _response = _motor_ctrl.write_payload(payload)
+        elapsed_ms = (dt.now() - start_time).total_seconds() * 1000.0
 
         if _response.value <= Response.OKAY.value:
-            _log.info("response: {}".format(_response.name))
+            _log.info("response: {}; {}ms elapsed.".format(_response.name, elapsed_ms))
         else:
-            _log.error("error response: {}".format(_response.name))
+            _log.error("error response: {}; {}ms elapsed.".format(_response.name, elapsed_ms))
 
+    except KeyboardInterrupt:
+        print("Program interrupted by user (Ctrl+C). Exiting gracefully.")
     except ValueError as e:
-        # Handle any validation errors
-        print("ERROR: parsing command line: {}".format(e))
+        # handle any CLI validation errors
+        _log.error("parsing command line: {}".format(e))
     except TimeoutError as te:
-        print('ERROR: transfer timeout: {}'.format(te))
+        _log.error('transfer timeout: {}'.format(te))
     except Exception as e:
-        print('ERROR: {} encountered: {}\n{}'.format(type(e), e, traceback.format_exc()))
+        _log.error('{} encountered: {}\n{}'.format(type(e), e, traceback.format_exc()))
     finally:
-        print('complete.')
+        _log.info('complete.')
         if _motor_ctrl:
+#           _motor_ctrl.stop()
             _motor_ctrl.close()
 
 if __name__ == "__main__":

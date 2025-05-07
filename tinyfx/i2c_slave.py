@@ -17,6 +17,11 @@ from RP2040_Slave import i2c_slave
 import itertools
 from colors import*
 from stringbuilder import StringBuilder
+from response import (
+    RESPONSE_INIT, RESPONSE_OKAY, RESPONSE_BAD_ADDRESS, RESPONSE_BAD_REQUEST,
+    RESPONSE_OUT_OF_SYNC, RESPONSE_INVALID_CHAR, RESPONSE_SOURCE_TOO_LARGE,
+    RESPONSE_UNVALIDATED, RESPONSE_EMPTY_PAYLOAD, RESPONSE_PAYLOAD_TOO_LARGE
+)
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 class I2CSlave(object):
@@ -50,18 +55,6 @@ class I2CSlave(object):
     I2C_ADDRESS = 0x45
     MAX_CHARS   = 32
 
-    # response codes: (note: extension values <= 0x4F are considered 'okay')
-    INIT              = 0x10
-    OKAY              = 0x4F
-    BAD_ADDRESS       = 0x71
-    OUT_OF_SYNC       = 0x72
-    INVALID_CHAR      = 0x73
-    SOURCE_TOO_LARGE  = 0x74
-    UNVALIDATED       = 0x75
-    EMPTY_PAYLOAD     = 0x76
-    PAYLOAD_TOO_LARGE = 0x77
-    UNKNOWN_ERROR     = 0x78
-
     def __init__(self, i2c_id=I2C_ID, sda=SDA_PIN, scl=SCL_PIN, i2c_address=I2C_ADDRESS, blink=True, callback=None):
         super().__init__()
         self._blink = blink
@@ -73,7 +66,7 @@ class I2CSlave(object):
         # initial conditions
         self._index = 0
         self._payload = ''
-        self._response = self.INIT
+        self._response = RESPONSE_INIT
         self._currentTransaction = self.s_i2c.I2CTransaction(0x00, [])
         self._state = self.s_i2c.I2CStateMachine.I2C_START
         # indicate startup…
@@ -140,18 +133,18 @@ class I2CSlave(object):
                                 _expected_length = _int_value
                                 if _expected_length > self.MAX_CHARS:
                                     self.status('error', COLOR_ORANGE)
-                                    raise I2CSlaveError(self.SOURCE_TOO_LARGE, "WARNING: packet failed with {:d} chars, exceeded maximum length of {:d}.".format(
+                                    raise I2CSlaveError(RESPONSE_SOURCE_TOO_LARGE, "WARNING: packet failed with {:d} chars, exceeded maximum length of {:d}.".format(
                                             _expected_length, self.MAX_CHARS))
                             elif _sb.length() < _expected_length:
                                 if ( _int_value >= 32 ) and ( _int_value < 127 ):
                                     _sb.append(chr(_data_rx))
                                 else:
                                     self.status('error', COLOR_RED)
-                                    raise I2CSlaveError(self.INVALID_CHAR, "invalid character received: '0x{:02X}' (int: '{:d}'); buf length: {:d}; sb: '{}'".format(
+                                    raise I2CSlaveError(RESPONSE_INVALID_CHAR, "invalid character received: '0x{:02X}' (int: '{:d}'); buf length: {:d}; sb: '{}'".format(
                                             _data_rx, _int_value, _sb.length(), _sb.to_string()))
                             else:
                                 self.status('error', COLOR_RED)
-                                raise I2CSlaveError(self.OUT_OF_SYNC, "out of sync: '0x{:02X}' (int: '{:d}'); buf length: {:d}; sb: '{}'".format(
+                                raise I2CSlaveError(RESPONSE_OUT_OF_SYNC, "out of sync: '0x{:02X}' (int: '{:d}'); buf length: {:d}; sb: '{}'".format(
                                         _data_rx, _int_value, _sb.length(), _sb.to_string()))
                         self._index = self._index + 1
                         self._currentTransaction.data_byte.append(_data_rx)
@@ -160,13 +153,13 @@ class I2CSlave(object):
                         if _valid:
                             if _expected_length != _sb.length():
                                 self.status('error', COLOR_RED)
-                                raise I2CSlaveError(self.PAYLOAD_TOO_LARGE, "package failed with expected length: {:d}; actual length: {:d}.".format(
+                                raise I2CSlaveError(RESPONSE_PAYLOAD_TOO_LARGE, "package failed with expected length: {:d}; actual length: {:d}.".format(
                                         _expected_length, _sb.length()))
                             else:
                                 self._payload = self.process_buffer(_sb)
                         else:
                             self.status('error', COLOR_RED)
-                            raise I2CSlaveError(self.UNVALIDATED, "unvalidated buffer: '{}'".format(_sb.to_string()))
+                            raise I2CSlaveError(RESPONSE_UNVALIDATED, "unvalidated buffer: '{}'".format(_sb.to_string()))
 
                     # end of receive loop
                     self.status('rxd', COLOR_YELLOW_GREEN)
@@ -174,10 +167,10 @@ class I2CSlave(object):
                 elif self._state == self.s_i2c.I2CStateMachine.I2C_REQUEST:
                     if len(self._payload) > 0:
                         self.status('okay', COLOR_GREEN)
-                        self._response = self.OKAY
+                        self._response = RESPONSE_OKAY
                     else:
                         self.status('nop', COLOR_RED)
-                        self._response = self.EMPTY_PAYLOAD
+                        self._response = RESPONSE_EMPTY_PAYLOAD
                     # otherwise use existing response
                     while (self.s_i2c.is_Master_Req_Read()):
 #                       self.s_i2c.Slave_Write_Data(self._response)
@@ -239,7 +232,7 @@ class I2CSlave(object):
     def reset(self):
         self._index = 0
         self._payload = ''
-        self._response = self.INIT
+        self._response = RESPONSE_INIT
         self._currentTransaction.reset()
         self._state = self.s_i2c.I2CStateMachine.I2C_START
 

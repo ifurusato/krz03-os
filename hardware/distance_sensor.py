@@ -15,6 +15,8 @@ import asyncio
 from threading import Thread
 from collections import deque
 import pigpio
+from colorama import init, Fore, Style
+init()
 
 import core.globals as globals
 globals.init()
@@ -24,7 +26,7 @@ from core.component import Component
 from core.orientation import Orientation
 from hardware.pigpiod_util import PigpiodUtility
 
-# ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DistanceSensor(Component):
     CLASS_NAME = 'dist'
     '''
@@ -62,8 +64,8 @@ class DistanceSensor(Component):
                 raise Exception('unexpected orientation: {}'.format(orientation.name))
         self._orientation = orientation
         self._task_name = '__{}-distance-sensor-loop'.format(self.orientation.name)
-        self._timeout = _cfg.get('timeout')     # time in seconds to consider sensor as timed out
-        self._smoothing = _cfg.get('smoothing') # enable smoothing of distance readings
+        self._timeout         = _cfg.get('timeout')     # time in seconds to consider sensor as timed out
+        self._smoothing       = _cfg.get('smoothing') # enable smoothing of distance readings
         _smoothing_window     = _cfg.get('smoothing_window')
         self._window = deque(maxlen=_smoothing_window) if self._smoothing else None
         self._loop_interval   = _cfg.get('loop_interval') # interval between distance polling, in seconds
@@ -75,7 +77,12 @@ class DistanceSensor(Component):
         self._pi              = None
         self._callback        = None
         self._use_message_bus = False
-        self._log.info('distance sensor ready on pin {}.'.format(self._pin))
+        if orientation is Orientation.PORT:
+            self._log.info(Fore.RED + '{} distance sensor ready on pin {}.'.format(orientation.label, self._pin))
+        elif orientation is Orientation.CNTR:
+            self._log.info(Fore.BLUE + '{} distance sensor ready on pin {}.'.format(orientation.label, self._pin))
+        elif orientation is Orientation.STBD:
+            self._log.info(Fore.GREEN + '{} distance sensor ready on pin {}.'.format(orientation.label, self._pin))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _ensure_pigpio(self):
@@ -89,6 +96,11 @@ class DistanceSensor(Component):
         self._pi.set_mode(self._pin, pigpio.INPUT)
         self._callback = self._pi.callback(self._pin, pigpio.EITHER_EDGE, self._pulse_callback)
         self._last_read_time = time.time()
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def name(self):
+        return self._orientation.name
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -129,9 +141,10 @@ class DistanceSensor(Component):
         return _distance
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def get_distance(self):
+    @property
+    def distance(self):
         '''
-        Get the latest computed distance.
+        Get the latest computed distance as a property.
         '''
         return self._distance
 

@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-14
-# modified: 2025-04-30
+# modified: 2025-05-06
 #
 # control for TinyFX
 
@@ -32,13 +32,14 @@ from i2c_settable_blink import I2CSettableBlinkFX
 from pir import PassiveInfrared
 from sound_dictionary import _sounds
 
-#from plasma import WS2812
-#from motor_controller import MotorController
-#from motor import motor2040
-
 from colors import*
 from stringbuilder import StringBuilder
 from core.logger import Level, Logger
+from response import (
+    RESPONSE_INIT, RESPONSE_PIR_ACTIVE, RESPONSE_PIR_IDLE, RESPONSE_OKAY,
+    RESPONSE_UNVALIDATED, RESPONSE_EMPTY_PAYLOAD, RESPONSE_PAYLOAD_TOO_LARGE,
+    RESPONSE_BUSY, RESPONSE_RUNTIME_ERROR, RESPONSE_UNKNOWN_ERROR
+)
 
 # init ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -55,23 +56,6 @@ ID                =  0
 SDA               = 16
 SCL               = 17
 ADDRESS           = 0x45
-
-# response codes:
-INIT              = 0x10
-PIR_ACTIVE        = 0x30
-PIR_IDLE          = 0x31
-OKAY              = 0x4F   # all acceptable responses must be less than this
-BAD_ADDRESS       = 0x71
-BAD_REQUEST       = 0x72
-OUT_OF_SYNC       = 0x73
-INVALID_CHAR      = 0x74
-SOURCE_TOO_LARGE  = 0x75
-UNVALIDATED       = 0x76
-EMPTY_PAYLOAD     = 0x77
-PAYLOAD_TOO_LARGE = 0x78
-RUNTIME_ERROR     = 0x79
-UNKNOWN_ERROR     = 0x80
-
 VERBOSE           = False
 ERROR_LIMIT       = 10     # max errors before exiting main loop
 
@@ -192,16 +176,16 @@ class Controller(object):
                             if _expected_length == _buffer.length():
                                 self.process_buffer(_buffer)
                             else:
-                                raise I2CSlaveError(PAYLOAD_TOO_LARGE,
+                                raise I2CSlaveError(RESPONSE_PAYLOAD_TOO_LARGE,
                                         "package failed with expected length: {:d}; actual length: {:d}.".format(_expected_length, _buffer.length()))
                         else:
-                            raise I2CSlaveError(EMPTY_PAYLOAD, 'empty payload.')
+                            raise I2CSlaveError(RESPONSE_EMPTY_PAYLOAD, 'empty payload.')
 
                     else:
-                        raise I2CSlaveError(UNVALIDATED, "unvalidated buffer: '{}'".format(_buffer.to_string()))
+                        raise I2CSlaveError(RESPONSE_UNVALIDATED, "unvalidated buffer: '{}'".format(_buffer.to_string()))
 
                 if self.state == self.s_i2c.I2CStateMachine.I2C_REQUEST:
-                    response = OKAY
+                    response = RESPONSE_OKAY
                     self._log.debug('sending response: 0x{:02X}…'.format(response))
                     while (self.s_i2c.is_Master_Req_Read()):
                         self.s_i2c.Slave_Write_Data(response)
@@ -236,10 +220,10 @@ class Controller(object):
                 thread_id = _thread.start_new_thread(self.process_payload, (_string,))
         except RuntimeError as rte:
             self._log.error("runtime error: '{}'…".format(rte))
-            raise I2CSlaveError(RUNTIME_ERROR, "runtime error processing payload: {}".format(rte))
+            raise I2CSlaveError(RESPONSE_RUNTIME_ERROR, "runtime error processing payload: {}".format(rte))
         except Exception as e:
             self._log.error("unknown error: '{}'…".format(e))
-            raise I2CSlaveError(UNKNOWN_ERROR, "unknown error processing payload: {}".format(e))
+            raise I2CSlaveError(RESPONSE_UNKNOWN_ERROR, "unknown error processing payload: {}".format(e))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def process_payload(self, payload):
@@ -293,12 +277,16 @@ tinyfx commands:
                 gc.collect() 
                 ram_mb = gc.mem_free() / 1024
                 print("free ram: {:.2f}KB".format(ram_mb))
+            elif payload == 'sounds':
+                print('sounds:')
+                for name in self.list_wav_files_without_extension():
+                    print('  {}'.format(name))
             elif payload == 'pir get':
                 if pir_sensor.triggered:
-                    response = PIR_ACTIVE
+                    response = RESPONSE_PIR_ACTIVE
                     show_color(COLOR_ORANGE)
                 else:
-                    response = PIR_IDLE
+                    response = RESPONSE_PIR_IDLE
                     show_color(COLOR_VIOLET)
             elif payload == 'pir on':
                 self.pir_enabled = True
@@ -312,6 +300,16 @@ tinyfx commands:
         finally:
             self.is_running = False
             show_color(COLOR_GREEN)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def list_wav_files_without_extension(self, directory="sounds"):
+        try:
+            files = os.listdir(directory)
+            wav_files = [f[:-4] for f in files if f.endswith('.wav')]
+            return wav_files
+        except OSError as e:
+            print("Error accessing directory:", e)
+            return []
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def parse_payload(self, payload):

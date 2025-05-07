@@ -70,7 +70,6 @@ def eyeballs_test():
         time.sleep(2)
         _eyeballs.clear()
 
-        return
 
         _eyeballs.happy()
         time.sleep(2)
@@ -114,6 +113,7 @@ def eyeballs_test():
     finally:
         if _eyeballs:
             _eyeballs.close()
+        pass
 
 # main ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 

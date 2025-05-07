@@ -47,6 +47,7 @@ class Player(Component):
             _config = ConfigLoader(Level.INFO).configure()
             _cfg = _config['krzos'].get('hardware').get('player')
             if tinyfx is None:
+                print('TinyFX is none, initialising...')
                 cls.__instance._tinyfx_controller = TinyFxController(_config)
             else:
                 cls.__instance._tinyfx_controller = tinyfx

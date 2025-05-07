@@ -10,9 +10,9 @@
 # modified: 2024-11-23
 #
 
+import time
 import sys
 import traceback
-from enum import Enum # for Response at bottom of file
 from smbus2 import SMBus
 from colorama import init, Fore, Style
 init()
@@ -20,6 +20,8 @@ init()
 from core.component import Component
 from core.orientation import Orientation
 from core.logger import Logger, Level
+#from enum import Enum # for Response at bottom of file
+from hardware.response import Response
 
 class TinyFxController(Component):
     '''
@@ -27,14 +29,34 @@ class TinyFxController(Component):
     '''
     def __init__(self, config=None, level=Level.INFO):
         self._log = Logger('tinyfx-ctrl', level)
-        Component.__init__(self, self._log, suppressed=False, enabled=True)
+        Component.__init__(self, self._log, suppressed=False, enabled=False)
         _cfg = config['krzos'].get('hardware').get('tinyfx-controller')
-        _bus_number = _cfg.get('bus_number')
-        self._bus   = SMBus(_bus_number)
         self._i2c_address        = _cfg.get('i2c_address')
+        self._bus_number         = _cfg.get('bus_number')
+        self._i2cbus             = None
         self._config_register    = 1
         self._max_payload_length = 32
         self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def enable(self):
+        '''
+        Enables the TinyFxController if upon pinging the TinyFX there is
+        an OKAY response.
+        '''
+        Component.enable(self)
+        try:
+            self._i2cbus = SMBus(self._bus_number)
+            _response = self.send_data('off')
+            time.sleep(1) # otherwise the RP2040 will end up using both cores
+            if _response is Response.OKAY:
+                self._log.info('enabled; response: ' + Fore.GREEN + '{}'.format(_response.name))
+            else:
+                raise Exception('not enabled; response was not okay: ' + Fore.RED + '{}'.format(_response.name))
+        except Exception as e:
+            self._log.error('{} raised could not connect to tinyfx: {}'.format(type(e), e))
+            # disable if error occurs or TinyFX is unavailable
+            Component.disable(self)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def help(self):
@@ -46,14 +68,15 @@ class TinyFxController(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def play(self, key):
         '''
-        A convenience method to play the sound corresponding to the key.
+        A convenience method to play the sound corresponding to the key,
+        returning the Response.
         '''
         if key.startswith('play '):
             self._log.info("> '{}'".format(key))
-            self.send_data(key)
+            return self.send_data(key)
         else:
             self._log.debug("play: '{}'".format(key))
-            self.send_data('play {}'.format(key))
+            return self.send_data('play {}'.format(key))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def channel_on(self, orientation):
@@ -68,77 +91,80 @@ class TinyFxController(Component):
         '''
         match orientation:
             case Orientation.NONE:
-                self.send_data('off')
+                return self.send_data('off')
             case Orientation.ALL:
-                self.send_data('on')
+                return self.send_data('on')
             case Orientation.PORT:
-                self.send_data('port')
+                return self.send_data('port')
             case Orientation.STBD:
-                self.send_data('stbd')
+                return self.send_data('stbd')
             case Orientation.MAST:
-                self.send_data('mast')
+                return self.send_data('mast')
             case Orientation.PIR:
-                self.send_data('pir get')
+                return self.send_data('pir get')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def on(self):
         '''
-        A shortcut that turns on all channels.
+        A shortcut that turns on all channels, returning the Response.
         '''
-        self.channel_on(Orientation.ALL)
-        self._log.info('lights on.')
+        self._log.info('lights on…')
+        return self.channel_on(Orientation.ALL)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def off(self):
         '''
-        A shortcut that turns off all channels.
+        A shortcut that turns off all channels, returning the Response.
         '''
-        self.channel_on(Orientation.NONE)
-        self._log.info('lights off.')
+        self._log.info('lights off…')
+        return self.channel_on(Orientation.NONE)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def pir(self, enabled):
         '''
-        Enables or disables the PIR sensor.
+        Enables or disables the PIR sensor, returning the Response.
         '''
         if enabled:
-            self.send_data('pir on')
+            return self.send_data('pir on')
         else:
-            self.send_data('pir off')
+            return self.send_data('pir off')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def ram(self):
         '''
-        Displays free RAM on the console.
+        Displays free RAM on the console, returning the Response.
         '''
-        self.send_data('ram')
+        return self.send_data('ram')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def sounds(self):
         '''
-        Displays the list of sounds.
+        Displays the list of sounds, returning the Response.
         '''
-        self.send_data('sounds')
+        return self.send_data('sounds')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def flash(self):
         '''
-        Displays flash memory info on the console.
+        Displays flash memory info on the console, returning the Response.
         '''
-        self.send_data('flash')
+        return self.send_data('flash')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def exit(self):
         '''
-        Exits the main loop on the TinyFX.
+        Exits the main loop on the TinyFX, returning the Response.
+        This will disable the I2C bus so don't do it.
         '''
-        self.send_data('exit')
+        return self.send_data('exit')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def send_data(self, data):
         '''
-        Send a string of data over I2C.
+        Send a string of data over I2C, returning the Response.
         '''
+        if not self.enabled:
+            raise Exception('not enabled.')
         try:
             payload = self._convert_to_payload(data)
             self._log.info("send payload '{}' as data: '{}'".format(payload, data))
@@ -147,8 +173,10 @@ class TinyFxController(Component):
             return self._read_response()
         except TimeoutError as te:
             self._log.error("transfer timeout: {}".format(te))
+            return Response.RUNTIME_ERROR
         except Exception as e:
             self._log.error('{} thrown sending data to tiny fx: {}\n{}'.format(type(e), e, traceback.format_exc()))
+        return Response.UNKNOWN_ERROR
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _convert_to_payload(self, data):
@@ -165,7 +193,7 @@ class TinyFxController(Component):
         '''
         Write the payload to the I2C bus.
         '''
-        self._bus.write_block_data(self._i2c_address, self._config_register, payload)
+        self._i2cbus.write_block_data(self._i2c_address, self._config_register, payload)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _write_completion_code(self):
@@ -173,7 +201,7 @@ class TinyFxController(Component):
         Write a completion code to the I2C bus.
         '''
         self._log.info("writing completion code...")
-        self._bus.write_byte_data(self._i2c_address, self._config_register, 0xFF)
+        self._i2cbus.write_byte_data(self._i2c_address, self._config_register, 0xFF)
         self._log.debug("write complete.")
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -181,7 +209,7 @@ class TinyFxController(Component):
         '''
         Read the response from the I2C device.
         '''
-        read_data = self._bus.read_byte_data(self._i2c_address, self._config_register)
+        read_data = self._i2cbus.read_byte_data(self._i2c_address, self._config_register)
         response = Response.from_value(read_data)
         self._log.info("read data: '{}' as response: {}".format(read_data, response))
         if response.value <= Response.OKAY.value:
@@ -195,13 +223,12 @@ class TinyFxController(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
         self.send_data('off')
-        self._bus.close()
+        self._i2cbus.close()
         self._log.info('closed.')
 
     # direct commands ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-
-
+_old="""
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Response(Enum):
     # this variable must include all entries, whitespace-delimited
@@ -267,5 +294,6 @@ class Response(Enum):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def __str__(self):
         return 'Response.{}; value={:4.2f}'.format(self.name, self._value )
+"""
 
 #EOF

@@ -1,70 +1,38 @@
-#}!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
+#!/micropython
+# -*- coding: utf-8 -*-     
+#               
 # Copyright 2020-2025 by Murray Altheim. All rights reserved. This file is part
 # of the Robot Operating System project, released under the MIT License. Please
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
-# created:  2021-08-17
-# modified: 2025-04-26
+# created:  2025-05-06  
+# modified: 2025-05-06      
+#    
+# I2C/applicatoin response codes.
 #
+# from response import (
+#     RESPONSE_INIT, RESPONSE_PIR_ACTIVE, RESPONSE_PIR_IDLE, RESPONSE_OKAY,
+#     RESPONSE_BAD_ADDRESS, RESPONSE_BAD_REQUEST, RESPONSE_OUT_OF_SYNC,
+#     RESPONSE_INVALID_CHAR, RESPONSE_SOURCE_TOO_LARGE, RESPONSE_UNVALIDATED,
+#     RESPONSE_EMPTY_PAYLOAD, RESPONSE_PAYLOAD_TOO_LARGE, RESPONSE_BUSY,
+#     RESPONSE_RUNTIME_ERROR, RESPONSE_UNKNOWN_ERROR
+# )
 
-from enum import Enum
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Response(Enum):
-    __order__ = " INIT OKAY BAD_REQUEST BAD_ADDRESS OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE UNKNOWN_ERROR "
-    '''
-    Provides an enumeration of response codes from the I2C Slave.
-    These match the hard-coded values in the MicroPython file.
-    '''
-    INIT              = (  0, 'init',              0x10 )
-    OKAY              = ( 20, 'okay',              0x20 )
-    BAD_REQUEST       = ( 40, 'bad request',       0x40 )
-    BAD_ADDRESS       = ( 41, 'bad address',       0x41 )
-    OUT_OF_SYNC       = ( 42, 'out of sync',       0x42 )
-    INVALID_CHAR      = ( 43, 'invalid character', 0x43 )
-    SOURCE_TOO_LARGE  = ( 44, 'source too large',  0x44 )
-    UNVALIDATED       = ( 45, 'unvalidated',       0x45 )
-    EMPTY_PAYLOAD     = ( 46, 'empty payload',     0x46 )
-    PAYLOAD_TOO_LARGE = ( 47, 'payload too large', 0x47 )
-    UNKNOWN_ERROR     = ( 50, 'unknown error',     0x50 )
-
-    # ignore the first param since it's already set by __new__
-    def __init__(self, num, name, value):
-        self._num   = num
-        self._name  = name
-        self._value = value
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def num(self):
-        '''
-        Returns the original enum numerical value.
-        '''
-        return self._num
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def name(self):
-        return self._name
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def value(self):
-        return self._value
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @staticmethod
-    def from_value(value):
-        for r in Response:
-            if value == r.value:
-                return r
-        raise NotImplementedError
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def __str__(self):
-        return 'Response.{}; value={:4.2f}'.format(self.name, self._value )
+RESPONSE_INIT              = 0x10   
+RESPONSE_PIR_ACTIVE        = 0x30   
+RESPONSE_PIR_IDLE          = 0x31   
+RESPONSE_OKAY              = 0x4F  # all acceptable responses must be less than this
+RESPONSE_BAD_ADDRESS       = 0x71
+RESPONSE_BAD_REQUEST       = 0x72
+RESPONSE_OUT_OF_SYNC       = 0x73
+RESPONSE_INVALID_CHAR      = 0x74
+RESPONSE_SOURCE_TOO_LARGE  = 0x75
+RESPONSE_UNVALIDATED       = 0x76
+RESPONSE_EMPTY_PAYLOAD     = 0x77
+RESPONSE_PAYLOAD_TOO_LARGE = 0x78
+RESPONSE_BUSY              = 0x79
+RESPONSE_RUNTIME_ERROR     = 0x80
+RESPONSE_UNKNOWN_ERROR     = 0x81
 
 #EOF

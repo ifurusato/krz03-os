@@ -44,7 +44,7 @@ class PigpiodUtility:
         if PigpiodUtility.is_pigpiod_running():
             _log.debug("pigpiod is already running.")
         else:
-            _log.info("pigpiod is not running: attempting to start it…")
+            _log.info(Fore.YELLOW + "pigpiod is not running: attempting to start it…")
             PigpiodUtility.start_pigpiod(skip_check=True)
 
     @staticmethod
@@ -84,6 +84,45 @@ class PigpiodUtility:
             while dt.now() < wait_until:
                 pass  # busy wait
         _log.warning(f"timeout: {service_name} did not become active within {timeout} seconds.")
+        return False
+
+    @staticmethod
+    def stop_pigpiod(skip_check=False):
+        '''
+        Stop the pigpiod service using systemctl.
+
+        :param skip_check: If True, skip the check for whether pigpiod is already stopped.
+        '''
+        _log = Logger('pig-util', Level.INFO)
+        if not skip_check and not PigpiodUtility.is_pigpiod_running():
+            _log.info("pigpiod is already stopped.")
+            return
+        try:
+            start_time = dt.now()
+            subprocess.run(['sudo', 'systemctl', 'stop', 'pigpiod'], check=True)
+            PigpiodUtility.wait_for_daemon_to_stop('pigpiod', timeout=10)
+            end_time = dt.now()
+            elapsed_time_ms = (end_time - start_time).total_seconds() * 1000
+            _log.info(Fore.GREEN + f'pigpiod service stopped, elapsed time: {elapsed_time_ms:.2f} ms')
+        except subprocess.CalledProcessError as e:
+            _log.info("failed to stop pigpiod service: {}".format(e))
+        except FileNotFoundError:
+            _log.info("The 'systemctl' command is not found. Ensure it is installed and accessible.")
+
+    @staticmethod
+    def wait_for_daemon_to_stop(service_name, timeout=10):
+        _log = Logger('pig-util', Level.INFO)
+        deadline = dt.now() + timedelta(seconds=timeout)
+        while dt.now() < deadline:
+            result = subprocess.run(["systemctl", "is-active", service_name], capture_output=True, text=True)
+            if result.stdout.strip() in ("inactive", "failed", "unknown"):  # includes "failed" in case it crashes
+                _log.info(f"{service_name} has stopped.")
+                return True
+            # busy-wait for 1 second
+            wait_until = dt.now() + timedelta(seconds=1)
+            while dt.now() < wait_until:
+                pass
+        _log.warning(f"timeout: {service_name} did not stop within {timeout} seconds.")
         return False
 
 #EOF

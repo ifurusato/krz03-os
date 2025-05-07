@@ -38,19 +38,21 @@ import time, datetime
 import re
 import statistics
 import numpy as np
-
-
-from matrix11x7 import Matrix11x7
-import pigpio
-import vl53l5cx_ctypes as vl53l5cx
-from vl53l5cx_ctypes import STATUS_RANGE_VALID, STATUS_RANGE_VALID_LARGE_PULSE, RANGING_MODE_CONTINUOUS, RANGING_MODE_AUTONOMOUS
 from colorama import init, Fore, Style
 init()
+
+from matrix11x7 import Matrix11x7
+import vl53l5cx_ctypes as vl53l5cx
+from vl53l5cx_ctypes import STATUS_RANGE_VALID, STATUS_RANGE_VALID_LARGE_PULSE, RANGING_MODE_CONTINUOUS, RANGING_MODE_AUTONOMOUS
+import pigpio
+
+from hardware.pigpiod_util import PigpiodUtility
+
+PigpiodUtility.ensure_pigpiod_is_running()
 
 pi = pigpio.pi()
 if not pi.connected:
     exit()
-
 
 # constants ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 

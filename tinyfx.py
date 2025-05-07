@@ -37,6 +37,8 @@ def main():
         _level = Level.INFO
         _config = ConfigLoader(Level.INFO).configure()
         _tinyfx = TinyFxController(_config, level=Level.INFO)
+        _tinyfx.enable()
+
         _log.info('starting test…')
     
         if setting.startswith('help'):

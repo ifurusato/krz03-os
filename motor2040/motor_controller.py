@@ -7,13 +7,20 @@
 #
 # author:   Murray Altheim
 # created:  2025-04-25
-# modified: 2025-04-25
+# modified: 2025-05-07
 #
+
 import utime
 from motor import FAST_DECAY, SLOW_DECAY, Motor, motor2040
-
 from colorama import Fore, Style
+
+from colors import*
 from core.logger import Level, Logger
+from response import (
+    RESPONSE_INIT, RESPONSE_OKAY, RESPONSE_BAD_REQUEST, 
+    RESPONSE_INVALID_CHAR, RESPONSE_PAYLOAD_TOO_LARGE, 
+    RESPONSE_BUSY, RESPONSE_RUNTIME_ERROR, RESPONSE_UNKNOWN_ERROR
+)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class MotorController(object):
@@ -25,11 +32,13 @@ class MotorController(object):
     '''
     A motor controller for four motors.
 
-    :param level:   the log level
+    :param led:         the optional RGB LED
+    :param level:       the log level
     '''
-    def __init__(self, level=Level.INFO):
+    def __init__(self, led=None, level=Level.INFO):
         super().__init__()
         self._log = Logger('motor_ctrl', level)
+        self._led = led
         # create motors
         self._motor_pfwd = Motor(motor2040.MOTOR_A)
         self._motor_sfwd = Motor(motor2040.MOTOR_B)
@@ -42,7 +51,87 @@ class MotorController(object):
         self._acceleration_delay = 0.1   # for acceleration or any loops
         self._deceleration_delay = 0.2   # for acceleration or any loops
         self._delta              = 0.025 # iterative delta
+        self._processing_task    = None
         self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def enable(self):
+        self._enabled = True
+        self.motor_enable()
+        self._log.info('enabled.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def disable(self):
+        self._log.info('shutting down motor controller…')
+        self._enabled = False
+        self.motor_disable()
+        self._log.info('disabled.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def show_color(self, color):
+        '''
+        Display the color on the RGB LED in GRB order.
+        '''
+        if self._led:
+            self._led.set_rgb(0, color[0], color[1], color[2])
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def process_payload(self, payload):
+        '''
+        Async motor command processor. Dispatches commands and handles delays.
+        '''
+        print("🍊 process payload '{}'…".format(payload.to_string()))
+        try:
+            self.show_color(COLOR_YELLOW)
+            _command, _speed, _stbd_speed, _duration = payload.values
+            self._log.info("payload: cmd: '{}'; port: {}; stbd: {}; duration: {}".format(_command, _speed, _stbd_speed, _duration))
+            if _command.startswith('enab'):
+                self.enable()
+            elif _command.startswith('disa'):
+                self.disable()
+            elif _command.startswith('stop'):
+                self.stop()
+            elif _command.startswith('coas'):
+                self.coast()
+            elif _command.startswith('brak'):
+                self.brake()
+            elif _command.startswith('slow'):
+                self.slow_decay()
+            elif _command.startswith('fast'):
+                self.fast_decay()
+            elif _command.startswith('acce'):
+                self.accelerate(_speed)
+            elif _command.startswith('dece'):
+                self.decelerate(0.0)
+            elif _command.startswith('forw'):
+                self.forward(_speed, _stbd_speed, _duration)
+            elif _command.startswith('reve'):
+                self.reverse(_speed, _stbd_speed, _duration)
+            elif _command.startswith('crab'):
+                self.crab(_speed, _duration)
+            elif _command.startswith('rota'):
+                self.rotate(_speed, _duration)
+            elif _command.startswith('wait'):
+                self._log.info("waiting for {:.2f} seconds.".format(_duration))
+                utime.sleep(_duration)
+            elif _command == 'pfwd':
+                self.pfwd(_speed, _duration)
+            elif _command == 'sfwd':
+                self.sfwd(_speed, _duration)
+            elif _command == 'paft':
+                self.paft(_speed, _duration)
+            elif _command == 'saft':
+                self.saft(_speed, _duration)
+            else:
+                self._log.error("unknown command: '{}'".format(_command))
+            self.show_color(COLOR_GREEN)
+
+        except Exception as e:
+            self._log.error("motor task error: {}".format(e))
+            self.show_color(COLOR_RED)
+            return RESPONSE_UNKNOWN_ERROR
+        finally:
+            self._processing_task = None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def help(self):
@@ -70,7 +159,7 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
     ''' + Style.RESET_ALL)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def enable(self):
+    def motor_enable(self):
         self._motor_pfwd.enable()
         self._motor_sfwd.enable()
         self._motor_paft.enable()
@@ -78,7 +167,7 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
         self._log.info('enabled.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def disable(self):
+    def motor_disable(self):
         self._motor_pfwd.disable()
         self._motor_sfwd.disable()
         self._motor_paft.disable()
@@ -254,7 +343,7 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _execute_duration(self, duration=None):
-        if duration:
+        if duration and duration > 0.0:
             utime.sleep(duration)
             self._motor_pfwd.speed(0.0)
             self._motor_sfwd.speed(0.0)
@@ -269,7 +358,7 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
         if (start < stop and jump < 0) or (start > stop and jump > 0):
             raise ValueError("jump direction does not match the range.")
 
-        # Calculate the number of steps depending on whether the range is increasing or decreasing
+        # calculate the number of steps depending on whether the range is increasing or decreasing
         if jump > 0:
             nsteps = int((stop - start) / jump)
             if (stop - start) % jump != 0:
@@ -279,11 +368,7 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
             if (start - stop) % abs(jump) != 0:
                 nsteps += 1
 
-        # Generate the range with appropriate rounding
+        # generate the range with appropriate rounding
         return [round(start + float(i) * jump, 10) for i in range(nsteps)]
-
-#       return [round(start + float(i) * jump, 10) for i in range(nsteps)]
-#       return [round(start + float(i) * dy / nsteps, 10) for i in range(nsteps + 1)]
-        # use rounding to avoid floating point math issues
 
 #EOF
