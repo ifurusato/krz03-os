@@ -16,13 +16,13 @@ krzos:
     component:
         # publishers .......................................
         enable_queue_publisher:            True            # publishes from globally-available queue
-        enable_distance_sensors:           True            # enable Distance Sensors
+        enable_distance_publisher:         True            # enable Distance Sensors and Publisher
         enable_system_publisher:          False            # enable System Publisher
         enable_tinyfx_controller:          True            # enable Tiny FX for sounds and lighting fx
         enable_imu_publisher:             False            # enable IMU publisher
         enable_pir_publisher:              True            # enable PIR publisher
         enable_remote_ctrl_publisher:     False            # enable Remote Control Publisher
-        enable_rtof_publisher:             True            # enable Ranging ToF publisher
+        enable_rtof_publisher:            False            # enable Ranging ToF publisher
         enable_gamepad_publisher:         False            # enable gamepad support
         enable_killswitch:                 True            # enable toggle kill switch
         enable_pushbutton:                 True            # enable pushbutton
@@ -31,7 +31,7 @@ krzos:
         enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
         enable_sound_subscriber:           True            # enable sounds for various events
         enable_macro_subscriber:          False            # enable macro publisher
-        enable_behaviours:                 True            # enable BehaviourManager (Behaviours enabled individually)
+        enable_behaviours:                False            # enable BehaviourManager (Behaviours enabled individually)
     behaviour:
         enable_avoid_behaviour:          False             # enable avoidance behaviour
         enable_roam_behaviour:           False             # enable roam behaviour
@@ -150,6 +150,9 @@ krzos:
             loop_freq_hz:                    20            # polling loop frequency (Hz)
         queue:
             loop_freq_hz:                    20            # polling loop frequency (Hz)
+    subscriber:
+        distance_sensors:
+            verbose:                       True            # noisy sensor output
     hardware:
         battery:
             enable_battery_messaging:     False            # if True we enable low battery messages to be sent
@@ -175,7 +178,7 @@ krzos:
         distance_sensors:
             max_distance:                     300          # maximum distance in mm
             min_distance:                      80          # minimum distance in mm
-            reverse:                        False          # reverse normalisation curve
+            reverse:                      False            # reverse normalisation curve
         distance_sensor:
             pin_port:                        24            # the port input pin
             pin_cntr:                        25            # the center input pin

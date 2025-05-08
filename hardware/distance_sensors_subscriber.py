@@ -30,7 +30,8 @@ class DistanceSensorsSubscriber(Subscriber):
     def __init__(self, config, message_bus, level=Level.INFO):
         Subscriber.__init__(self, DistanceSensorsSubscriber.CLASS_NAME, config, message_bus=message_bus, suppressed=False, enabled=False, level=level)
         self.add_events(Event.by_groups([Group.BUMPER, Group.INFRARED]))
-        self._verbose = False
+        _cfg = config['krzos'].get('subscriber').get('distance_sensors')
+        self._verbose = _cfg.get('verbose')
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -50,6 +51,15 @@ class DistanceSensorsSubscriber(Subscriber):
                 return Fore.GREEN
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @staticmethod
+    def is_bumper_event(event):
+        return event.group is Group.BUMPER
+
+    @staticmethod
+    def is_infrared_event(event):
+        return event.group is Group.INFRARED
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):
         '''
         Process the message.
@@ -62,9 +72,9 @@ class DistanceSensorsSubscriber(Subscriber):
             _event = message.event
             _value = message.payload.value
             _fore  = self.get_fore(_event)
-            if Event.is_bumper_event(_event):
+            if DistanceSensorsSubscriber.is_bumper_event(_event):
                 self._log.info(_fore + Style.BRIGHT + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
-            elif Event.is_infrared_event(_event):
+            elif DistanceSensorsSubscriber.is_infrared_event(_event):
                 self._log.info(_fore + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
             else:
                 self._log.info(_fore + Style.DIM + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))

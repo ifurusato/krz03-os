@@ -181,9 +181,15 @@ class DistanceSensor(Component):
         '''
         self._running = False
         if self._task:
-            self._task.cancel()
+            try:
+                self._task.cancel()
+            except Exception as e:
+                self._log.warning('{} raised cancelling task: {}.'.format(type(e), e))
         if self._callback:
-            self._callback.cancel()
+            try:
+                self._callback.cancel()
+            except Exception as e:
+                self._log.warning('{} raised cancelling pigpiod callback: {}.'.format(type(e), e))
         if self._pi:
             self._pi.stop()
 

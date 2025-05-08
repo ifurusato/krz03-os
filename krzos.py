@@ -222,8 +222,8 @@ class KRZOS(Component, FiniteStateMachine):
         if _enable_system_publisher:
             self._system_publisher = SystemPublisher(self._config, self._message_bus, self._message_factory, self._system, level=self._level)
 
-        _enable_distance_sensors = _cfg.get('enable_distance_sensors')
-        if _enable_distance_sensors:
+        _enable_distance_publisher = _cfg.get('enable_distance_publisher')
+        if _enable_distance_publisher:
             self._distance_sensors = DistanceSensors(self._config, level=self._level)
             self._distance_sensors_publisher = DistanceSensorsPublisher(self._config, self._message_bus, self._message_factory, self._distance_sensors, level=self._level)
 

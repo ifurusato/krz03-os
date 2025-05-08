@@ -57,7 +57,7 @@ class DistanceSensorsPublisher(Publisher):
         self._min_distance     = 80    # minimum distance for scaling
         # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         if distance_sensors:
-            self._sensors = distanceSensors
+            self._sensors = distance_sensors
         else:
             self._sensors = DistanceSensors(config)
         self._port_sensor = self._sensors.get(Orientation.PORT)
