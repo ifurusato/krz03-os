@@ -29,7 +29,7 @@ class DistanceSensorsPublisher(Publisher):
     CLASS_NAME = 'distance'
     _LISTENER_LOOP_NAME = '__distance-sensors-loop'
     '''
-    A publisher for events from a trio of DistanceSensorsPublisher.
+    A publisher for events from a trio of DistanceSensors.
 
     :param config:            the application configuration
     :param message_bus:       the asynchronous message bus
