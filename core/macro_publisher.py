@@ -199,13 +199,13 @@ class MacroPublisher(Publisher):
         for _file in Path(self._macro_path).glob('*.py'):
 #           self._log.heading('Load Macro', 'Loading file: {}'.format(_file))
             self._log.info(Fore.WHITE + Style.BRIGHT + '{}'.format(Util.repeat('━', 72)))
-            self._log.info('🌸 loading macro file: ' + Fore.YELLOW + '{} '.format(_file)
+            self._log.info('loading macro file: ' + Fore.YELLOW + '{} '.format(_file)
                     + Fore.WHITE + Style.BRIGHT + '{}'.format(Util.repeat('┈', 50 - len(str(_file)))))
             try:
                 _split = os.path.split(_file)
                 _name = os.path.splitext(_split[1])[0]
                 exec(open(_file).read())
-                self._log.info('🌸 loaded macro: ' + Fore.YELLOW + '{} '.format(_name)
+                self._log.info('loaded macro: ' + Fore.YELLOW + '{} '.format(_name)
                         + Fore.WHITE + Style.BRIGHT + '{}\n'.format(Util.repeat('┈', 56 - len(_name))))
             except Exception as e:
                 self._log.error('{} importing macro: {}'.format(type(e), _file))

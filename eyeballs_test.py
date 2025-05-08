@@ -47,6 +47,9 @@ def eyeballs_test():
         _log.info(Fore.GREEN + 'starting… (type Ctrl-C to exit)')
 
         _eyeballs.normal()
+
+#       while True:
+#           time.sleep(2)
         time.sleep(2)
         _eyeballs.clear()
 
@@ -69,7 +72,6 @@ def eyeballs_test():
         _eyeballs.look_down()
         time.sleep(2)
         _eyeballs.clear()
-
 
         _eyeballs.happy()
         time.sleep(2)
@@ -108,11 +110,13 @@ def eyeballs_test():
 
         _log.info('eyeballs complete.')
 
+        _eyeballs.close()
+
     except KeyboardInterrupt:
         _log.info('eyeballs    :' + Fore.YELLOW + ' INFO  : Ctrl-C caught: exiting…' + Style.RESET_ALL)
     finally:
-        if _eyeballs:
-            _eyeballs.close()
+#       if _eyeballs:
+#           _eyeballs.close()
         pass
 
 # main ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

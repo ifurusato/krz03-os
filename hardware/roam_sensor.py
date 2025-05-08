@@ -385,7 +385,7 @@ class RoamSensor(Component):
         '''
         Sets the stop event, cancelling the loop thread.
         '''
-        self._log.info('🌸 disabling…')
+        self._log.info('disabling…')
         if self._stop_event:
             self._stop_event.set()
             self._log.info('cancelled thread.')
@@ -393,8 +393,7 @@ class RoamSensor(Component):
         if self._pi:
             self._pi.stop()
             self._log.info('pi stopped.')
-        self._log.info('disabled.')
         Component.disable(self)
-        self._log.info('🌸 disabled.')
+        self._log.info('disabled.')
 
 #EOF

@@ -5,10 +5,8 @@
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
-# created:  2020-05-19
-# modified: 2024-10-31
-#
-# _Getch at bottom.
+# created:  2025-05-07
+# modified: 2025-05-08
 #
 
 from colorama import init, Fore, Style
@@ -22,10 +20,10 @@ from hardware.distance_sensor import DistanceSensor
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DistanceSensors(Component):
     '''
-    Collects the three IR proximity 'distance' sensors into a class.
-    This is a raw sensing class with no timing or integration into the
-    rest of the operating system. It does support weighted averages of
-    the center and port, and center and starboard sensors.
+    Collects the three IR distance sensors into a class. This is a raw sensing
+    class with no timing or integration into the rest of the operating system.
+    It does support weighted averages of the center and port, and center and
+    starboard sensors.
 
     :param config:            the application configuration
     :param level:             the log level
@@ -49,8 +47,8 @@ class DistanceSensors(Component):
         self._stbd_sensor = DistanceSensor(config, Orientation.STBD)
         self._sensors = {
            Orientation.PORT: self._port_sensor,
-           Orientation.CNTR: self._cntr_sensor, 
-           Orientation.STBD: self._stbd_sensor 
+           Orientation.CNTR: self._cntr_sensor,
+           Orientation.STBD: self._stbd_sensor
         }
         self._log.info('ready.')
 
@@ -110,7 +108,7 @@ class DistanceSensors(Component):
         '''
         Normalize distance to a value between 0.0 and 1.0 (or reversed),
         using quadratic easing.
-        
+
         - reverse=False: 1.0 at max_dist, 0.0 at min_dist (default behavior)
         - reverse=True:  0.0 at max_dist, 1.0 at min_dist (flipped)
         '''

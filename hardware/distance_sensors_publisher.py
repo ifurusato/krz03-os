@@ -7,14 +7,10 @@
 #
 # author:   Murray Altheim
 # created:  2020-05-19
-# modified: 2024-10-31
-#
-# _Getch at bottom.
+# modified: 2025-05-08
 #
 
-import sys
 import asyncio
-from datetime import datetime as dt
 from colorama import init, Fore, Style
 init()
 
