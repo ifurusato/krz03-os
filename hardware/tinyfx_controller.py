@@ -52,7 +52,7 @@ class TinyFxController(Component):
             if _response is Response.OKAY:
                 self._log.info('enabled; response: ' + Fore.GREEN + '{}'.format(_response.name))
             else:
-                raise Exception('not enabled; response was not okay: ' + Fore.RED + '{}'.format(_response.name))
+                raise Exception('tinyfx not enabled; response was not okay: ' + Fore.RED + '{}'.format(_response.name))
         except Exception as e:
             self._log.error('{} raised could not connect to tinyfx: {}'.format(type(e), e))
             # disable if error occurs or TinyFX is unavailable

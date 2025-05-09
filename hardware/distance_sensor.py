@@ -85,19 +85,6 @@ class DistanceSensor(Component):
             self._log.info(Fore.GREEN + '{} distance sensor ready on pin {}.'.format(orientation.label, self._pin))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _ensure_pigpio(self):
-        '''
-        Make sure that pigpio is running.
-        '''
-        PigpiodUtility.ensure_pigpiod_is_running()
-        self._pi = pigpio.pi()
-        if not self._pi.connected:
-            raise Exception("Failed to connect to pigpio daemon")
-        self._pi.set_mode(self._pin, pigpio.INPUT)
-        self._callback = self._pi.callback(self._pin, pigpio.EITHER_EDGE, self._pulse_callback)
-        self._last_read_time = time.time()
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
     def name(self):
         return self._orientation.name
@@ -213,6 +200,19 @@ class DistanceSensor(Component):
                 self._thread.start()
         else:
             self._log.warning('failed to enable distance sensor.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _ensure_pigpio(self):
+        '''
+        Make sure that pigpio is running.
+        '''
+        PigpiodUtility.ensure_pigpiod_is_running()
+        self._pi = pigpio.pi()
+        if not self._pi.connected:
+            raise Exception("Failed to connect to pigpio daemon")
+        self._pi.set_mode(self._pin, pigpio.INPUT)
+        self._callback = self._pi.callback(self._pin, pigpio.EITHER_EDGE, self._pulse_callback)
+        self._last_read_time = time.time()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):

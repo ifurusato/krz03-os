@@ -49,9 +49,9 @@ krzos:
         roam:
             min_velocity:                 0.0              # minimum motor target velocity
             max_velocity:               100.0              # maximum motor target velocity
-            cruising_speed:             'SLOW'             # cruising speed (recovery speed)
+            cruising_speed:       'TWO_THIRDS'             # cruising speed (recovery speed), e.g., HALF, TWO_THIRDS, THREE_QUARTERS, FULL
             cruise_wait_ticks:              3              # how many ticks to wait before cruising again
-            loop_delay_ms:                200              # asyncio loop delay in milliseconds
+            loop_delay_ms:                100              # asyncio loop delay in milliseconds
 #       swerve:
 #           reverse:                     True              # reverse effect of output function
 #           tolerance:                   20.0              # deadband tolerance as percentage
@@ -176,8 +176,8 @@ krzos:
         player:                                            # Tiny FX sound player
             verbose:                       True            # verbose messaging
         distance_sensors:
-            max_distance:                     300          # maximum distance in mm
-            min_distance:                      80          # minimum distance in mm
+            max_distance:                   300            # maximum distance in mm
+            min_distance:                    50            # minimum distance in mm
             reverse:                      False            # reverse normalisation curve
         distance_sensor:
             pin_port:                        24            # the port input pin

@@ -27,22 +27,22 @@ class Speed(Enum):
     set to zero; these must be set from the YAML application configuration
     via the configure() method.
     '''
-    #                                                  proportional power
-    #                    label                  speed      astern  ahead
-    STOP          = ( 1, 'stop',                  0.0,      0.0,   0.0 )
-    DEAD_SLOW     = ( 2, 'dead slow',            20.0,      0.0,   0.0 )
-    SLOW          = ( 3, 'slow',                 30.0,      0.0,   0.0 )
-    ONE_THIRD     = ( 4, 'one third speed',      40.0,      0.0,   0.0 )
-    HALF          = ( 5, 'half speed',           50.0,      0.0,   0.0 )
-    TWO_THIRDS    = ( 6, 'two thirds speed',     67.0,      0.0,   0.0 )
-    THREE_QUARTER = ( 7, 'three quarter speed',  75.0,      0.0,   0.0 )
-    FULL          = ( 8, 'full speed',           90.0,      0.0,   0.0 )
-    MAXIMUM       = ( 9, 'maximum speed',       100.0,      0.0,   0.0 )
+    #                     label                   speed  proportional   astern  ahead
+    STOP           = ( 1, 'stop',                   0.0,         0.0,     0.0,    0.0 )
+    DEAD_SLOW      = ( 2, 'dead slow',             20.0,         0.2,     0.0,    0.0 )
+    SLOW           = ( 3, 'slow',                  30.0,         0.3,     0.0,    0.0 )
+    ONE_THIRD      = ( 4, 'one third speed',       40.0,         0.4,     0.0,    0.0 )
+    HALF           = ( 5, 'half speed',            50.0,         0.5,     0.0,    0.0 )
+    TWO_THIRDS     = ( 6, 'two thirds speed',      67.0,         0.67,    0.0,    0.0 )
+    THREE_QUARTERS = ( 7, 'three quarters speed',  75.0,         0.75,    0.0,    0.0 )
+    FULL           = ( 8, 'full speed',            90.0,         0.9,     0.0,    0.0 )
+    MAXIMUM        = ( 9, 'maximum speed',        100.0,         1.0,     0.0,    0.0 )
 
     # ignore the first param since it's already set by __new__
-    def __init__(self, num, label, velocity, astern, ahead):
+    def __init__(self, num, label, velocity, proportional, astern, ahead):
         self._label     = label
         self._velocity = velocity
+        self._proportional = proportional
         self._astern   = astern
         self._ahead    = ahead
 
@@ -66,16 +66,24 @@ class Speed(Enum):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
+    def proportional(self):
+        '''
+        Return the fixed proportional power for this Speed.
+        '''
+        return self._proportional
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
     def astern(self):
         '''
-        Return the proportional power astern for this Speed.
+        Return the configured proportional power astern for this Speed.
         '''
         return self._astern
 
     @astern.setter
     def astern(self, astern):
         '''
-        Set the proportional power astern for this Speed.
+        Set the configured proportional power astern for this Speed.
         '''
         self._astern = astern
 

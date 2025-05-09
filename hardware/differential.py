@@ -38,10 +38,15 @@ class DifferentialDrive(MotorController):
     def get_speeds(self):
         return self._port_speed, self._stbd_speed
 
-    def set_speeds(self, port_speed, stbd_speed):
-        self._port_speed = port_speed
-        self._stbd_speed = stbd_speed
-        self._log.info(Fore.WHITE + 'set speeds; port: {:4.2f}; stbd: {:4.2f}'.format(port_speed, stbd_speed))
+    def set_speeds(self, port_speed, stbd_speed, save=False):
+        '''
+        Set the differential speeds of the port and starboard motors,
+        saving the values to the class if the argument is True.
+        '''
+        if save:
+            self._port_speed = port_speed
+            self._stbd_speed = stbd_speed
+        self._log.info(Fore.WHITE + Style.BRIGHT + 'set speeds; port: {:4.2f}; stbd: {:4.2f}'.format(port_speed, stbd_speed))
         self.send_payload('forw', port_speed, stbd_speed, 0.0)
 
     def print(self):
@@ -53,6 +58,7 @@ class DifferentialDrive(MotorController):
         )
 
     def disable(self):
+        self.stop()
         MotorController.disable(self)
         self._log.info('disable.')
 

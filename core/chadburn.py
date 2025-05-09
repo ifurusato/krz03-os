@@ -18,7 +18,7 @@ from enum import Enum
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Chadburn(Enum):
-    __order__ = " EMERGENCY_ASTERN FULL_ASTERN THREE_QUARTER_ASTERN TWO_THIRDS_ASTERN HALF_ASTERN ONE_THIRD_ASTERN SLOW_ASTERN DEAD_SLOW_ASTERN STOP DEAD_SLOW_AHEAD SLOW_AHEAD ONE_THIRD_AHEAD HALF_AHEAD TWO_THIRDS_AHEAD THREE_QUARTER_AHEAD FULL_AHEAD FLANK_AHEAD "
+    __order__ = " EMERGENCY_ASTERN FULL_ASTERN THREE_QUARTERS_ASTERN TWO_THIRDS_ASTERN HALF_ASTERN ONE_THIRD_ASTERN SLOW_ASTERN DEAD_SLOW_ASTERN STOP DEAD_SLOW_AHEAD SLOW_AHEAD ONE_THIRD_AHEAD HALF_AHEAD TWO_THIRDS_AHEAD THREE_QUARTERS_AHEAD FULL_AHEAD FLANK_AHEAD "
     '''
     Provides an enumeration of both ahead (forward) and astern (reverse)
     Chadburn-style speeds, as corresponding to an abstract speed value.
@@ -29,23 +29,23 @@ class Chadburn(Enum):
     as equal, but may need to be tweaked.
     '''
     #                       num   name                     speed
-    EMERGENCY_ASTERN     = ( -8, 'emergency astern',       -1.00 )
-    FULL_ASTERN          = ( -7, 'full astern',            -0.85 )
-    THREE_QUARTER_ASTERN = ( -6, 'three quarters astern',  -0.70 )
-    TWO_THIRDS_ASTERN    = ( -5, 'two thirds astern',      -0.62 )
-    HALF_ASTERN          = ( -4, 'half astern',            -0.46 )
-    ONE_THIRD_ASTERN     = ( -3, 'one third astern',       -0.39 )
-    SLOW_ASTERN          = ( -2, 'slow astern',            -0.21 )
-    DEAD_SLOW_ASTERN     = ( -1, 'dead slow astern',       -0.07 )
-    STOP                 = (  0, 'stop',                    0.00 )
-    DEAD_SLOW_AHEAD      = (  1, 'dead slow ahead',         0.07 )
-    SLOW_AHEAD           = (  2, 'slow ahead',              0.21 )
-    ONE_THIRD_AHEAD      = (  3, 'one third ahead',         0.39 )
-    HALF_AHEAD           = (  4, 'half ahead',              0.46 )
-    TWO_THIRDS_AHEAD     = (  5, 'two thirds ahead',        0.62 )
-    THREE_QUARTER_AHEAD  = (  6, 'three quarters ahead',    0.70 )
-    FULL_AHEAD           = (  7, 'full ahead',              0.85 )
-    FLANK_AHEAD          = (  8, 'flank ahead',             1.00 )
+    EMERGENCY_ASTERN      = ( -8, 'emergency astern',       -1.00 )
+    FULL_ASTERN           = ( -7, 'full astern',            -0.85 )
+    THREE_QUARTERS_ASTERN = ( -6, 'three quarters astern',  -0.70 )
+    TWO_THIRDS_ASTERN     = ( -5, 'two thirds astern',      -0.62 )
+    HALF_ASTERN           = ( -4, 'half astern',            -0.46 )
+    ONE_THIRD_ASTERN      = ( -3, 'one third astern',       -0.39 )
+    SLOW_ASTERN           = ( -2, 'slow astern',            -0.21 )
+    DEAD_SLOW_ASTERN      = ( -1, 'dead slow astern',       -0.07 )
+    STOP                  = (  0, 'stop',                    0.00 )
+    DEAD_SLOW_AHEAD       = (  1, 'dead slow ahead',         0.07 )
+    SLOW_AHEAD            = (  2, 'slow ahead',              0.21 )
+    ONE_THIRD_AHEAD       = (  3, 'one third ahead',         0.39 )
+    HALF_AHEAD            = (  4, 'half ahead',              0.46 )
+    TWO_THIRDS_AHEAD      = (  5, 'two thirds ahead',        0.62 )
+    THREE_QUARTERS_AHEAD  = (  6, 'three quarters ahead',    0.70 )
+    FULL_AHEAD            = (  7, 'full ahead',              0.85 )
+    FLANK_AHEAD           = (  8, 'flank ahead',             1.00 )
 
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name, speed):

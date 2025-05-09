@@ -27,6 +27,7 @@ from hardware.tinyfx_controller import TinyFxController
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class MotorController(Component):
+    VALIDATE_ARGS = True
     '''
     A motor controller connected over I2C to a Motor 2040. This class must
     be explicitly enabled prior to use.
@@ -64,10 +65,10 @@ class MotorController(Component):
             if self._ping_test:
                 _response = self.write_payload(self.get_payload('stop', 0.0, 0.0, 0.0), verbose=False)
                 if _response is Response.OKAY:
-                    self._log.info('enabled; response: ' + Fore.GREEN + '{}'.format(_response.name))
+                    self._log.info('motor controller enabled; response: ' + Fore.GREEN + '{}'.format(_response.name))
                 else:
                     Player.instance().play(Sound.BUZZ)
-                    raise Exception('not enabled; response was not okay: ' + Fore.RED + '{}'.format(_response.name))
+                    raise Exception('motor controller not enabled; response was not okay: ' + Fore.RED + '{}'.format(_response.name))
         except Exception as e:
             self._log.error('{} raised, could not connect to Motor 2040: {}'.format(type(e), e))
             # disable if error occurs or Motor 2040 is unavailable
@@ -104,7 +105,8 @@ class MotorController(Component):
         that simply obtains the payload from get_payload() and sends it to the
         Motor 2040 via write_payload().
         '''
-        return self.write_payload(self.get_payload(command, port_speed, stbd_speed, duration))
+        _payload = self.get_payload(command, port_speed, stbd_speed, duration)
+        return self.write_payload(_payload)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @staticmethod
@@ -112,6 +114,15 @@ class MotorController(Component):
         '''
         Generates a payload provides the requisite arguments.
         '''
+        if MotorController.VALIDATE_ARGS:
+            if not isinstance(command, str):
+                raise ValueError('expected string for command, not {}'.format(type(command)))
+            if not isinstance(port_speed, float):
+                raise ValueError('expected float for port_speed, not {}'.format(type(port_speed)))
+            if not isinstance(stbd_speed, float):
+                raise ValueError('expected float for stbd_speed, not {}'.format(type(stbd_speed)))
+            if not isinstance(duration, float):
+                raise ValueError('expected float for duration, not {}'.format(type(duration)))
         return Payload(command, port_speed, stbd_speed, duration)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -120,7 +131,7 @@ class MotorController(Component):
         Writes the payload argument to the Motor 2040.
         '''
         if not self.enabled:
-            raise Exception('not enabled.')
+            raise Exception('cannot write payload: motor controller not enabled.')
         if verbose:
             self._log.debug("writing payload: " + Fore.WHITE + "'{}'".format(payload.to_string()))
         # send over I2C
