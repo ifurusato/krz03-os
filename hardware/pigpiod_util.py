@@ -77,13 +77,13 @@ class PigpiodUtility:
         while dt.now() < deadline:
             result = subprocess.run(["systemctl", "is-active", service_name], capture_output=True, text=True)
             if result.stdout.strip() == "active":
-                _log.info(f"{service_name} is now active.")
+                _log.info("{} is now active.".format(service_name))
                 return True
             # busy-wait for 1 second
             wait_until = dt.now() + timedelta(seconds=1)
             while dt.now() < wait_until:
                 pass  # busy wait
-        _log.warning(f"timeout: {service_name} did not become active within {timeout} seconds.")
+        _log.warning("timeout: {} did not become active within {} seconds.".format(service_name, timeout))
         return False
 
     @staticmethod
@@ -116,13 +116,13 @@ class PigpiodUtility:
         while dt.now() < deadline:
             result = subprocess.run(["systemctl", "is-active", service_name], capture_output=True, text=True)
             if result.stdout.strip() in ("inactive", "failed", "unknown"):  # includes "failed" in case it crashes
-                _log.info(f"{service_name} has stopped.")
+                _log.info("{} has stopped.".format(service_name))
                 return True
             # busy-wait for 1 second
             wait_until = dt.now() + timedelta(seconds=1)
             while dt.now() < wait_until:
                 pass
-        _log.warning(f"timeout: {service_name} did not stop within {timeout} seconds.")
+        _log.warning("timeout: {} did not stop within {} seconds.".format(service_name, timeout))
         return False
 
 #EOF

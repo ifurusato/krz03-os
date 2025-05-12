@@ -7,9 +7,11 @@
 #
 # author:   Murray Altheim
 # created:  2025-05-07
-# modified: 2025-05-08
+# modified: 2025-05-09
 #
 
+import math
+from enum import Enum
 from colorama import init, Fore, Style
 init()
 
@@ -17,6 +19,60 @@ from core.component import Component
 from core.logger import Logger, Level
 from core.orientation import Orientation
 from hardware.distance_sensor import DistanceSensor
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+class Easing(Enum):
+    LINEAR      = 'linear'       # direct proportional mapping 
+    QUADRATIC   = 'quadratic'    # values decrease quickly near max, then flatten near min 
+    CUBIC       = 'cubic'        # decreases very fast initially, then barely changes close to obstacles
+    SQUARE_ROOT = 'square_root'  # maintains higher values longer, drops more gradually near obstacles
+    LOGARITHMIC = 'logarithmic'  # keeps values high over a wide range, drops off sharply only near minimum
+    SIGMOID     = 'sigmoid'      # smooth, balanced transition; avoids abrupt changes
+
+    def apply(self, normalised: float) -> float:
+        '''
+        Apply the selected easing function to the normalised value.
+        '''
+        match self:
+            case Easing.LINEAR:
+                return normalised
+            case Easing.QUADRATIC:
+                return normalised ** 2
+            case Easing.CUBIC:
+                return normalised ** 3
+            case Easing.SQUARE_ROOT:
+                return math.sqrt(normalised)
+            case Easing.LOGARITHMIC:
+                '''
+                log1p(9x)/log1p(9) keeps range [0,1]
+
+                Value  Behaviour       Effect on Curve                            Responsiveness
+                1      linear-ish      very shallow log curve, close to linear    fast response — not much easing
+                3      mild easing     starts higher, drops gently                medium responsiveness
+                5      moderate        flatter curve near 0                       less responsive until mid-range
+                9      strong          very flat early, sharp drop at end         conservative; waits to respond
+                20     very strong     stays almost flat until ~80%               very late response; very cautious
+                '''
+                log_scaling_factor = 5
+                return math.log1p(normalised * log_scaling_factor) / math.log1p(log_scaling_factor)
+            case Easing.SIGMOID:
+                sigmoid_sharpness = 6   # reduce sharpness to make the deceleration more gradual (was 4)
+                midpoint          = 0.4 # shift the midpoint of the sigmoid to start decelerating earlier (was 0.22)
+                return 1 / (1 + math.exp(-sigmoid_sharpness * (normalised - midpoint)))
+            case _:
+                raise ValueError("Unknown easing type: {}".format(self))
+
+    @classmethod
+    def from_string(cls, name: str):
+        '''
+        Convert a string to an Easing enum member.
+        Case-insensitive. Raises ValueError on invalid name.
+        '''
+        name = name.strip().lower()
+        for member in cls:
+            if member.value == name:
+                return member
+        raise ValueError("'{}' is not a valid Easing type. Available options: {}".format(name, [e.value for e in cls]))
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class DistanceSensors(Component):
@@ -39,9 +95,10 @@ class DistanceSensors(Component):
         if config is None:
             raise ValueError('no configuration provided.')
         _cfg = config['krzos'].get('hardware').get('distance_sensors')
-        self._reverse_curve    = _cfg.get('reverse', False)
         self._min_distance     = _cfg.get('min_distance', 80)
         self._default_distance = _cfg.get('max_distance', 300)
+        _easing_value          = _cfg.get('easing', 'logarithmic')
+        self._easing           = Easing.SIGMOID # Easing.from_string(_easing_value)
         # sensors ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._port_sensor = DistanceSensor(config, Orientation.PORT)
         self._cntr_sensor = DistanceSensor(config, Orientation.CNTR)
@@ -83,7 +140,7 @@ class DistanceSensors(Component):
             orientation = Orientation[name]
             if hasattr(self, f"_{orientation.name.lower()}_sensor"):
                 return getattr(self, f"_{orientation.name.lower()}_sensor")
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, name))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def __iter__(self):
@@ -104,24 +161,19 @@ class DistanceSensors(Component):
 
     # weighted averages support ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-    @staticmethod
-    def normalize_distance(dist, min_dist=80, max_dist=300, reverse=False):
+    def normalise_distance(self, dist):
         '''
-        Normalize distance to a value between 0.0 and 1.0 (or reversed),
-        using quadratic easing.
-
-        - reverse=False: 1.0 at max_dist, 0.0 at min_dist (default behavior)
-        - reverse=True:  0.0 at max_dist, 1.0 at min_dist (flipped)
+        Normalize distance to a value between 0.0 and 1.0 using the instance's
+        configured easing method and min/max distance settings.
         '''
-        dist = max(min(dist, max_dist), min_dist)
-        normalized = (dist - min_dist) / (max_dist - min_dist)
-        value = normalized ** 2  # Quadratic easing
-        return 1.0 - value if reverse else value
+        dist = max(min(dist, self._default_distance), self._min_distance)
+        normalised = (dist - self._min_distance) / (self._default_distance - self._min_distance)
+        return self._easing.apply(normalised)
 
     def get_weighted_averages(self):
         '''
-        Read current distances or substitute default. This returns
-        a tuple containing the port and starboard values.
+        Read current distances or substitute default. This returns a tuple
+        containing the port and starboard values.
         '''
         port = self._port_sensor.distance or self._default_distance
         cntr = self._cntr_sensor.distance or self._default_distance
@@ -129,16 +181,10 @@ class DistanceSensors(Component):
         # compute pairwise averages
         port_avg = (port + cntr) / 2
         stbd_avg = (stbd + cntr) / 2
-        # normalize
-        port_norm = DistanceSensors.normalize_distance(port_avg,
-                min_dist=self._min_distance,
-                max_dist=self._default_distance,
-                reverse=self._reverse_curve)
-        stbd_norm = DistanceSensors.normalize_distance(stbd_avg,
-                min_dist=self._min_distance,
-                max_dist=self._default_distance,
-                reverse=self._reverse_curve)
-        return (port_norm, stbd_norm)
+        # normalise using instance method
+        port_norm = self.normalise_distance(port_avg)
+        stbd_norm = self.normalise_distance(stbd_avg)
+        return port_norm, stbd_norm
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):

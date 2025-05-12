@@ -8,7 +8,8 @@ Pi-based robot OS written in Python 3.
 Note: this document is a work-in-progress and does not necessarily reflect the
 current state of the project.
 
-.. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03.jpg
+
+.. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03-deck.jpg
    :width: 1200px
    :align: center
    :alt: The KRZ03 Robot

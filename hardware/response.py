@@ -17,7 +17,7 @@ from enum import Enum
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Response(Enum):
     # this variable must include all entries, whitespace-delimited
-    __order__ = " INIT OKAY BAD_ADDRESS BAD_REQUEST OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE BUSY RUNTIME_ERROR UNKNOWN_ERROR PIR_ACTIVE PIR_IDLE VALUE_OFF VALUE_ON "
+    __order__ = " INIT OKAY BAD_ADDRESS BAD_REQUEST OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE BUSY CONNECTION_ERROR RUNTIME_ERROR UNKNOWN_ERROR PIR_ACTIVE PIR_IDLE VALUE_OFF VALUE_ON "
     '''
     Provides an enumeration of response codes from the I2C Slave.
     These match the hard-coded values in the MicroPython file.
@@ -33,8 +33,9 @@ class Response(Enum):
     EMPTY_PAYLOAD     = (  8, 'empty payload',     0x77 )
     PAYLOAD_TOO_LARGE = (  9, 'payload too large', 0x78 )
     BUSY              = ( 10, 'busy',              0x79 )
-    RUNTIME_ERROR     = ( 11, 'runtime error',     0x80 )
-    UNKNOWN_ERROR     = ( 12, 'unknown error',     0x81 )
+    CONNECTION_ERROR  = ( 11, 'connection error',  0x80 )
+    RUNTIME_ERROR     = ( 12, 'runtime error',     0x81 )
+    UNKNOWN_ERROR     = ( 13, 'unknown error',     0x82 )
 
     PIR_ACTIVE        = ( 13, 'off',               0x30 )
     PIR_IDLE          = ( 14, 'on',                0x31 )

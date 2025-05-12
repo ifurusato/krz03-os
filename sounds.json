@@ -21,7 +21,7 @@
         "mnemonic": "BEEP",
         "duration": 1.0,
         "filename": "beep.wav",
-        "description": "beep."
+        "description": "beep: general notification."
     },
     {
         "index": 4,
@@ -77,7 +77,7 @@
         "mnemonic": "CRICKET",
         "duration": 1.0,
         "filename": "cricket.wav",
-        "description": "cricket."
+        "description": "cricket: pir triggered."
     },
     {
         "index": 11,
@@ -133,7 +133,7 @@
         "mnemonic": "GLITCH",
         "duration": 1.0,
         "filename": "glitch.wav",
-        "description": "glitch."
+        "description": "glitch: activity."
     },
     {
         "index": 18,
@@ -149,7 +149,7 @@
         "mnemonic": "HONK",
         "duration": 1.0,
         "filename": "honk.wav",
-        "description": "honk."
+        "description": "honk: bumper hit."
     },
     {
         "index": 20,
@@ -157,7 +157,7 @@
         "mnemonic": "HZAH",
         "duration": 1.0,
         "filename": "hzah.wav",
-        "description": "hzah."
+        "description": "hzah: mission accomplished."
     },
     {
         "index": 21,
@@ -237,7 +237,7 @@
         "mnemonic": "SONIC_BAT",
         "duration": 1.0,
         "filename": "sonic-bat.wav",
-        "description": "sonic bat beep."
+        "description": "sonic bat: krzosd started."
     },
     {
         "index": 31,
@@ -252,7 +252,7 @@
         "name": "tika-tika",
         "mnemonic": "TIKA_TIKA",
         "duration": 1.0,
-        "filename": "chatter-1.wav",
+        "filename": "tika-tika.wav",
         "description": "tika-tika."
     },
     {

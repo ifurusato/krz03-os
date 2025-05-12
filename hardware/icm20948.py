@@ -375,6 +375,7 @@ class Icm20948(Component):
         _limit = 1800 # 1 minute
         self._amin = list(self.__icm20948.read_magnetometer_data())
         self._amax = list(self.__icm20948.read_magnetometer_data())
+        self._log.info(Fore.YELLOW + 'calibrating to stability threshold: {}…'.format(self._stability_threshold))
         if self._play_sound:
             Player.instance().play(Sound.BOINK)
         self._log.info(Fore.WHITE + Style.BRIGHT + '\n\n    calibrate by rotating sensor through a horizontal 360° motion…\n')
@@ -382,6 +383,7 @@ class Icm20948(Component):
 #           self._rgbmatrix.set_display_type(DisplayType.RANDOM)
 #           self._rgbmatrix.enable()
 #           self._rgbmatrix.set_random_delay_sec(_ranger.convert(180.0)) # speeds up random display as stdev shrinks
+
         try:
             while self.enabled:
                 _count = next(_counter)
@@ -478,18 +480,19 @@ class Icm20948(Component):
 
         Note: calling this method will fail if not previously calibrated.
         '''
-        if not self.is_calibrated:
-            self._log.warning('IMU is not calibrated.')
+#       if not self.is_calibrated:
+#           self._log.warning('IMU is not calibrated.')
 #           raise Exception('IMU is not calibrated.')
-            return None
+#           return None
         try:
             self._heading = self._read_heading(self._amin, self._amax)
             # add to queue to calculate mean heading
             self._queue.append(self._heading)
-            self._stdev = statistics.stdev(self._queue)
-            if self._stdev < self._stability_threshold: # stable? then permanently flag as calibrated
-#               self.set_is_calibrated(True)
-                self._is_calibrated = True
+            if len(self._queue) > 1:
+                self._stdev = statistics.stdev(self._queue)
+                if self._stdev < self._stability_threshold: # stable? then permanently flag as calibrated
+#                   self.set_is_calibrated(True)
+                    self._is_calibrated = True
             self._mean_heading = statistics.mean(self._queue)
             self._mean_heading_radians = math.radians(self._mean_heading)
             if next(self._counter) % self._display_rate == 0: # display every 10th set of values

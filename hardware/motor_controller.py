@@ -9,7 +9,9 @@
 # created:  2024-08-13
 # modified: 2025-05-03
 #
+# MotorControllerError at bottom.
 
+import traceback
 from smbus import SMBus
 from colorama import init, Fore, Style
 init()
@@ -31,6 +33,9 @@ class MotorController(Component):
     '''
     A motor controller connected over I2C to a Motor 2040. This class must
     be explicitly enabled prior to use.
+
+    :param config:       the application configuration
+    :param level:        the logging level
     '''
     def __init__(self, config, level=Level.INFO):
         self._log = Logger('motor_ctrl', level)
@@ -68,7 +73,7 @@ class MotorController(Component):
                     self._log.info('motor controller enabled; response: ' + Fore.GREEN + '{}'.format(_response.name))
                 else:
                     Player.instance().play(Sound.BUZZ)
-                    raise Exception('motor controller not enabled; response was not okay: ' + Fore.RED + '{}'.format(_response.name))
+                    raise MotorControllerError('motor controller not enabled; response was not okay: ' + Fore.RED + '{}'.format(_response.name))
         except Exception as e:
             self._log.error('{} raised, could not connect to Motor 2040: {}'.format(type(e), e))
             # disable if error occurs or Motor 2040 is unavailable
@@ -87,6 +92,8 @@ class MotorController(Component):
         Since we're holding the instance of the sound Player this is a
         convenience method to play a sound, provided its name.
         '''
+        
+        self._log.info("playing sound: '{}'".format(name))
         _sound = Sound.from_name(name)
         Player.instance().play(_sound)
 
@@ -130,23 +137,30 @@ class MotorController(Component):
         '''
         Writes the payload argument to the Motor 2040.
         '''
-        if not self.enabled:
-            raise Exception('cannot write payload: motor controller not enabled.')
-        if verbose:
-            self._log.debug("writing payload: " + Fore.WHITE + "'{}'".format(payload.to_string()))
-        # send over I2C
-        self._i2cbus.write_block_data(self._i2c_slave_address, self._config_register, list(payload.to_bytes()))
-        if verbose:
-            self._log.info("payload written: " + Fore.WHITE + "'{}'".format(payload.to_string()))
-        # read 1-byte response
-        _read_data = self._i2cbus.read_byte_data(self._i2c_slave_address, self._config_register)
-        # convert response byte to status enum or meaning
-        _response = Response.from_value(_read_data)
-        if _response.value <= Response.OKAY.value:
-            self._log.debug("response: {}".format(_response.name))
-        else:
-            self._log.error("error response: {}".format(_response.name))
-        return _response
+        try:
+            if not self.enabled:
+                raise MotorControllerError('cannot write payload: motor controller not enabled.')
+            if verbose:
+                self._log.debug("writing payload: " + Fore.WHITE + "'{}'".format(payload.to_string()))
+            # send over I2C
+            self._i2cbus.write_block_data(self._i2c_slave_address, self._config_register, list(payload.to_bytes()))
+            if verbose:
+                self._log.info("payload written: " + Fore.WHITE + "'{}'".format(payload.to_string()))
+            # read 1-byte response
+            _read_data = self._i2cbus.read_byte_data(self._i2c_slave_address, self._config_register)
+            # convert response byte to status enum or meaning
+            _response = Response.from_value(_read_data)
+            if _response.value <= Response.OKAY.value:
+                self._log.debug("response: {}".format(_response.name))
+            else:
+                self._log.error("error response: {}".format(_response.name))
+            return _response
+        except TimeoutError as te:
+            self._log.error("transfer timeout: {}".format(te))
+            return Response.CONNECTION_ERROR
+        except Exception as e:
+            self._log.error('{} raised writing payload: {}\n{}'.format(type(e), e, traceback.format_exc()))
+            return Response.CONNECTION_ERROR
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
@@ -154,5 +168,13 @@ class MotorController(Component):
         if self._i2cbus:
             self._i2cbus.close()
         self._log.info('disabled.')
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+class MotorControllerError(Exception):
+    '''
+    An exception raised when either an error has occurred or we are unable to
+    communicate with the motor controller over I2C.
+    '''
+    pass
 
 #EOF

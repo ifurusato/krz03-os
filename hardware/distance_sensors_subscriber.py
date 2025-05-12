@@ -66,18 +66,30 @@ class DistanceSensorsSubscriber(Subscriber):
 
         :param message:  the message to process.
         '''
-        if message.gcd:
+        if message is None:
+            raise ValueError('null message.')
+        elif message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected.')
-        if self._verbose:
+        elif self._verbose:
             _event = message.event
             _value = message.payload.value
-            _fore  = self.get_fore(_event)
-            if DistanceSensorsSubscriber.is_bumper_event(_event):
-                self._log.info(_fore + Style.BRIGHT + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
+            if _event is None:
+                raise TypeError('event is None.')
+            elif _value is None:
+                raise TypeError('event value is None.')
+            elif DistanceSensorsSubscriber.is_bumper_event(_event):
+                self._log.info(Style.BRIGHT + 'processing message:' + Fore.WHITE + ' {}; value: {}'.format(_event.name, self.format_value(_value)))
             elif DistanceSensorsSubscriber.is_infrared_event(_event):
-                self._log.info(_fore + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
+                self._log.info('processing message:' + Fore.WHITE + ' {}; value: {}'.format(_event.name, self.format_value(_value)))
             else:
-                self._log.info(_fore + Style.DIM + 'processing message:' + Fore.WHITE + ' {}; value: {:.2f}mm'.format(_event.name, _value))
+                self._log.info(Style.DIM + 'processing message:' + Fore.WHITE + ' {}; value: {}'.format(_event.name, self.format_value(_value)))
         await Subscriber.process_message(self, message)
+
+    @staticmethod
+    def format_value(value):
+        try:
+            return "{:.2f}mm".format(float(value))
+        except (ValueError, TypeError):
+            return str(value)
 
 #EOF

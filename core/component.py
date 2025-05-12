@@ -12,7 +12,7 @@
 # MissingComponentError at bottom
 #
 
-import threading
+from threading import Lock
 from collections import OrderedDict
 from core.logger import Logger
 from core.util import Util
@@ -206,7 +206,7 @@ class ComponentRegistry(object):
         '''
         Print the registry to the log.
         '''
-        _mutex = threading.Lock()
+        _mutex = Lock()
         with _mutex:
             self._log.info('component list:')
             for _name, _component in self._dict.items():

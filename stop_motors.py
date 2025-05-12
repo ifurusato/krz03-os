@@ -14,29 +14,28 @@ from colorama import init, Fore, Style
 init()
 
 from core.logger import Logger, Level
-from core.orientation import Orientation
 from core.config_loader import ConfigLoader
-from hardware.pz_motor_controller import MotorController
+from hardware.motor_controller import MotorController
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+_log = Logger('main', Level.INFO)
+_motor_controller = None
 
 try:
     # read YAML configuration
     _config = ConfigLoader(Level.INFO).configure()
     _motor_controller = MotorController(_config)
     _motor_controller.enable()
-    _delay_sec = 1.5
 
-#       _orientations = [ Orientation.PORT, Orientation.STBD, Orientation.PFWD, Orientation.SFWD, Orientation.PAFT, Orientation.SAFT ]
-    _orientations = [ Orientation.PORT, Orientation.STBD ]
-    for _orientation in _orientations:
-        _motor_controller.set_motor_speed(_orientation, 0)
-        time.sleep(0.33)
-
-    _motor_controller.disable()
+    _motor_controller.stop()
 
 except Exception as e:
-    print(Fore.RED + 'error:{}'.format(e) + Style.RESET_ALL)
+    _log.error('error:{}'.format(e))
 finally:
-    print(Fore.CYAN + 'complete.' + Style.RESET_ALL)
+    if _motor_controller:
+        _motor_controller.disable()
+        _motor_controller.close()
+    _log.info('complete.')
+
 #EOF

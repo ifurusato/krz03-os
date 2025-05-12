@@ -21,7 +21,6 @@ globals.init()
 from core.logger import Logger, Level
 from core.event import Event
 from core.message import Message
-from core.message_factory import MessageFactory
 from core.publisher import Publisher
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

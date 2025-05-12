@@ -23,6 +23,10 @@ class TriggerBehaviour(Enum):
       toggle:    toggle the suppress/release state of the behaviour
       execute:   execute the behaviour
       ignore:    ignore the trigger
+
+    Note that the behaviour returned doesn't necessarily need to be
+    fixed, e.g., if released it may return SUPPRESS; if suppressed 
+    RELEASE may be returned. This may be more reliable than TOGGLE.
     '''
     SUPPRESS = ( 0, "suppress")
     RELEASE  = ( 1, "release")

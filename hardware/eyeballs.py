@@ -12,6 +12,7 @@
 
 import time
 import random
+from enum import Enum
 from threading import Thread
 
 from core.logger import Level, Logger
@@ -20,6 +21,50 @@ from core.orientation import Orientation
 from hardware.rgbmatrix import RgbMatrix
 from hardware.color import Color
 from hardware.eyeball import Eyeball
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+class PalpebralMovement(Enum):
+    CLEAR      = (  1, "clear",      "clear" )
+    NORMAL     = (  2, "normal",     "normal" )
+    HAPPY      = (  3, "happy",      "happy" )
+    WINK       = (  4, "wink",       "wink" )
+    BLUSH      = (  5, "blush",      "blush" )
+    LOOP_PORT  = (  6, "look-port",  "look_port" )
+    LOOK_STBD  = (  7, "look-stbd",  "look_stbd" )
+    LOOK_UP    = (  8, "look-up",    "look_up" )
+    LOOK_DOWN  = (  9, "look-down",  "look_down" )
+    CONFUSED   = ( 10, "confused",   "confused" )
+    SLEEPY     = ( 11, "sleepy",     "sleepy" )
+    DRUGGED    = ( 12, "drugged",    "drugged" )
+    SAD        = ( 13, "sad",        "sad" )
+    BLANK      = ( 14, "blank",      "blank" )
+    WOW        = ( 15, "wow",        "wow" )
+    DEAD       = ( 16, "dead",       "dead" )
+
+    # ignore the first param since it's already set by __new__
+    def __init__(self, num, name, method):
+        self._index  = num
+        self._name   = name
+        self._method = method
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def method(self):
+        return self._method
+
+    @classmethod
+    def from_name(cls, name: str):
+        '''
+        Return the PalpebralMovement enum for a given name string.
+        '''
+        name = name.strip().lower()
+        for member in cls:
+            if member.name == name:
+                return member
+        raise ValueError(f"'{name}' is not a valid PalpebralMovement name.")
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Eyeballs(Component):
@@ -45,6 +90,19 @@ class Eyeballs(Component):
     def close(self):
         self._rgbmatrix.clear_all()
         self._rgbmatrix.close()
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def show(self, movement: PalpebralMovement):
+        '''
+        Call the method on Eyeballs matching the enum name.
+        '''
+        if movement is None:
+            raise ValueError('no palpebral movement specified.')
+        method_name = movement.method
+        method = getattr(self, method_name, None)
+        if callable(method):
+            return method()
+        raise AttributeError(f"'{self.__class__.__name__}' has no method '{method_name}()'")
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def clear(self):

@@ -139,8 +139,11 @@ class Subscriber(Component, FiniteStateMachine):
         '''
         if not isinstance(event, Event):
             raise TypeError('expected Event argument, not {}'.format(type(event)))
-        self._events.append(event)
-#       self._log.debug('added \'{}\' event to subscriber {} ({:d} events).'.format(event.name, self._name, len(self._events)))
+        if event not in self._events:
+#           self._log.debug('added \'{}\' event to subscriber {} ({:d} events).'.format(event.name, self._name, len(self._events)))
+            self._events.append(event)
+        else:
+            self._log.warning("'{}' event already added to subscriber {}.".format(event.name, self._name))
 
     def print_events(self):
         if self._events == [Event.ANY]:

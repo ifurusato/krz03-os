@@ -45,13 +45,15 @@ class Player(Component):
             cls.__instance._log = Logger('player', Level.INFO)
             Component.__init__(cls.__instance, cls.__instance._log, suppressed=False, enabled=True)
             _config = ConfigLoader(Level.INFO).configure()
-            _cfg = _config['krzos'].get('hardware').get('player')
             if tinyfx is None:
-                print('TinyFX is none, initialising...')
+                cls.__instance._log.info('TinyFX is none, initialising…')
                 cls.__instance._tinyfx_controller = TinyFxController(_config)
             else:
                 cls.__instance._tinyfx_controller = tinyfx
+            _cfg = _config['krzos'].get('hardware').get('player')
             cls.__instance._verbose = _cfg.get('verbose')
+            if not cls.__instance._tinyfx_controller.enabled:
+                cls.__instance._tinyfx_controller.enable()
             cls.__instance._log.info('ready.')
         return cls.__instance
 

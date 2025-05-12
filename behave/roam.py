@@ -6,50 +6,35 @@
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
-# created:  2020-05-19
-# modified: 2025-04-28
+# created:  2025-05-06
+# modified: 2025-05-06
 #
 
-import itertools
-import threading
+import sys, traceback
 import time
+from threading import Thread
+from math import isclose as isclose
+import asyncio
+from datetime import datetime, timedelta
 from colorama import init, Fore, Style
 init()
 
-from core.logger import Logger, Level
+import core.globals as globals
+globals.init()
+
 from core.component import Component
-from core.event import Event
+from core.config_loader import ConfigLoader
+from core.event import Event, Group
+from core.logger import Logger, Level
 from core.orientation import Orientation
 from core.speed import Speed
-from core.util import Util
+from core.subscriber import Subscriber
 from behave.behaviour import Behaviour
-from behave.trigger_behaviour import TriggerBehaviour
-from hardware.roam_sensor import RoamSensor
-#from hardware.motor_controller import MotorController
-
-class FakeMotor(object):
-    def __init__(self, label):
-        self.__target_velocity = 0.0
-        self._label = label
-        self._velocity = 0.0
-    @property
-    def label(self):
-        return self._label
-    @property
-    def velocity(self):
-        return self._velocity
-    @property
-    def target_velocity(self):
-        return self.__target_velocity
-    @target_velocity.setter
-    def target_velocity(self, target_velocity):
-        self.__target_velocity = target_velocity
-    def remove_velocity_multiplier(self, name):
-        pass
+from hardware.distance_sensors import DistanceSensors
+from hardware.differential_drive import DifferentialDrive
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Roam(Behaviour):
-    CLASS_NAME = 'roam'
     '''
     Implements a roaming behaviour. The end result of this Behaviour is to
     provide a forward speed limit for both motors based on a distance value
@@ -64,210 +49,54 @@ class Roam(Behaviour):
     again.
 
     The Roam behaviour is by default suppressed.
-
-    NOTES ....................
-
-    This is a Subscriber to INFRARED_CNTR events, altering the usage of the
-    center analog IR sensor to no longer function solely for obstacle
-    avoidance, but instead set the robot's target velocity as a proportion to
-    the perceived distance. I.e., if the sensor sees nothing at its maximum
-    range the robot's forward target velocity will be set to its maximum. As
-    the sensed distance is lessened the target velocity is likewise, until the
-    robot reaches a minimum distance in which it halts and then goes into an
-    obstacle avoidance behaviour (handled elsewhere).
-
-    This means that we will in the future need to suppress whatever is the
-    normal avoidance behaviour for the center IR sensor when this is active,
-    at least up to the minimum roam distance.
-
-    The external clock is required insofar as the Roam behaviour won't
-    function in its absence, as it is used for resetting the motor's maximum
-    velocity setting.
-
-    This is implemented by adding a lambda function multiplier into the
-    Motor's update_target_velocity method. When absent there is no effect;
-    when closer than the minimum range a lambda that returns zero is set;
-    otherwise a lambda that converts the observed distance (cm) to a ratio
-    is used.
-
-    The motor controller and external clock must be added after initialisation.
-
-    :param config:           the application configuration
-    :param message_bus:      the asynchronous message bus
-    :param message_factory:  the factory for messages (added after init)
-    :param exernal_clock:    the external clock (added after init)
-    :param suppressed:       suppressed state, default True
-    :param enabled:          enabled state, default True
-    :param level:            the optional log level
     '''
-    def __init__(self, config, message_bus=None, message_factory=None, level=Level.INFO):
-        Behaviour.__init__(self, Roam.CLASS_NAME, config, message_bus, message_factory, suppressed=True, enabled=True, level=level)
-
-#       if not isinstance(motor_ctrl, MotorController):
-#           raise ValueError('wrong type for motor_ctrl argument: {}'.format(type(motor_ctrl)))
-#       self._port_motor   = motor_ctrl.get_motor(Orientation.PORT)
-#       self._stbd_motor   = motor_ctrl.get_motor(Orientation.STBD)
-#       self._ext_clock    = external_clock
-#       if self._ext_clock:
-#           self._ext_clock.add_callback(self._tick)
-#           pass
-#       else:
-#           raise Exception('unable to enable roam behaviour: no external clock available.')
-
-        # add VL53L5CX sensor
-        _skip_init = False
-        self._roam_sensor = RoamSensor(config, _skip_init, level)
-
-      
-        # TEMP
-        self._stop_event = threading.Event()
-        self._thread     = None
-        self._port_motor = FakeMotor('port')
-        self._stbd_motor = FakeMotor('stbd')
-
+    def __init__(self, config, message_bus=None, message_factory=None, differential_drive=None, distance_sensors=None, level=Level.INFO):
+        '''
+        :param config:              the application configuration
+        :param message_bus:         the asynchronous message bus
+        :param message_factory:     the factory for creating messages
+        :param differential_drive:  the optional DifferentialDrive object (will create if not provided)
+        :param distance_sensors:    the optional DistanceSensors object (will create if not provided)
+        :param level:               the log level
+        '''
+        self._log = Logger('roam', level)
+        Behaviour.__init__(self, 'roam', config, message_bus, message_factory, suppressed=False, enabled=True, level=level)
+        self.add_events(Event.by_groups([Group.BEHAVIOUR, Group.BUMPER, Group.INFRARED]))
         _cfg = config['krzos'].get('behaviour').get('roam')
-        self._modulo        = 5 # at 20Hz, every 20 ticks is 1 second, every 5 ticks 250ms
-        self._min_distance  = _cfg.get('min_distance')
-        self._max_distance  = _cfg.get('max_distance')
-        self._log.info(Style.BRIGHT + 'configured distance:\t{:4.2f} to {:4.2f}cm'.format(self._min_distance, self._max_distance))
-        self._min_velocity  = _cfg.get('min_velocity')
-        self._max_velocity  = _cfg.get('max_velocity')
-        _velocity_km_hr = 36.0 * ( self._max_velocity / 1000 )
-        self._log.info(Style.BRIGHT + 'configured speed:    \t{:4.2f} to {:4.2f}cm/sec ({:3.1f}km/hr)'.format(
-                self._min_velocity, self._max_velocity, _velocity_km_hr))
-        # zero lambda always returns a zero value
-        self._zero_velocity_ratio = lambda n: self._min_velocity
-        # lambda accepts distance and returns a ratio to multiply against velocity
-        self._velocity_ratio = lambda n: ( ( n - self._min_distance ) / ( self._max_distance - self._min_distance ) )
-        _ratio               = ( self._max_velocity - self._min_velocity ) / ( self._max_distance - self._min_distance )
-        self._log.info(Style.BRIGHT + 'ratio calculation:\t{:4.2f} = ({:4.2f} - {:4.2f}) / ({:4.2f} - {:4.2f})'.format(
-                _ratio, self._max_velocity, self._min_velocity, self._max_distance, self._min_distance))
-        self._log.info(Style.BRIGHT + 'speed/distance ratio:\t{:4.2f} ({:.0%})'.format(_ratio, _ratio))
+        self._loop_delay_ms  = _cfg.get('loop_delay_ms', 50) # 50ms
         self._cruising_speed = Speed.from_string(_cfg.get('cruising_speed'))
-        self._cruising_velocity = float(self._cruising_speed.velocity)
-        self._log.info(Style.BRIGHT + 'cruising speed:      \t{} ({:5.2f}cm/sec)'.format(self._cruising_speed.label, self._cruising_speed.velocity))
-        self._wait_ticks    = _cfg.get('cruise_wait_ticks') # assumes slow tick at 1Hz
-        self._wait_count    = self._wait_ticks
-        self._log.info(Style.BRIGHT + 'cruise wait time:    \t{:4.2f} ticks'.format(self._wait_ticks))
-        self._counter   = itertools.count()
-        self._modulo    = 20 # 100: every 10 ticks 2Hz; 200: 1Hz;
-        # .................................
-        self.add_event(Event.INFRARED_CNTR)
+        self._log.info(Style.BRIGHT + 'cruising speed: \t{} ({:5.2f}cm/sec)'.format(self._cruising_speed.label, self._cruising_speed.velocity))
+        self._default_speed  = self._cruising_speed.proportional
+        self._zero_tolerance = 0.2
+        self._log.info(Style.BRIGHT + 'default speed: \t{}'.format(self._default_speed))
+        self._post_delay     = 500
+        self._last_drive_update = datetime.min
+        self._task           = None 
+        _component_registry = globals.get('component-registry')
+        self._queue_publisher = _component_registry.get('pub:queue')
+        if self._queue_publisher is None:
+            raise Exception('queue publisher not available.')
+        # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+        if distance_sensors:
+            self._sensors = distance_sensors
+        else:
+            self._sensors = DistanceSensors(config)
+        if differential_drive:
+            self._differential = differential_drive
+        else:
+            self._differential = DifferentialDrive(config, level)
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _poll_loop(self, stop_event):
-        self._log.info('starting poll loop…')
-        while not stop_event.is_set(): 
-            _mean = self._roam_sensor.mean
-            self._print_colored_mean(_mean)
-            time.sleep(0.1)
-        self._log.info('exited loop.')
-
-    # TEMP Assuming self._mean is a list of 8 numeric values
-    def _print_colored_mean(self, mean):
-        formatted_values = []
-        for val in mean:
-            if val < 300:
-                # Highlight with RED if less than 64
-                formatted_values.append(Style.BRIGHT + f"{val:<4}" + Style.NORMAL)
-            else:
-                formatted_values.append(f"{val:<4}")
-        print(Fore.CYAN + "mean dist mm:  " + Fore.WHITE + "  ".join(formatted_values) + Style.RESET_ALL)
+    @property
+    def name(self):
+        return Roam.CLASS_NAME
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def execute(self, message):
-        '''
-        The method called by process_message(), upon receipt of a message.
-        :param message:  an Message passed along by the message bus
-        '''
-        if self.suppressed:
-            self._log.info(Style.DIM + 'roam suppressed; message: {}'.format(message.event.label))
-        elif self.enabled:
-            if message.payload.event is Event.INFRARED_CNTR:
-                _distance_cm = message.payload.value
-                # TODO filter on distance here
-#               self._log.info('processing message {}; '.format(message.name)
-#                       + Fore.GREEN + ' distance: {:5.2f}cm\n'.format(_distance_cm))
-                self._set_max_fwd_velocity_by_distance(_distance_cm)
-            else:
-                raise ValueError('expected INFRARED_CNTR event not: {}'.format(message.event.label))
-#           print(Fore.WHITE + "mean dist mm:  {:<4}  {:<4}  {:<4}  {:<4}  {:<4}  {:<4}  {:<4}  {:<4}".format(*_mean) + Style.RESET_ALL)
+    def trigger_behaviour(self):
+        return TriggerBehaviour.EXECUTE
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _set_max_fwd_velocity_by_distance(self, distance_cm):
-        '''
-        This sets the velocity limit for both motors based on the distance
-        argument. Both motors share the same limit, as there's no reason for
-        them to be different.
-        '''
-        print('')
-        self._log.info('setting max fwd velocity from distance of {:<5.2f}cm'.format(distance_cm))
-        if distance_cm >= self._max_distance: # when distance >+ max_distance, no speed limit
-            self._log.info(Fore.YELLOW + 'no speed limit at distance: {:5.2f} > max: {:5.2f}'.format(distance_cm, self._max_distance))
-            self._reset_velocity_multiplier('no obstacle seen at {:>5.2f}cm.'.format(distance_cm))
-        elif distance_cm < self._min_distance: # when distance < min_distance, set zero lambda
-            self._set_velocity_multiplier(Fore.RED + 'too close', self._zero_velocity_ratio(distance_cm))
-            self._wait_count = self._wait_ticks # reset wait
-        else: # otherwise set lambda that returns a ratio of distance to speed as the limit
-            self._set_velocity_multiplier(Fore.WHITE + 'within range at {:5.2f}'.format(distance_cm), self._velocity_ratio(distance_cm))
-            self._wait_count = self._wait_ticks # reset wait
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _get_bar(self):
-        return Util.repeat('█', 4 - self._wait_count) + Util.repeat('░', self._wait_count)
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _tick(self):
-        '''
-        This uses a leaky integrator to set a target forward velocity after
-        waiting at least 3 seconds (configurable). The trigger occurs on the
-        transition of the wait count from 1 to 0, so that at zero it won't
-        continually auto-trigger.
-        '''
-        print('🦋 _tick')
-        if not self.suppressed:
-            _count = next(self._counter)
-            if _count % self._modulo == 0:
-                self._log.info('tick; wait: {} ({:d}); suppressed: {};\t'.format(self._get_bar(), self._wait_count, self.suppressed))
-                # wait ten counts before trying to move
-                if self._wait_count == 0:
-                    self._log.info('roaming;\t'
-                            + Fore.RED   + 'port: {:5.2f}cm/s;\t'.format(self._port_motor.velocity)
-                            + Fore.GREEN + 'stbd: {:5.2f}cm/s'.format(self._stbd_motor.velocity))
-                elif self._wait_count == 1:
-                    self._log.info('cruise triggered.')
-                    self._log.info('cruise triggered at: {} ({:5.2f}cm/sec)'.format(self._cruising_speed.name, self._cruising_velocity))
-                    self._wait_count = 0
-                    # we change state in the transition from wait count 1 to 0 (0 being a steady state)
-                    self._reset_velocity_multiplier('recovered from encounter.')
-                    self._port_motor.target_velocity = self._cruising_velocity
-                    self._stbd_motor.target_velocity = self._cruising_velocity
-                else:
-                    self._log.info('counting down from {:d}...'.format(self._wait_count))
-                    self._wait_count -= 1
-                    pass
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _set_velocity_multiplier(self, reason, lambda_function):
-#       if not isinstance(lambda_function, function):
-#           raise TypeError('expected lambda function, not {}'.format(type(lambda_function)))
-        self._log.info(Fore.GREEN + 'set max fwd velocity: ' + '{}'.format(reason))
-        self._port_motor.add_velocity_multiplier(Roam.CLASS_NAME, lambda_function)
-        self._stbd_motor.add_velocity_multiplier(Roam.CLASS_NAME, lambda_function)
-        pass
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _reset_velocity_multiplier(self, reason):
-        self._log.info(Fore.MAGENTA + '😨 reset max fwd velocity: ' + Fore.YELLOW + '{}'.format(reason))
-        self._port_motor.remove_velocity_multiplier(Roam.CLASS_NAME)
-        self._stbd_motor.remove_velocity_multiplier(Roam.CLASS_NAME)
-        pass
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def get_trigger_behaviour(self, event):
-        return TriggerBehaviour.TOGGLE
-
     @property
     def trigger_event(self):
         '''
@@ -275,54 +104,234 @@ class Roam(Behaviour):
         '''
         return Event.ROAM
 
-    def release(self):
-        '''
-        Releases (un-suppresses) this Component.
-        '''
-        Component.release(self)
-        self._log.info(Fore.GREEN + '💙 roam released.')
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def callback(self):
+        print('🍀 roam callback.')
+        self._log.info('roam callback.')
 
-    def suppress(self):
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def name(self):
+        return 'roam'
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    async def process_message(self, message):
         '''
-        Suppresses this Component.
+        Process the message. If it's not an IDLE message this indicates activity.
+
+        A Subscriber method.
+
+        :param message:  the message to process.
         '''
-        Component.suppress(self)
-        self._reset_velocity_multiplier('suppressing roam.')
-        self._log.info(Fore.BLUE + '💙 roam suppressed.')
+        if message.gcd:
+            raise GarbageCollectedError('cannot process message: message has been garbage collected.')
+        _event = message.event
+        if _event.group is Group.BEHAVIOUR:
+            if _event is Event.AVOID:
+                self._log.info(Fore.WHITE + '🍀 AVOID message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))
+                if _event.value == 'suppress':
+                    self.suppress()
+                # TODO what to do?
+            else:
+                self._log.info(Fore.WHITE + '🍀 {} message {}; '.format(message.event.group.name, message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
+        elif _event.group is Group.INFRARED:
+                self._log.info(Style.DIM + '🍀 INFRARED message {}; '.format(message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
+        elif _event.group is Group.BUMPER:
+                self._log.info(Fore.RED + '🍀🍀🍀 BUMPER message {}; '.format(message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
+                self._handle_stoppage()
+        await Subscriber.process_message(self, message)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def execute(self, message):
+        '''
+        The method called upon each loop iteration.
+
+        :param message:  an optional Message passed along by the message bus
+        '''
+        print('🍀 execute message {}.'.format(message))
+        if self.suppressed:
+            self._log.info(Style.DIM + 'avoid suppressed; message: {}'.format(message.event.label))
+        else:
+            self._log.info('avoid released; message: {}'.format(message.event.label))
+            _payload = message.payload
+            _event   = _payload.event
+            _timestamp = self._message_bus.last_message_timestamp
+            if _timestamp is None:
+                self._log.info('avoid loop execute; no previous messages.')
+            else:
+                _elapsed_ms = (dt.now() - _timestamp).total_seconds() * 1000.0
+                self._log.info('avoid loop execute; {}'.format(Util.get_formatted_time('message age:', _elapsed_ms)))
+            if self.enabled:
+                self._log.info('avoid enabled, execution on message {}; '.format(message.name) + Fore.YELLOW + ' event: {};'.format(_event.label))
+            else:
+                self._log.info('avoid disabled, execution on message {}; '.format(message.name) + Fore.YELLOW + ' event: {};'.format(_event.label))
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    async def _loop_main(self):
+        self._log.info("roam loop started with {}ms delay…".format(self._loop_delay_ms))
+        try:
+            self._accelerate()
+
+            self._differential.set_speeds(self._default_speed, self._default_speed, save=True)
+            while self.enabled:
+                if not self.suppressed:
+                    await self._poll()
+                else:
+                    self._log.info(Fore.WHITE + "suppressed…")
+                await asyncio.sleep(self._loop_delay_ms / 1000)
+                # add a safe exit condition for testing
+                if not self.enabled:
+                    break
+        except asyncio.CancelledError:
+            self._log.info("roam loop cancelled.")
+        except Exception as e:
+            self._log.error('🌭 {} encountered in roam loop: {}\n{}'.format(type(e), e, traceback.format_exc()))
+            self.disable()
+        finally:
+            self._log.info("roam loop stopped.")
+            self._decelerate()
+            self._stop()
+
+    async def _poll(self):
+        if not self.enabled or self._differential is None:
+            self._log.warning("roam has been disabled.")
+            return
+        try: # TEMP
+            self._log.debug("polling…")
+            # get weighted averages for each motor
+            port_avg, stbd_avg = self._sensors.get_weighted_averages()
+            self._log.info(Style.DIM + "port: {:4.2f};\t stbd: {:4.2f}".format(port_avg, stbd_avg))
+            # get current speeds
+            current_port_speed, current_stbd_speed = self._differential.get_speeds()
+            # apply motor commands
+            port_speed = current_port_speed * port_avg
+            stbd_speed = current_stbd_speed * stbd_avg
+            # apply motor commands HERE
+            now = datetime.now()
+            if now - self._last_drive_update >= timedelta(milliseconds=self._post_delay):
+                self._log.info("current: " 
+                    + Style.BRIGHT
+                    + Fore.RED + "port: {:4.2f};\t".format(current_port_speed)
+                    + Fore.GREEN + "stbd: {:4.2f}".format(current_stbd_speed)
+                    + Style.NORMAL
+                    + Fore.CYAN + " averages: "
+                    + Fore.RED + "port: {:4.2f};\t".format(port_avg)
+                    + Fore.GREEN + "stbd: {:4.2f}".format(stbd_avg)
+                    + Fore.CYAN + " to set: "
+                    + Fore.RED + "port: {:4.2f};\t".format(port_speed)
+                    + Fore.GREEN + "stbd: {:4.2f}".format(stbd_speed)
+                )
+                if isclose(port_speed, 0.0, abs_tol=self._zero_tolerance) or isclose(stbd_speed, 0.0, abs_tol=self._zero_tolerance):
+                    # there's no point in setting a speed the motors cannot fulfill
+                    self._differential.set_speeds(0.0, 0.0, save=False)
+                    self._handle_stoppage()
+                else:
+                    self._differential.set_speeds(port_speed, stbd_speed, save=False)
+                self._last_drive_update = now
+        except Exception as e:
+            self._log.error("{} thrown while polling: {}".format(type(e), e))
+            self.disable()
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _accelerate(self):
+        self._log.info("accelerate…")
+        self._differential.send_payload('acce', self._default_speed, self._default_speed, 2.0)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _decelerate(self):
+        self._log.info("decelerate…")
+        self._differential.send_payload('dece', 0.0, 0.0, 2.0)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _stop(self):
+        self._log.info("stop…")
+        self._differential.send_payload('stop', 0.0, 0.0, 0.0)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _handle_stoppage(self):
+        self._log.info(Fore.WHITE + "🍀🌼 stoppage")
+        self._differential.play('boink')
+        # notify Roam that the robot has stopped
+        _message = self.message_factory.create_message(Event.ROAM, 'stopped')
+        self._queue_publisher.put(_message)
+        self._log.info(Fore.WHITE + "published ROAM message: {}".format(_message))
+#       self.suppress() # TODO this should be done by a takeover Behaviour
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):
         '''
-        Enables this behaviour.
+        Enable the roaming behaviour.
         '''
-        self._log.info(Fore.BLUE + '💙 enabling roam…')
-        Behaviour.enable(self)
-        if self._roam_sensor:
-            self._roam_sensor.enable()
-        self._thread = threading.Thread(name='poll-loop', target=self._poll_loop, args=(self._stop_event,))
+        self._sensors.enable()
+        self._differential.enable()
+
+#       self._task = asyncio.create_task(self._loop_main())
+        self._loop_instance = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop_instance)
+        self._task = self._loop_instance.create_task(self._loop_main())
+        # start the loop in a background thread
+        self._thread = Thread(target=self._loop_instance.run_forever, daemon=True)
         self._thread.start()
-        self._log.info(Fore.BLUE + '💙 enabled roam.')
+
+        Component.enable(self)
+        self._log.info("roam enabled.")
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def suppress(self):
+        '''
+        Suppresses this Component.
+        '''
+        print('🐱🐱🐱🐱🐱 ROAM suppress ............................')
+        Behaviour.suppress(self)
+
     def disable(self):
         '''
-        Disables this behaviour.
+        Disable the roaming behaviour.
         '''
-        self._log.info(Fore.BLUE + '💙 disabling roam…')
-        Behaviour.disable(self)
-        if self._stop_event:
-            self._stop_event.set()
-            self._log.info('cancelled thread.')
-        if self._roam_sensor:
-            self._roam_sensor.disable()
-        self._reset_velocity_multiplier('disabling roam.')
-        self._log.info(Fore.BLUE + '💙 roam disabled.')
+        print('🐱🐱 ROAM disable ............................')
+        if not self.enabled:
+            self._log.warning("already disabled.")
+            return
+        self._log.info(Fore.YELLOW + "roam disabling…")
+        # cancel the async task
+        if self._task and not self._task.done():
+            self._task.cancel()
 
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def close(self):
-        if self._roam_sensor:
-            self._roam_sensor.close()
-        Behaviour.close(self)
-        self._log.info(Fore.BLUE + '💙 roam closed.')
+        # Wait for task cancellation and shutdown properly
+        if self._task:
+            try:
+                asyncio.get_event_loop().run_until_complete(self._task)  # await cancellation cleanly
+            except Exception:
+                pass # suppress expected cancellation errors
+
+        self._sensors.disable()
+        self._differential.disable()
+        Component.disable(self)
+        self._log.info("disabled.")
+
+#   async def wait_until_finished(self):
+#       if self._task:
+#           await self._task
+
+    def wait_until_finished(self):
+        '''
+        Wait synchronously for the async loop to complete, handling Ctrl-C gracefully.
+        '''
+        if self._task:
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If an event loop is already running, we need to await the task without creating a new loop
+                    while not self._task.done():
+                        time.sleep(0.1) # allow other tasks to run (including awareness of Ctrl-C) while we wait for the task to finish
+                else:
+                    # if no event loop is running, we can safely use `run_until_complete`
+                    loop.run_until_complete(self._task)
+            except KeyboardInterrupt:
+                self._log.warning("interrupted by user (Ctrl-C); stopping roam.")
+                self.disable()
+            except Exception as e:
+                self._log.error("{} raised while waiting for the loop to finish: {}".format(type(e), e))
+                raise e
 
 #EOF

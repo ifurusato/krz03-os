@@ -32,7 +32,7 @@ _sounds = [
     ('skid-fzzt',       'skid-fzzt.wav'),
     ('sonic-bat',       'sonic-bat.wav'),
     ('telemetry',       'telemetry.wav'),
-    ('tika-tika',       'chatter-1.wav'),
+    ('tika-tika',       'tika-tika.wav'),
     ('tsk-tsk-tsk',     'tsk-tsk-tsk.wav'),
     ('tick',            'tick.wav'),
     ('tweak',           'tweak.wav'),

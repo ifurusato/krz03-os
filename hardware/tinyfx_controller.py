@@ -173,7 +173,7 @@ class TinyFxController(Component):
             return self._read_response()
         except TimeoutError as te:
             self._log.error("transfer timeout: {}".format(te))
-            return Response.RUNTIME_ERROR
+            return Response.CONNECTION_ERROR
         except Exception as e:
             self._log.error('{} thrown sending data to tiny fx: {}\n{}'.format(type(e), e, traceback.format_exc()))
         return Response.UNKNOWN_ERROR
@@ -200,7 +200,7 @@ class TinyFxController(Component):
         '''
         Write a completion code to the I2C bus.
         '''
-        self._log.info("writing completion code...")
+        self._log.info("writing completion code…")
         self._i2cbus.write_byte_data(self._i2c_address, self._config_register, 0xFF)
         self._log.debug("write complete.")
 
@@ -225,75 +225,5 @@ class TinyFxController(Component):
         self.send_data('off')
         self._i2cbus.close()
         self._log.info('closed.')
-
-    # direct commands ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
-_old="""
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Response(Enum):
-    # this variable must include all entries, whitespace-delimited
-    __order__ = " INIT OKAY BAD_ADDRESS BAD_REQUEST OUT_OF_SYNC INVALID_CHAR SOURCE_TOO_LARGE UNVALIDATED EMPTY_PAYLOAD PAYLOAD_TOO_LARGE UNKNOWN_ERROR PIR_ACTIVE PIR_IDLE "
-    '''
-    Provides an enumeration of response codes from the I2C Slave.
-    These match the hard-coded values in the MicroPython file.
-
-    # response codes: (note: extension values <= 0x4F are considered 'okay')
-    '''
-    INIT              = (  0, 'init',              0x10 )
-    OKAY              = (  1, 'okay',              0x4F ) # all acceptable values less than 0x4F
-
-    BAD_ADDRESS       = (  2, 'bad address',       0x71 )
-    BAD_REQUEST       = (  3, 'bad request',       0x72 )
-    OUT_OF_SYNC       = (  4, 'out of sync',       0x73 )
-    INVALID_CHAR      = (  5, 'invalid character', 0x74 )
-    SOURCE_TOO_LARGE  = (  6, 'source too large',  0x75 )
-    UNVALIDATED       = (  7, 'unvalidated',       0x76 )
-    EMPTY_PAYLOAD     = (  8, 'empty payload',     0x77 )
-    PAYLOAD_TOO_LARGE = (  9, 'payload too large', 0x78 )
-    UNKNOWN_ERROR     = ( 10, 'unknown error',     0x79 )
-
-    # example extension
-    PIR_ACTIVE        = ( 11, 'pir active',        0x30 )
-    PIR_IDLE          = ( 12, 'pir idle',          0x31 )
-
-    # ignore the first param since it's already set by __new__
-    def __init__(self, num, name, value):
-        self._num   = num
-        self._name  = name
-        self._value = value
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def num(self):
-        '''
-        Returns the original enum numerical value. This is not particularly
-        useful and should not be considered stable across versions.
-        '''
-        return self._num
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def name(self):
-        return self._name
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def value(self):
-        return self._value
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @staticmethod
-    def from_value(value):
-        for r in Response:
-            if value == r.value:
-                return r
-#       print("from value: '{}'".format(value))
-        return Response.UNKNOWN_ERROR
-#       raise NotImplementedError
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def __str__(self):
-        return 'Response.{}; value={:4.2f}'.format(self.name, self._value )
-"""
 
 #EOF

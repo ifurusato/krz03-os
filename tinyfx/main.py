@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-14
-# modified: 2025-05-06
+# modified: 2025-04-30
 #
 # control for TinyFX
 
@@ -201,6 +201,10 @@ class Controller(object):
                 self._log.error('I2C slave error {} on transaction: {}'.format(se.code, se))
                 self.reset_transaction()
                 self.errors += 1
+            except OSError as e:
+                self._log.error('OS error on transaction: {}; resetting machine!'.format(e))
+                # reboot
+                machine.reset()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def process_buffer(self, buffer):
@@ -222,8 +226,10 @@ class Controller(object):
             self._log.error("runtime error: '{}'…".format(rte))
             raise I2CSlaveError(RESPONSE_RUNTIME_ERROR, "runtime error processing payload: {}".format(rte))
         except Exception as e:
-            self._log.error("unknown error: '{}'…".format(e))
-            raise I2CSlaveError(RESPONSE_UNKNOWN_ERROR, "unknown error processing payload: {}".format(e))
+            self._log.error("{} raised processing buffer: '{}'…".format(type(e), e))
+            raise I2CSlaveError(RESPONSE_UNKNOWN_ERROR, "{} raised processing payload: {}".format(type(e), e))
+        except OSError as e:
+            raise e
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def process_payload(self, payload):
@@ -389,12 +395,17 @@ try:
     controller.start()
     _log.info('controller started.')
 except Exception as e:
-    _log.error('error in main loop: {}'.format(e))
+    _log.error('error in main loop: {}; resetting machine [from main]'.format(e))
     # reboot
     machine.reset()
 
 # this only happens following an 'exit', which also disables the I2C slave
 _log.info('exit: loop complete.')
-show_color(COLOR_DARK_RED)
+show_color(COLOR_RED)
+if tiny:
+    tiny.wav.play_wav('buzz.wav')
+utime.sleep(1.0)
+# so we reset...
+machine.reset()
 
 #EOF

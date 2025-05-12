@@ -54,13 +54,16 @@ class BehaviourManager(Subscriber):
         self._message_factory  = message_factory
         if not isinstance(level, Level):
             raise ValueError('wrong type for log level argument: {}'.format(type(level)))
+        _cfg = config['krzos'].get('behaviour').get('behaviour_manager')
+        _autoload = _cfg.get('autoload', False) 
         self._level            = level
         self._active_behaviour = None
         self._was_suppressed   = None
         self._clip_event_list  = True #_cfg.get('clip_event_list') # used for printing only
         self._clip_length      = 42   #_cfg.get('clip_length')
         self._behaviours       = {}
-        self._find_behaviours()
+        if _autoload:
+            self._find_behaviours()
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -69,6 +72,7 @@ class BehaviourManager(Subscriber):
         Loads a dictionary with instantiated Behaviours found in the current
         directory.
         '''
+        self._log.info(Fore.WHITE + '💩 finding behaviours…')
         current_dir = os.path.dirname(os.path.abspath(__file__))
         for filename in os.listdir(current_dir):
             if filename.endswith(".py") and filename != os.path.basename(__file__):
@@ -90,7 +94,7 @@ class BehaviourManager(Subscriber):
                                         self._level
                                     )
                                     # we don't need this if there is self-registration
-                                    self._behaviours[_behaviour.name] = _behaviour
+                                    self.register_behaviour(_behaviour)
                     except Exception as e:
                         stack_trace = traceback.format_exc()
                         self._log.error("{} thrown loading filename '{}' for behaviour: {}\n{}".format(type(e), filename, e, stack_trace))
@@ -108,7 +112,7 @@ class BehaviourManager(Subscriber):
         '''
         for _key, _behaviour in self._behaviours.items():
             _behaviour.start()
-            self._log.debug('started behaviour {}'.format(_behaviour.name))
+            self._log.info('🐸 started behaviour {}'.format(_behaviour.name))
         Subscriber.start(self)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -209,8 +213,15 @@ class BehaviourManager(Subscriber):
             _behaviour.close()
             self._log.info('{} behaviour closed.'.format(_behaviour.name))
 
+#   # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+#   def register_behaviour(self, behaviour):
+#       '''
+#       Register a Behaviour with the manager.
+#       '''
+#       self._behaviours[_behaviour.name] = _behaviour
+
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _register_behaviour(self, behaviour):
+    def register_behaviour(self, behaviour):
         '''
         Register a Behaviour with the manager, referenced by its trigger
         Event type.
@@ -221,9 +232,10 @@ class BehaviourManager(Subscriber):
         if behaviour.trigger_event not in self._behaviours:
             self._behaviours[behaviour.name] = behaviour
             self.add_event(behaviour.trigger_event)
-            self._log.info("added behaviour '{}' linked to trigger event '{}' to manager.".format(behaviour.name, behaviour.trigger_event))
+            self._log.info("🍕 added behaviour '{}' linked to trigger event '{}' to manager.".format(behaviour.name, behaviour.trigger_event))
         else:
-            self._log.info("behaviour '{}' already registered with manager.".format(behaviour.name))
+            self._log.warning("behaviour '{}' already registered with manager.".format(behaviour.name))
+            raise Exception("behaviour '{}' already registered with manager.".format(behaviour.name)) # TEMP
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _get_behavior_for_trigger_event(self, event):
@@ -266,10 +278,11 @@ class BehaviourManager(Subscriber):
         # get behaviour for event type
         _behaviour = self._get_behavior_for_trigger_event(_event)
         if _behaviour is None:
-            self._log.warning('cannot act: no behaviour associated with event {}, from {:d} registered behaviours ({}).'.format(
-                    _event.name, len(self._behaviours), self._behaviours))
+            self._log.warning("🌺🌺 🌺🌺 cannot act: no behaviour associated with event '{}', from {:d} registered behaviours:".format(
+                    _event.name, len(self._behaviours)))
+            self.print_info()
             return
-#       _trigger_behaviour = _behaviour.get_trigger_behaviour(event)
+#       _trigger_behaviour = _behaviour.trigger_behaviour
 #       self._log.info('designated trigger behaviour: ' + Fore.YELLOW + '{}'.format(_trigger_behaviour.name))
         if self._active_behaviour is None: # no current active behaviour so just release this one
             self._log.info('💔 no current behaviour; releasing behaviour (suppressed? {}) '.format(_behaviour.suppressed) + Fore.YELLOW + '{}'.format(_behaviour.name))
@@ -321,6 +334,7 @@ class BehaviourManager(Subscriber):
         self._log.info('  suppressed:\t' + Fore.YELLOW + '{}'.format(self.suppressed))
         self._log.info('  behaviours:')
         for _key, _behaviour in self._behaviours.items():
+            print("🐳 type of key: {}".format(type(_key)))
             if self._clip_event_list:
                 _event_list = Util.ellipsis(_behaviour.print_events(), self._clip_length)
             else:
@@ -330,6 +344,8 @@ class BehaviourManager(Subscriber):
                     + Fore.YELLOW + '{}\t'.format(_behaviour.enabled)
                     + Fore.CYAN + 'suppressed: '
                     + Fore.YELLOW + '{}\t'.format(_behaviour.suppressed)
+                    + Fore.CYAN + 'trigger: '
+                    + Fore.YELLOW + '{}\t'.format(_behaviour.trigger_behaviour)
                     + Fore.CYAN + 'listening for: '
                     + Fore.YELLOW + '{}'.format(_event_list))
 

@@ -525,7 +525,20 @@ class MessageBus(Component):
             if len(tasks) > 0:
                 self._log.info('nacking outstanding tasks:')
                 for task in tasks:
-                    self._log.info('  task: {}'.format(task.get_name()))
+                    self._log.info('🍄 task: {}'.format(task.get_name()))
+                    # stop each loop…
+                    coro = task.get_coro()
+                    instance = getattr(coro, '__self__', None)
+                    if instance is self:
+                        continue # skip tasks that belong to this MessageBus
+                    # call disable() if available
+                    if hasattr(instance, 'disable'):
+                        self._log.info('🍄 task: {}, instance: {}'.format(task.get_name(), instance))
+                        try:
+                            await instance.disable()
+                        except Exception as e:
+                            self._log.warning('{} raised while disabling instance {}: {e}'.format(type(e), instance, e))
+
                 self._log.info('cancelling {:d} outstanding tasks…'.format(len(tasks)))
                 [task.cancel() for task in tasks]
                 _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=True) # return_exceptions was False

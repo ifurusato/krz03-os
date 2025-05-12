@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-20
-# modified: 2025-04-28
+# modified: 2025-05-10
 #
 # DO NOT EDIT: This is an auto-generated file.
 #
@@ -33,24 +33,24 @@ class Sound(Enum):
     #                idx   name            mnemonic     dur(s)  filename           description
     SILENCE       = (  1, 'silence',      'SILENCE',      0.0, 'silence.wav',      'silence.')
     ARMING_TONE   = (  2, 'arming-tone',  'ARMING_TONE',  1.0, 'arming-tone.wav',  'arming-tone - beep.')
-    BEEP          = (  3, 'beep',         'BEEP',         1.0, 'beep.wav',         'beep.')
+    BEEP          = (  3, 'beep',         'BEEP',         1.0, 'beep.wav',         'beep: general notification.')
     BEEP_HI       = (  4, 'beep-hi',      'BEEP_HI',      1.0, 'beep-hi.wav',      'hi beep.')
     BLIP          = (  5, 'blip',         'BLIP',         1.0, 'blip.wav',         'blip.')
     BOINK         = (  6, 'boink',        'BOINK',        1.0, 'boink.wav',        'boink.')
     BUZZ          = (  7, 'buzz',         'BUZZ',         1.0, 'buzz.wav',         'buzz.')
     CHATTER       = (  8, 'chatter',      'CHATTER',      1.0, 'chatter.wav',      'chatter.')
     CHIRP         = (  9, 'chirp',        'CHIRP',        2.0, 'chirp.wav',        'chirp.')
-    CRICKET       = ( 10, 'cricket',      'CRICKET',      1.0, 'cricket.wav',      'cricket.')
+    CRICKET       = ( 10, 'cricket',      'CRICKET',      1.0, 'cricket.wav',      'cricket: pir triggered.')
     DIT_A         = ( 11, 'dit-a',        'DIT_A',        0.0, 'dit_a.wav',        'dit A.')
     DIT_B         = ( 12, 'dit-b',        'DIT_B',        0.0, 'dit_b.wav',        'dit B.')
     DIT_C         = ( 13, 'dit-c',        'DIT_C',        0.0, 'dit_c.wav',        'dit C.')
     DWERP         = ( 14, 'dwerp',        'DWERP',        1.0, 'dwerp.wav',        'dwerp.')
     EARPIT        = ( 15, 'earpit',       'EARPIT',       1.0, 'earpit.wav',       'ear pit.')
     GLINCE        = ( 16, 'glince',       'GLINCE',       1.0, 'glince.wav',       'glince.')
-    GLITCH        = ( 17, 'glitch',       'GLITCH',       1.0, 'glitch.wav',       'glitch.')
+    GLITCH        = ( 17, 'glitch',       'GLITCH',       1.0, 'glitch.wav',       'glitch: activity.')
     GWOLP         = ( 18, 'gwolp',        'GWOLP',        1.0, 'gwolp.wav',        'gwolp.')
-    HONK          = ( 19, 'honk',         'HONK',         1.0, 'honk.wav',         'honk.')
-    HZAH          = ( 20, 'hzah',         'HZAH',         1.0, 'hzah.wav',         'hzah.')
+    HONK          = ( 19, 'honk',         'HONK',         1.0, 'honk.wav',         'honk: bumper hit.')
+    HZAH          = ( 20, 'hzah',         'HZAH',         1.0, 'hzah.wav',         'hzah: mission accomplished.')
     IPPURT        = ( 21, 'ippurt',       'IPPURT',       1.0, 'ippurt.wav',       'ippurt.')
     ITIZ          = ( 22, 'itiz',         'ITIZ',         1.0, 'itiz.wav',         'itiz.')
     IZIT          = ( 23, 'izit',         'IZIT',         1.0, 'izit.wav',         'izit.')
@@ -60,9 +60,9 @@ class Sound(Enum):
     SIGH          = ( 27, 'sigh',         'SIGH',         1.0, 'sigh.wav',         'sigh.')
     SKADOODLE     = ( 28, 'skadoodle',    'SKADOODLE',    1.0, 'skadoodle.wav',    'skadoodle: gamepad connected.')
     SKID_FZZT     = ( 29, 'skid-fzzt',    'SKID_FZZT',    1.0, 'skid-fzzt.wav',    'skid-fzzt.')
-    SONIC_BAT     = ( 30, 'sonic-bat',    'SONIC_BAT',    1.0, 'sonic-bat.wav',    'sonic bat beep.')
+    SONIC_BAT     = ( 30, 'sonic-bat',    'SONIC_BAT',    1.0, 'sonic-bat.wav',    'sonic bat: krzosd started.')
     TELEMETRY     = ( 31, 'telemetry',    'TELEMETRY',    1.0, 'telemetry.wav',    'telemetry.')
-    TIKA_TIKA     = ( 32, 'tika-tika',    'TIKA_TIKA',    1.0, 'chatter-1.wav',    'tika-tika.')
+    TIKA_TIKA     = ( 32, 'tika-tika',    'TIKA_TIKA',    1.0, 'tika-tika.wav',    'tika-tika.')
     TSK_TSK_TSK   = ( 32, 'tsk-tsk-tsk',  'TSK_TSK_TSK',  1.0, 'tsk-tsk-tsk.wav',  'tsk-tsk-tsk.')
     TICK          = ( 34, 'tick',         'TICK',         0.0, 'tick.wav',         'tick.')
     TWEAK         = ( 35, 'tweak',        'TWEAK',        1.0, 'tweak.wav',        'tweak.')
@@ -111,6 +111,15 @@ class Sound(Enum):
         return self._description
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @classmethod
+    def from_name(cls, name: str):
+        name = name.lower()
+        for sound in cls:
+            if sound.value[1].lower() == name:
+                return sound
+        raise ValueError("no sound enum with name '{}'".format(name))
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @staticmethod
     def from_index(value):
         if isinstance(value, Sound):
@@ -123,15 +132,6 @@ class Sound(Enum):
             if _index == s.index:
                 return s
         raise NotImplementedError
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @classmethod
-    def from_name(cls, name: str):
-        name = name.lower()
-        for sound in cls:
-            if sound.value[1].lower() == name:
-                return sound
-        raise ValueError(f"No Sound enum with name '{name}'")
 
     # JSON serialisation ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @staticmethod

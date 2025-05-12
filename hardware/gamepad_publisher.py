@@ -35,6 +35,12 @@ class GamepadPublisher(Publisher):
     _PUBLISH_LOOP_NAME = '__gamepad_publish_loop'
     '''
     A Publisher that connects with a bluetooth-based gamepad.
+
+    :param config:            the application configuration
+    :param message_bus:       the asynchronous message bus
+    :param message_factory:   the factory for creating messages
+    :param exit_on_complete:  if True, exit upon completion
+    :param level:             the logging level
     '''
     def __init__(self, config, message_bus, message_factory, exit_on_complete=True, level=Level.INFO):
         Publisher.__init__(self, 'gamepad', config, message_bus, message_factory, suppressed=False, level=level)

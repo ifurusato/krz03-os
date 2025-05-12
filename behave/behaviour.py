@@ -46,7 +46,7 @@ class Behaviour(ABC, Subscriber):
         # register this behaviour with behaviour manager (we can't import it due to circular ref)
         _behaviour_manager = message_bus.get_subscriber('behave-mgr') # BehaviourManager.CLASS_NAME
         if _behaviour_manager:
-            _behaviour_manager._register_behaviour(self)
+            _behaviour_manager.register_behaviour(self)
         else:
             self._log.warning('no behaviour manager found: {} operating as subscriber only.'.format(self.name))
         self._log.info('ready.')
@@ -73,11 +73,13 @@ class Behaviour(ABC, Subscriber):
 #       self._log.debug('processed message {}'.format(message.name))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @abstractmethod
-    def get_trigger_behaviour(self, event):
+    @property
+#   @abstractmethod
+    def trigger_behaviour(self, event):
         '''
-        Returns the trigger behaviour (Enum) for this Behaviour, i.e., what
-        should occur when the trigger event in the argument occurs.
+        An abstract method (though unmarked) that returns the trigger behaviour
+        (Enum) for this Behaviour, i.e., what should occur when the trigger
+        event in the argument occurs.
         '''
         raise NotImplementedError('trigger_behavior() must be implemented in subclasses.')
 
@@ -101,7 +103,7 @@ class Behaviour(ABC, Subscriber):
         if not isinstance(message, Message):
             raise ValueError('expected Message, not {}.'.format(type(_event)))
         _event = message.event
-        _trigger_behaviour = self.get_trigger_behaviour(_event)
+        _trigger_behaviour = self.trigger_behaviour
         if _trigger_behaviour is TriggerBehaviour.SUPPRESS:
             self._log.info('on trigger: SUPPRESS')
             self.suppress()

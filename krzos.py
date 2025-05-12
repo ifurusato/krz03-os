@@ -62,10 +62,12 @@ from hardware.button import Button
 from hardware.eyeballs import Eyeballs
 from hardware.sound import Sound
 from hardware.player import Player
+from hardware.differential_drive import DifferentialDrive # subclass of MotorController
 
 from behave.behaviour_manager import BehaviourManager
-#from behave.avoid import Avoid
-#from behave.roam import Roam
+from behave.macro_processor import MacroProcessor
+from behave.avoid import Avoid
+from behave.roam import Roam
 #from behave.swerve import Swerve
 #from behave.moth import Moth
 #from behave.sniff import Sniff
@@ -119,6 +121,9 @@ class KRZOS(Component, FiniteStateMachine):
         self._icm20948                    = None
         self._imu                         = None
         self._behaviour_mgr               = None
+        self._macro_processor             = None
+        self._avoid                       = None
+        self._roam                        = None
 #       self._gamepad_controller          = None
         self._motor_controller            = None
         self._tinyfx                      = None
@@ -129,6 +134,9 @@ class KRZOS(Component, FiniteStateMachine):
         self._closing                     = False
         self._log.info('oid: {}'.format(id(self)))
         self._log.info('initialised.')
+
+
+
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def configure(self, arguments):
@@ -198,10 +206,6 @@ class KRZOS(Component, FiniteStateMachine):
         if _cfg.get('enable_system_subscriber') or 's' in _subs:
             self._system_subscriber = SystemSubscriber(self._config, self, self._message_bus, level=self._level)
 
-#       if _cfg.get('enable_macro_subscriber'):
-#           if not self._macro_publisher:
-#               raise ConfigurationError('macro subscriber requires macro publisher.')
-#           self._macro_subscriber = MacroSubscriber(self._config, self._message_bus, self._message_factory, self._macro_publisher, self._level)
 #       if _cfg.get('enable_omni_subscriber') or 'o' in _subs:
 #           self._omni_subscriber = OmniSubscriber(self._config, self._message_bus, level=self._level) # reacts to IR sensors
 
@@ -247,6 +251,8 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_tinyfx_controller = _cfg.get('enable_tinyfx_controller')
         if _enable_tinyfx_controller:
+            if not _i2c_scanner.has_hex_address(['0x45']):
+                raise Exception('tinyfx not available on I2C bus.')
             from hardware.tinyfx_controller import TinyFxController
             self._log.info('configure tinyfx controller…')
             self._tinyfx = TinyFxController(self._config)
@@ -256,7 +262,7 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_pushbutton= _cfg.get('enable_pushbutton')
         if _enable_pushbutton:
-            self._pushbutton = Button(self._config, 'trig', pin=17, momentary=True) # TODO from config
+            self._pushbutton = Button(self._config, 'trig', pin=17, momentary=True)
             if _enable_tinyfx_controller:
                 Player.play(Sound.BEEP)
             self._pushbutton.add_callback(self._await_start)
@@ -275,20 +281,34 @@ class KRZOS(Component, FiniteStateMachine):
         # and finally, the garbage collector:
         self._garbage_collector = GarbageCollector(self._config, self._message_bus, level=self._level)
 
+        # create motor controller ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+        _enable_motor_controller = _cfg.get('enable_motor_controller')
+        if _enable_motor_controller:
+            if not _i2c_scanner.has_hex_address(['0x44']):
+                raise Exception('motor 2040 not available on I2C bus.')
+            self._motor_controller = DifferentialDrive(self._config, level=self._level)
+
         # create behaviours ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-        _enable_behaviours = _cfg.get('enable_behaviours') or Util.is_true(arguments.behave)
+
+        _behaviour_cfg = self._config['krzos'].get('behaviour')
+        if _behaviour_cfg.get('enable_macro_processor'):
+            self._macro_processor = MacroProcessor(self._config, self._motor_controller, self._eyeballs, level=self._level)
+
+        _enable_behaviours = _behaviour_cfg.get('enable_behaviours') or Util.is_true(arguments.behave)
         if _enable_behaviours:
             self._behaviour_mgr = BehaviourManager(self._config, self._message_bus, self._message_factory, self._level) # a specialised subscriber
             self._log.info('behaviour manager enabled.')
+
+            if _behaviour_cfg.get('enable_avoid_behaviour'):
+                self._avoid = Avoid(self._config, self._message_bus, self._message_factory, level=self._level)
+            if _behaviour_cfg.get('enable_roam_behaviour'):
+                self._roam  = Roam(self._config, self._message_bus, self._message_factory, self._motor_controller, self._distance_sensors)
+
             _ = '''
             _bcfg = self._config['krzos'].get('behaviour')
             # create and register behaviours (listed in priority order)
-            if _bcfg.get('enable_avoid_behaviour'):
-                self._avoid  = Avoid(self._config, self._message_bus, self._message_factory, self._motor_controller,
-                        external_clock=self._external_clock, level=self._level)
-            if _bcfg.get('enable_roam_behaviour'):
-                self._roam   = Roam(self._config, self._message_bus, self._message_factory, self._motor_controller,
-                        external_clock=self._external_clock, level=self._level)
+
             if _bcfg.get('enable_swerve_behaviour'):
                 self._swerve = Swerve(self._config, self._message_bus, self._message_factory, self._motor_controller,
                         self._external_clock, level=self._level)

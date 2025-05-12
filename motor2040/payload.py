@@ -27,11 +27,11 @@ class Payload:
 
     Each packet is exactly 15 bytes (120 bits):
 
-      * command (4 chars): ASCII string identifying the command (e.g., 'fore', 'stop')
-      * port speed (3 digits): encoded from a float in the range 0.0–1.0, as "000"–"100"
-      * starboard speed (3 digits): same as port speed
-      * duration (4 digits): optional; float 0.0–999.9, encoded as "0000"–"9999" (tenths of a second)
-      * CRC (1 byte): a CRC-8-CCITT checksum for error detection
+      * Command (4 chars): ASCII string identifying the command (e.g., 'fore', 'stop')
+      * Port speed (3 digits): Encoded from a float in the range 0.0–1.0, as "000"–"100"
+      * Starboard speed (3 digits): Same as port speed
+      * Duration (4 digits): Optional; float 0.0–999.9, encoded as "0000"–"9999" (tenths of a second)
+      * CRC (1 byte): A CRC-8-CCITT checksum for error detection
 
     All values are encoded into a 14-character ASCII payload, followed by a 1-byte
     checksum. This format ensures the message is compact, human-readable for debugging,
@@ -42,7 +42,7 @@ class Payload:
         Initialize a Payload instance with a command, port and starboard speeds, and an optional duration.
         '''
         if len(command) != 4:
-            raise ValueError("command must be exactly 4 characters.")
+            raise ValueError("Command must be exactly 4 characters.")
         self._command = command
         self._port = self._validate_speed(port, "port")
         self._stbd = self._validate_speed(stbd, "stbd")
@@ -71,9 +71,6 @@ class Payload:
 
     @property
     def duration(self):
-        '''
-        Return the duration value as a float (0.0–99.0).
-        '''
         return self._duration
 
     @property
@@ -89,8 +86,8 @@ class Payload:
         '''
         if value is None:
             value = Payload.DEFAULT_SPEED
-        if not (0.0 <= value <= 1.0):
-            raise ValueError(f"{label}_speed must be between 0.0 and 1.0, got {value}")
+        if not (-1.0 <= value <= 1.0):
+            raise ValueError(f"{label}_speed must be between -1.0 and 1.0, got {value}")
         return value
 
     def _validate_duration(self, value):
@@ -172,10 +169,10 @@ class Payload:
         '''
         duration_str = f"{self._duration:.1f}s" if self._duration is not None else "None"
         return (
-            f"command: '{self._command}', "
-            f"port speed: {self._port:.2f}, "
-            f"stbd speed: {self._stbd:.2f}, "
-            f"duration: {duration_str}"
+            f"Command: '{self._command}', "
+            f"Port Speed: {self._port:.2f}, "
+            f"Starboard Speed: {self._stbd:.2f}, "
+            f"Duration: {duration_str}"
         )
 
     def __repr__(self):
