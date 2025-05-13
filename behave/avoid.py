@@ -56,7 +56,7 @@ class Avoid(Behaviour):
         return Avoid.CLASS_NAME
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def get_trigger_behaviour(self, event):
+    def get_trigger_behaviour(self):
         return TriggerBehaviour.EXECUTE
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -89,7 +89,6 @@ class Avoid(Behaviour):
         if message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected.')
         _event = message.event
-        print('💮 process message {}.'.format(message))
         if _event.group is Group.BEHAVIOUR:
             if _event is Event.ROAM:
                 self._log.info(Fore.WHITE + '💮 ROAM message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))

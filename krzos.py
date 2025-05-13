@@ -536,7 +536,7 @@ class KRZOS(Component, FiniteStateMachine):
                 self._task_selector.close()
             if self._queue_publisher:
                 self._queue_publisher.disable()
-            PigpiodUtility.stop_pigpiod()
+#           PigpiodUtility.stop_pigpiod()
             Component.disable(self)
             FiniteStateMachine.disable(self)
             self._log.info('disabled.')

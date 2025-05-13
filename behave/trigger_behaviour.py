@@ -33,6 +33,7 @@ class TriggerBehaviour(Enum):
     TOGGLE   = ( 2, "toggle")
     EXECUTE  = ( 3, "execute")
     IGNORE   = ( 4, "ignore")
+    NONE     = ( 5, "none") # unimplemented
 
     # ignore the first param since it's already set by __new__
     def __init__(self, num, name):

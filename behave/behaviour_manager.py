@@ -339,13 +339,14 @@ class BehaviourManager(Subscriber):
                 _event_list = Util.ellipsis(_behaviour.print_events(), self._clip_length)
             else:
                 _event_list = _behaviour.print_events()
+            print(Fore.YELLOW + 'trigger: {}'.format(_behaviour.trigger_behaviour))
             self._log.info(Fore.YELLOW + '\t{}'.format(_behaviour.name)
                     + Fore.CYAN + ' {}enabled: '.format((' ' * max(0, (10 - len(_behaviour.name)))))
                     + Fore.YELLOW + '{}\t'.format(_behaviour.enabled)
                     + Fore.CYAN + 'suppressed: '
                     + Fore.YELLOW + '{}\t'.format(_behaviour.suppressed)
-                    + Fore.CYAN + 'trigger: '
-                    + Fore.YELLOW + '{}\t'.format(_behaviour.trigger_behaviour)
+#                   + Fore.CYAN + 'trigger: '
+#                   + Fore.YELLOW + '{}\t'.format(_behaviour.trigger_behaviour)
                     + Fore.CYAN + 'listening for: '
                     + Fore.YELLOW + '{}'.format(_event_list))
 

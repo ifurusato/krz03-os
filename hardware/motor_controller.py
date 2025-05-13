@@ -13,6 +13,7 @@
 
 import traceback
 from smbus import SMBus
+import datetime as dt
 from colorama import init, Fore, Style
 init()
 
@@ -56,6 +57,8 @@ class MotorController(Component):
                 self._tinyfx.enable()
         else:
             self._log.warning('tinyFX already existed.')
+        self._last_send_time = None  # timestamp of last send
+        self._min_send_interval = dt.timedelta(milliseconds=100)  # 100ms minimum send interval
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -137,9 +140,21 @@ class MotorController(Component):
         '''
         Writes the payload argument to the Motor 2040.
         '''
+        if not self.enabled:
+            raise MotorControllerError('cannot write payload: motor controller not enabled.')
+        now = dt.datetime.now()
+        if self._last_send_time:
+            elapsed = now - self._last_send_time
+            if elapsed < self._min_send_interval:
+                self._log.warning(
+                    "write_payload skipped: only {:.1f}ms since last send (minimum is {:.1f}ms)".format(
+                        elapsed.total_seconds() * 1000,
+                        self._min_send_interval.total_seconds() * 1000
+                    )
+                )
+                return Response.SKIPPED
         try:
-            if not self.enabled:
-                raise MotorControllerError('cannot write payload: motor controller not enabled.')
+
             if verbose:
                 self._log.debug("writing payload: " + Fore.WHITE + "'{}'".format(payload.to_string()))
             # send over I2C
@@ -154,13 +169,14 @@ class MotorController(Component):
                 self._log.debug("response: {}".format(_response.name))
             else:
                 self._log.error("error response: {}".format(_response.name))
+            self._last_send_time = now # update only on success
             return _response
         except TimeoutError as te:
             self._log.error("transfer timeout: {}".format(te))
             return Response.CONNECTION_ERROR
         except Exception as e:
             self._log.error('{} raised writing payload: {}\n{}'.format(type(e), e, traceback.format_exc()))
-            return Response.CONNECTION_ERROR
+            return Response.RUNTIME_ERROR
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):

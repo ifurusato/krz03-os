@@ -13,6 +13,7 @@
 import time
 import sys
 import traceback
+import datetime as dt
 from smbus2 import SMBus
 from colorama import init, Fore, Style
 init()
@@ -36,6 +37,8 @@ class TinyFxController(Component):
         self._i2cbus             = None
         self._config_register    = 1
         self._max_payload_length = 32
+        self._last_send_time = None  # timestamp of last send
+        self._min_send_interval = dt.timedelta(milliseconds=100)  # 100ms minimum send interval
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -165,12 +168,25 @@ class TinyFxController(Component):
         '''
         if not self.enabled:
             raise Exception('not enabled.')
+        now = dt.datetime.now()
+        if self._last_send_time:
+            elapsed = now - self._last_send_time
+            if elapsed < self._min_send_interval:
+                self._log.warning(
+                    "send_data skipped: only {:.1f}ms since last send (minimum is {:.1f}ms)".format(
+                        elapsed.total_seconds() * 1000,
+                        self._min_send_interval.total_seconds() * 1000
+                    )
+                )
+                return Response.SKIPPED
         try:
             payload = self._convert_to_payload(data)
             self._log.info("send payload '{}' as data: '{}'".format(payload, data))
             self._write_payload(payload)
             self._write_completion_code()
-            return self._read_response()
+            _response = self._read_response()
+            self._last_send_time = now # update only on success
+            return _response
         except TimeoutError as te:
             self._log.error("transfer timeout: {}".format(te))
             return Response.CONNECTION_ERROR

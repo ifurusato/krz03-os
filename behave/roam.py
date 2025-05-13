@@ -127,8 +127,9 @@ class Roam(Behaviour):
             raise GarbageCollectedError('cannot process message: message has been garbage collected.')
         _event = message.event
         if _event.group is Group.BEHAVIOUR:
+            self._log.info(Fore.WHITE + '🦀 🦀 BEHAVIOUR group message.')
             if _event is Event.AVOID:
-                self._log.info(Fore.WHITE + '🍀 AVOID message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))
+                self._log.info(Fore.WHITE + '🦀 🦀 AVOID message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))
                 if _event.value == 'suppress':
                     self.suppress()
                 # TODO what to do?

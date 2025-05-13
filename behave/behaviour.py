@@ -74,14 +74,14 @@ class Behaviour(ABC, Subscriber):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
-#   @abstractmethod
-    def trigger_behaviour(self, event):
+    def trigger_behaviour(self):
         '''
         An abstract method (though unmarked) that returns the trigger behaviour
         (Enum) for this Behaviour, i.e., what should occur when the trigger
         event in the argument occurs.
         '''
-        raise NotImplementedError('trigger_behavior() must be implemented in subclasses.')
+        return TriggerBehaviour.NONE
+#       raise NotImplementedError('trigger_behavior() must be implemented in subclasses.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @abstractmethod
