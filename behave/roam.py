@@ -13,6 +13,7 @@
 import sys, traceback
 import time
 from threading import Thread
+from threading import Event as ThreadEvent # differentiate from our Event
 from math import isclose as isclose
 import asyncio
 from datetime import datetime, timedelta
@@ -35,6 +36,7 @@ from hardware.differential_drive import DifferentialDrive
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Roam(Behaviour):
+    STOPPED = 'stopped'
     '''
     Implements a roaming behaviour. The end result of this Behaviour is to
     provide a forward speed limit for both motors based on a distance value
@@ -55,13 +57,13 @@ class Roam(Behaviour):
         :param config:              the application configuration
         :param message_bus:         the asynchronous message bus
         :param message_factory:     the factory for creating messages
-        :param differential_drive:  the optional DifferentialDrive object (will create if not provided)
+        :param differential_drive:  the optional DifferentialDrive/motor controller object (will not create)
         :param distance_sensors:    the optional DistanceSensors object (will create if not provided)
         :param level:               the log level
         '''
         self._log = Logger('roam', level)
         Behaviour.__init__(self, 'roam', config, message_bus, message_factory, suppressed=False, enabled=True, level=level)
-        self.add_events(Event.by_groups([Group.BEHAVIOUR, Group.BUMPER, Group.INFRARED]))
+        self.add_event(Event.AVOID)
         _cfg = config['krzos'].get('behaviour').get('roam')
         self._loop_delay_ms  = _cfg.get('loop_delay_ms', 50) # 50ms
         self._cruising_speed = Speed.from_string(_cfg.get('cruising_speed'))
@@ -84,7 +86,9 @@ class Roam(Behaviour):
         if differential_drive:
             self._differential = differential_drive
         else:
-            self._differential = DifferentialDrive(config, level)
+#           self._differential = DifferentialDrive(config, level)
+            self._differential = None
+            pass
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -93,16 +97,9 @@ class Roam(Behaviour):
         return Roam.CLASS_NAME
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def trigger_behaviour(self):
-        return TriggerBehaviour.EXECUTE
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
-    def trigger_event(self):
-        '''
-        This returns the event used to enable/disable the behaviour manually.
-        '''
-        return Event.ROAM
+    def is_ballistic(self):
+        return False
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def callback(self):
@@ -126,20 +123,13 @@ class Roam(Behaviour):
         if message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected.')
         _event = message.event
-        if _event.group is Group.BEHAVIOUR:
-            self._log.info(Fore.WHITE + '🦀 🦀 BEHAVIOUR group message.')
-            if _event is Event.AVOID:
-                self._log.info(Fore.WHITE + '🦀 🦀 AVOID message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))
-                if _event.value == 'suppress':
-                    self.suppress()
+        if _event is Event.AVOID:
+            if _event.value == 'suppress':
+                self._log.info(Fore.WHITE + "🍀 🍀 🍀 processing AVOID message with event: '{}'; value: {}".format(_event.name, _event.value))
+                self.suppress()
                 # TODO what to do?
             else:
-                self._log.info(Fore.WHITE + '🍀 {} message {}; '.format(message.event.group.name, message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
-        elif _event.group is Group.INFRARED:
-                self._log.info(Style.DIM + '🍀 INFRARED message {}; '.format(message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
-        elif _event.group is Group.BUMPER:
-                self._log.info(Fore.RED + '🍀🍀🍀 BUMPER message {}; '.format(message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
-                self._handle_stoppage()
+                self._log.info(Fore.BLUE + "ignored AVOID message with event: '{}'; value: {}".format(_event.name, _event.value))
         await Subscriber.process_message(self, message)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -151,30 +141,31 @@ class Roam(Behaviour):
         '''
         print('🍀 execute message {}.'.format(message))
         if self.suppressed:
-            self._log.info(Style.DIM + 'avoid suppressed; message: {}'.format(message.event.label))
+            self._log.info(Style.DIM + 'roam suppressed; message: {}'.format(message.event.label))
         else:
-            self._log.info('avoid released; message: {}'.format(message.event.label))
+            self._log.info('roam execute; message: {}'.format(message.event.label))
             _payload = message.payload
             _event   = _payload.event
             _timestamp = self._message_bus.last_message_timestamp
             if _timestamp is None:
-                self._log.info('avoid loop execute; no previous messages.')
+                self._log.info('roam loop execute; no previous messages.')
             else:
                 _elapsed_ms = (dt.now() - _timestamp).total_seconds() * 1000.0
-                self._log.info('avoid loop execute; {}'.format(Util.get_formatted_time('message age:', _elapsed_ms)))
+                self._log.info('roam loop execute; {}'.format(Util.get_formatted_time('message age:', _elapsed_ms)))
             if self.enabled:
-                self._log.info('avoid enabled, execution on message {}; '.format(message.name) + Fore.YELLOW + ' event: {};'.format(_event.label))
+                self._log.info('roam enabled, execution on message {}; '.format(message.name) + Fore.YELLOW + ' event: {};'.format(_event.label))
             else:
-                self._log.info('avoid disabled, execution on message {}; '.format(message.name) + Fore.YELLOW + ' event: {};'.format(_event.label))
+                self._log.info('roam disabled, execution on message {}; '.format(message.name) + Fore.YELLOW + ' event: {};'.format(_event.label))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def _loop_main(self):
         self._log.info("roam loop started with {}ms delay…".format(self._loop_delay_ms))
         try:
             self._accelerate()
-
-            self._differential.set_speeds(self._default_speed, self._default_speed, save=True)
-            while self.enabled:
+            if self._differential:
+                self._differential.set_speeds(self._default_speed, self._default_speed, save=True)
+#           while self.enabled:
+            while not self._stop_event.is_set():
                 if not self.suppressed:
                     await self._poll()
                 else:
@@ -193,9 +184,13 @@ class Roam(Behaviour):
             self._decelerate()
             self._stop()
 
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def _poll(self):
-        if not self.enabled or self._differential is None:
+        if not self.enabled:
             self._log.warning("roam has been disabled.")
+            return
+        elif self._differential is None:
+            self._log.warning("no motor controller available.")
             return
         try: # TEMP
             self._log.debug("polling…")
@@ -236,26 +231,32 @@ class Roam(Behaviour):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _accelerate(self):
         self._log.info("accelerate…")
-        self._differential.send_payload('acce', self._default_speed, self._default_speed, 2.0)
+        if self._differential:
+            self._differential.send_payload('acce', self._default_speed, self._default_speed, 2.0)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _decelerate(self):
         self._log.info("decelerate…")
-        self._differential.send_payload('dece', 0.0, 0.0, 2.0)
+        if self._differential:
+            self._differential.send_payload('dece', 0.0, 0.0, 2.0)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _stop(self):
         self._log.info("stop…")
-        self._differential.send_payload('stop', 0.0, 0.0, 0.0)
+        if self._differential:
+            self._differential.send_payload('stop', 0.0, 0.0, 0.0)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _handle_stoppage(self):
-        self._log.info(Fore.WHITE + "🍀🌼 stoppage")
-        self._differential.play('boink')
+        '''
+        Called when it's clear that the robot has stopped.
+        '''
+        self._log.info(Fore.WHITE + "🌼 stoppage   🌼  🌼  🌼")
+#       self._differential.play('boink')
         # notify Roam that the robot has stopped
-        _message = self.message_factory.create_message(Event.ROAM, 'stopped')
+        _message = self.message_factory.create_message(Event.ROAM, Roam.STOPPED)
         self._queue_publisher.put(_message)
-        self._log.info(Fore.WHITE + "published ROAM message: {}".format(_message))
+        self._log.info(Fore.WHITE + "🌼 published ROAM message: {}".format(_message))
 #       self.suppress() # TODO this should be done by a takeover Behaviour
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -264,16 +265,16 @@ class Roam(Behaviour):
         Enable the roaming behaviour.
         '''
         self._sensors.enable()
-        self._differential.enable()
+        if self._differential:
+            self._differential.enable()
 
-#       self._task = asyncio.create_task(self._loop_main())
         self._loop_instance = asyncio.new_event_loop()
+        self._stop_event = ThreadEvent()
         asyncio.set_event_loop(self._loop_instance)
         self._task = self._loop_instance.create_task(self._loop_main())
         # start the loop in a background thread
         self._thread = Thread(target=self._loop_instance.run_forever, daemon=True)
         self._thread.start()
-
         Component.enable(self)
         self._log.info("roam enabled.")
 
@@ -282,57 +283,33 @@ class Roam(Behaviour):
         '''
         Suppresses this Component.
         '''
-        print('🐱🐱🐱🐱🐱 ROAM suppress ............................')
         Behaviour.suppress(self)
+        self._log.info("🐱 roam suppressed.")
 
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
         '''
         Disable the roaming behaviour.
         '''
-        print('🐱🐱 ROAM disable ............................')
         if not self.enabled:
             self._log.warning("already disabled.")
             return
         self._log.info(Fore.YELLOW + "roam disabling…")
-        # cancel the async task
-        if self._task and not self._task.done():
-            self._task.cancel()
-
-        # Wait for task cancellation and shutdown properly
-        if self._task:
-            try:
-                asyncio.get_event_loop().run_until_complete(self._task)  # await cancellation cleanly
-            except Exception:
-                pass # suppress expected cancellation errors
-
+        # set stop flag
+        self._stop_event.set()
+        time.sleep(0.1)
+        if self._loop_instance:
+            self._loop_instance.stop()
+            self._loop_instance.call_soon_threadsafe(self._shutdown)
         self._sensors.disable()
-        self._differential.disable()
+        if self._differential:
+            self._differential.disable()
         Component.disable(self)
         self._log.info("disabled.")
 
-#   async def wait_until_finished(self):
-#       if self._task:
-#           await self._task
-
-    def wait_until_finished(self):
-        '''
-        Wait synchronously for the async loop to complete, handling Ctrl-C gracefully.
-        '''
-        if self._task:
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # If an event loop is already running, we need to await the task without creating a new loop
-                    while not self._task.done():
-                        time.sleep(0.1) # allow other tasks to run (including awareness of Ctrl-C) while we wait for the task to finish
-                else:
-                    # if no event loop is running, we can safely use `run_until_complete`
-                    loop.run_until_complete(self._task)
-            except KeyboardInterrupt:
-                self._log.warning("interrupted by user (Ctrl-C); stopping roam.")
-                self.disable()
-            except Exception as e:
-                self._log.error("{} raised while waiting for the loop to finish: {}".format(type(e), e))
-                raise e
+    def _shutdown(self):
+        if not self._task.done():
+            self._task.cancel()
+        self._loop_instance.stop()
 
 #EOF

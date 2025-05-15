@@ -185,13 +185,15 @@ class TinyFxController(Component):
             self._write_payload(payload)
             self._write_completion_code()
             _response = self._read_response()
-            self._last_send_time = now # update only on success
             return _response
         except TimeoutError as te:
             self._log.error("transfer timeout: {}".format(te))
             return Response.CONNECTION_ERROR
         except Exception as e:
             self._log.error('{} thrown sending data to tiny fx: {}\n{}'.format(type(e), e, traceback.format_exc()))
+        finally:
+            self._last_send_time = now # update only upon success or error
+
         return Response.UNKNOWN_ERROR
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -209,6 +211,8 @@ class TinyFxController(Component):
         '''
         Write the payload to the I2C bus.
         '''
+        if payload is None:
+            raise TypeError('null payload.')
         self._i2cbus.write_block_data(self._i2c_address, self._config_register, payload)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

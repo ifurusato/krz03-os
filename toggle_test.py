@@ -34,8 +34,12 @@ try:
     print('begin')
 
     _config = ConfigLoader(Level.INFO).configure()
-    _pin = 18
+    # lever/pushbutton = GPIO17
+    # toggle 1         = GPIO18
+    # toggle 2         = GPIO21
+    _pin = 17
     _btn = Button(_config, pin=_pin, level=Level.INFO)
+    _btn.enable()
 
     _old_value = None
     while True:

@@ -23,48 +23,48 @@ from hardware.button import Button
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-_log = Logger('main', Level.INFO)
-
-enabled = True
-count = 0
-
 def shutdown(arg):
     global enabled, count
     count += 1
-    _log.info(Fore.BLUE + 'arg: {}; count: {}'.format(arg, count) + Style.RESET_ALL)
+    _log.info(Fore.BLUE + 'pushed? {}; arg: {}; count: {}'.format(_button.pushed(), arg, count) + Style.RESET_ALL)
     if count > 2:
         _log.info(Fore.GREEN + 'shutdown!' + Style.RESET_ALL)
         enabled = False
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-def main():
-    global enabled
-    try:
 
-        _momentary = True
-        _pin = 17
+_log   = Logger('main', Level.INFO)
+_button = None
+enabled = True
+count   = 0
 
-        _log.info('button begin…')
-        _config = ConfigLoader(Level.INFO).configure()
-        _button = Button(config=_config, pin=_pin, momentary=_momentary, level=Level.INFO)
-        _button.add_callback(shutdown, 500)
+try:
 
-        _old_value = None
-        while enabled:
-            time.sleep(0.1)
+    _momentary = True
 
-    except KeyboardInterrupt:
-        print('\n')
-        print('Ctrl-C caught, exiting…')
-    except RuntimeError as rte:
-        _log.error('runtime error in test: {}'.format(rte))
-    except Exception as e:
-        _log.error('error in test: {}'.format(e))
-        traceback.print_exc(file=sys.stdout)
-    finally:
-        pass
+    # lever/pushbutton = GPIO17
+    # toggle 1         = GPIO18
+    # toggle 2         = GPIO21
+    _pin = 17
+
+    _log.info('button begin…')
+    _config = ConfigLoader(Level.INFO).configure()
+    _button = Button(config=_config, pin=_pin, momentary=_momentary, level=Level.INFO)
+    _button.add_callback(shutdown, 700)
+
+    _old_value = None
+    while enabled:
+        time.sleep(0.1)
+
+except KeyboardInterrupt:
+    print('\n')
+    print('Ctrl-C caught, exiting…')
+except RuntimeError as rte:
+    _log.error('runtime error in test: {}'.format(rte))
+except Exception as e:
+    _log.error('error in test: {}'.format(e))
+    traceback.print_exc(file=sys.stdout)
+finally:
+    pass
         
-if __name__== "__main__":
-    main()
-    
 #EOF

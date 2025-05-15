@@ -69,6 +69,7 @@ class MessageBus(Component):
         self._publishers             = []
         self._subscribers            = []
         self._start_callbacks        = []
+        self._stop_callbacks         = []
         self._loop                   = None
         self._last_message_timestamp = None
         self._clip_event_list        = _cfg.get('clip_event_list') # used for printing only
@@ -82,6 +83,13 @@ class MessageBus(Component):
         Add a callback to be executed upon start of the message bus.
         '''
         self._start_callbacks.append(callback)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def add_callback_on_stop(self, callback):
+        '''
+        Add a callback to be executed upon stop of the message bus.
+        '''
+        self._stop_callbacks.append(callback)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -506,53 +514,6 @@ class MessageBus(Component):
         elif not isinstance(_exception, SystemExit):
             self._log.warning("message bus already shut down: {}".format(_exception))
 
-    # shutdown ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
-    async def shutdown(self, signal=None):
-        '''
-        Cleanup tasks tied to the service's shutdown.
-        '''
-        try:
-            self._log.info(Fore.MAGENTA + 'starting shutdown procedure…')
-            if signal:
-                self._log.info('received exit signal {}…'.format(signal))
-            if self.loop.is_running():
-                self._log.info('stopping event loop…')
-                self.loop.stop()
-                self._log.info('event loop stopped.')
-            # cancel all running tasks
-            tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-            if len(tasks) > 0:
-                self._log.info('nacking outstanding tasks:')
-                for task in tasks:
-                    self._log.info('🍄 task: {}'.format(task.get_name()))
-                    # stop each loop…
-                    coro = task.get_coro()
-                    instance = getattr(coro, '__self__', None)
-                    if instance is self:
-                        continue # skip tasks that belong to this MessageBus
-                    # call disable() if available
-                    if hasattr(instance, 'disable'):
-                        self._log.info('🍄 task: {}, instance: {}'.format(task.get_name(), instance))
-                        try:
-                            await instance.disable()
-                        except Exception as e:
-                            self._log.warning('{} raised while disabling instance {}: {e}'.format(type(e), instance, e))
-
-                self._log.info('cancelling {:d} outstanding tasks…'.format(len(tasks)))
-                [task.cancel() for task in tasks]
-                _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=True) # return_exceptions was False
-                self._log.info('gathered tasks: {}'.format(_gathered_tasks))
-            else:
-                self._log.info('no outstanding tasks.')
-            self._log.info(Fore.MAGENTA + 'closing async generators…')
-            await loop.shutdown_asyncgens()
-            self._log.info(Fore.MAGENTA + 'async sleeping…')
-            await asyncio.sleep(0.3)
-            self._log.info(Fore.MAGENTA + 'continuing to shut down…')
-        except Exception as e:
-            self._log.error('{} thrown shutting down krzos: {}'.format(type(e), e))
-
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def __close_message_bus(self):
         '''
@@ -562,12 +523,23 @@ class MessageBus(Component):
         This returns a value only in order to force currency.
         '''
         try:
+            self._log.info(Fore.MAGENTA + '🥣 BEGIN. __close_message_bus…')
             if self.loop:
+                # preemptively calling shut down, waiting for completion
+                self._log.info(Fore.MAGENTA + '🥣 shutting down event loop…')
+                try:
+                    future = asyncio.run_coroutine_threadsafe(self.shutdown(), self._loop)
+                    future.result(timeout=5)
+                except Exception as e:
+                    self._log.error('🥣 {} raised shutting down event loop: {}'.format(type(e), e))
+                # the following is failsafe
                 if self.loop.is_running():
+                    self._log.info(Fore.MAGENTA + '🥣 2. __close_message_bus…')
                     self._log.info('stopping event loop…')
                     self.loop.stop()
                     self._log.info('event loop stopped.')
                 if not self.loop.is_running() and not self.loop.is_closed():
+                    self._log.info(Fore.MAGENTA + '🥣 3. __close_message_bus…')
                     try:
                         self._log.info('closing event loop…')
                         self.loop.close()
@@ -575,13 +547,66 @@ class MessageBus(Component):
                     except Exception as e:
                         self._log.error('error closing event loop: {}'.format(e))
             else:
+                self._log.info(Fore.MAGENTA + '🥣 4. __close_message_bus…')
                 self._log.warning('no message bus event loop!')
         except KeyboardInterrupt:
             print('\n')
             self._log.error('Ctrl-C caught; exiting…')
         except Exception as e:
             self._log.error('error stopping event loop: {}'.format(e))
+        finally:
+            self._log.info(Fore.MAGENTA + '🥣 finally: __close_message_bus…')
         return True
+
+    # shutdown ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+    async def shutdown(self, signal=None):
+        '''
+        Cleanup tasks tied to the service's shutdown.
+        '''
+        try:
+            self._log.info(Fore.MAGENTA + 'starting shutdown procedure…')
+            if signal:
+                self._log.info(Fore.MAGENTA + 'received exit signal {}…'.format(signal))
+            if self.loop.is_running():
+                self._log.info(Fore.MAGENTA + 'stopping event loop…')
+                self.loop.stop()
+                self._log.info(Fore.MAGENTA + 'event loop stopped.')
+            # cancel all running tasks
+            tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+            if len(tasks) > 0:
+                self._log.info(Fore.MAGENTA + 'nacking outstanding tasks:')
+                for task in tasks:
+                    self._log.info(Fore.MAGENTA + '🍄 task: {}'.format(task.get_name()))
+                    # stop each loop…
+                    coro = task.get_coro()
+                    instance = getattr(coro, '__self__', None)
+                    if instance is self:
+                        continue # skip tasks that belong to this MessageBus
+                    # call disable() if available
+                    if hasattr(instance, 'disable'):
+                        self._log.info(Fore.MAGENTA + '🍄 task: {}, instance: {}'.format(task.get_name(), instance))
+                        try:
+                            await instance.disable()
+                        except Exception as e:
+                            self._log.warning('{} raised while disabling instance {}: {e}'.format(type(e), instance, e))
+
+                self._log.info(Fore.MAGENTA + 'cancelling {:d} outstanding tasks…'.format(len(tasks)))
+                [task.cancel() for task in tasks]
+                _gathered_tasks = await asyncio.gather(*tasks, return_exceptions=True) # return_exceptions was False
+                self._log.info(Fore.MAGENTA + 'gathered tasks: {}'.format(_gathered_tasks))
+            else:
+                self._log.info(Fore.MAGENTA + 'no outstanding tasks.')
+            self._log.info(Fore.MAGENTA + 'closing async generators…')
+            await loop.shutdown_asyncgens()
+            self._log.info(Fore.MAGENTA + 'async sleeping…')
+            await asyncio.sleep(0.3)
+            self._log.info(Fore.MAGENTA + 'continuing to shut down…')
+        except Exception as e:
+            self._log.error('{} thrown shutting down krzos: {}'.format(type(e), e))
+        finally:
+            print(Fore.MAGENTA + 'shutdown complete.' + Style.RESET_ALL)
+            self._log.info(Fore.MAGENTA + 'shutdown complete.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get_task_by_name(self, name):
@@ -649,6 +674,9 @@ class MessageBus(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
         '''
+        This initially calls any stop callbacks prior to the rest of the
+        shutdown procedure.
+
         This disables and closes all publishers and subscribers as there is
         no expectation to be able to re-enable the message bus once disabled.
         This also simplifies the shutdown sequence.
@@ -658,6 +686,8 @@ class MessageBus(Component):
         elif not self.enabled:
             self._log.warning('already disabled.')
         else:
+            for _callback in self._stop_callbacks:
+                _callback()
             Component.disable(self)
             self._log.info('disabling…')
             self._log.info('closing {:d} publishers…'.format(len(self._publishers)))
@@ -696,6 +726,7 @@ class MessageBus(Component):
             self._closing = True
             Component.close(self) # will call disable()
             self._closing = False
+            self._log.info('🍉 running? {}'.format(self.is_running))
             self._log.info('closed.')
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

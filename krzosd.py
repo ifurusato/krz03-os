@@ -48,6 +48,7 @@ from hardware.sound import Sound
 
 WORK_DIR = '/home/pi/workspaces/workspace-krzos/krzos/'
 PID_FILE = WORK_DIR + '.krzosd.pid'
+GPIO_PIN = 21
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 def shutdown(signum, frame):  # signum and frame are mandatory
@@ -55,23 +56,27 @@ def shutdown(signum, frame):  # signum and frame are mandatory
     sys.exit(0)
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class PButton(object):
-    PIN = 8
-    def __init__(self, level=Level.INFO):
-        self._log = Logger('pbtn', level)
+class ToggleSwitch(object):
+    def __init__(self, pin=GPIO_PIN, level=Level.INFO):
+        self._log = Logger('switch', level)
+        self._pin = pin
         GPIO.setwarnings(False)
+        GPIO.cleanup()
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(PButton.PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self._pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     def pushed(self):
-        _value = not GPIO.input(PButton.PIN)
+        _value = not GPIO.input(self._pin)
         time.sleep(0.1)
         return _value
+
+    def close(self):
+        GPIO.cleanup(self._pin)
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 class KrzosDaemon(object):
     '''
-    Monitors a push switch connected to a GPIO pin.
+    Monitors a switch connected to a GPIO pin.
 
     This state is used to enable or disable the KRZOS.
     '''
@@ -80,7 +85,7 @@ class KrzosDaemon(object):
         self._log = Logger("krzosd", self._level)
         self._log.info(Fore.WHITE + 'initialising krzosd…')
         self._use_subprocess = True # if True, start KRZOS as subprocess, otherwise call directly
-        self._pushbutton = PButton(level=Level.INFO)
+        self._toggle_switch  = ToggleSwitch(pin=GPIO_PIN, level=Level.INFO)
         self._counter   = itertools.count()
         self._old_state = False
         self._krzos     = None
@@ -100,14 +105,14 @@ class KrzosDaemon(object):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def read_state(self):
         '''
-        Reads the state of the push button switch then returns the value.
+        Reads the state of the switch then returns the value.
         This only calls enable() or disable() if the value has changed
         since last reading.
         '''
         if next(self._counter) % 30 == 0: # call every second, log every 30 seconds
 #           self._log.info(Fore.WHITE + 'krzos daemon waiting…')
             pass
-        self._state = self._pushbutton.pushed()
+        self._state = self._toggle_switch.pushed()
         self._log.debug(Fore.WHITE + 'read state: {}'.format(self._state))
         if self._state is not self._old_state:
             if self._state:
@@ -134,7 +139,7 @@ class KrzosDaemon(object):
             Player.instance().play(Sound.SONIC_BAT)
             self._log.info(Fore.WHITE + 'starting krzos at {}…'.format(self._get_timestamp()))
             if self._use_subprocess:
-                _result = subprocess.check_output(['krzos.py', '-s', '-g'])
+                _result = subprocess.check_output(['krzos.py', '-s']) # include -m for motors, -g for gamepad
                 _lines = _result.splitlines()
                 for _bytes in _lines:
                     _line = _bytes.decode('utf-8').strip() # convert byte array to string
@@ -142,7 +147,7 @@ class KrzosDaemon(object):
                         self._log.info(Fore.WHITE + Style.DIM + "line: '{}'".format(_line))
             else:
                 self._krzos = KRZOS(level=Level.INFO)
-                self._krzos.configure(parse_args(['-s', '-g']))
+                self._krzos.configure(parse_args(['-s'])) # include -g for gamepad
                 self._krzos.start()
                 pass
             self._log.info(Fore.WHITE + 'krzos started.')
@@ -160,6 +165,8 @@ class KrzosDaemon(object):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
         self._log.info(Fore.WHITE + 'closing krzosd…')
+        if self._toggle_switch:
+            self._toggle_switch.close()
         if self._krzos is not None:
             self._log.info(Fore.WHITE + 'closing krzos…')
             self._krzos.close()

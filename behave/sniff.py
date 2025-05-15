@@ -21,8 +21,6 @@ from core.event import Event, Group
 from core.util import Util
 from core.subscriber import Subscriber
 from behave.behaviour import Behaviour
-from behave.trigger_behaviour import TriggerBehaviour
-#from hardware.motor_controller import MotorController
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Sniff(Behaviour):
@@ -38,7 +36,7 @@ class Sniff(Behaviour):
     :param level:           the optional log level
     '''
     def __init__(self, config, message_bus=None, message_factory=None, level=Level.INFO):
-        Behaviour.__init__(self, 'sniff', config, message_bus, message_factory, suppressed=False, enabled=True, level=level)
+        Behaviour.__init__(self, 'sniff', config, message_bus, message_factory, suppressed=True, enabled=False, level=level)
         self.add_events([Event.by_group(Group.IDLE)])
         _cfg = self._config['krzos'].get('behaviour').get('sniff')
         self._log.info('ready.')
@@ -50,16 +48,8 @@ class Sniff(Behaviour):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
-    def trigger_behaviour(self):
-        return TriggerBehaviour.TOGGLE
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def trigger_event(self):
-        '''
-        This returns the event used to enable/disable the behaviour manually.
-        '''
-        return Event.SNIFF
+    def is_ballistic(self):
+        return False
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def callback(self):

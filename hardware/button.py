@@ -34,7 +34,7 @@ class Button(Component):
     This introduces a slight delay on returning a value in order
     to debounce the switch.
 
-    This supports RPi.GPIO, gpiod, gpiozero, or IO Expander implementations:
+    This supports RPi.GPIO, lgpio, gpiod, gpiozero, or IO Expander implementations:
 
       * https://pypi.org/project/RPi.GPIO/
             or: https://pypi.org/project/rpi-lgpio/
@@ -43,136 +43,149 @@ class Button(Component):
       * https://github.com/pimoroni/ioe-python
 
     :param config:        the application configuration
+    :param name:          the optional button name (used for logging)
     :param pin:           the optional pin number (overrides config)
     :param impl:          the chosen implementation for GPIO handling
-    :param waitable:      if True support wait()
+    :param waitable:      if True support wait(), only supported on gpio|lgpio
+    :param momentary:     if True, a momentary switch (only used in gpiod)
     :param level:         the log level
     '''
-    def __init__(self, config, name='', pin=None, impl=None, waitable=False, momentary=False, level=Level.INFO):
+    def __init__(self, config, name='btn', pin=None, impl=None, waitable=False, momentary=False, level=Level.INFO):
         _cfg = config['krzos'].get('hardware').get('button')
         self._pin = _cfg.get('pin') if pin is None else pin
         self._log = Logger('btn:{}-{}'.format(self._pin, name), level)
         Component.__init__(self, self._log, suppressed=False, enabled=False)
         self._impl = impl if impl is not None else _cfg.get('impl') # either 'gpio', 'gpiod', 'gpiozero' or 'ioe'
-        self._ioe = None
-        self._pi  = None
-        self._stop_event = None
-        self._momentary            = momentary
-        self._pigpio_callback      = None
-        self._gpiod_monitor_thread = None
+        self._ioe                  = None       # used only with IO Expander
+        self._pi                   = None       # used only with pigpiod
+        self._pigpio_callback      = None       # used only with pigpiod
+        self._stop_event           = None       # used only with gpiod
+        self._momentary            = momentary  # used only with gpiod
+        self._gpiod_monitor_thread = None       # used only with gpiod
         self._callbacks = [] # list of callback functions
-        # configuration:
-        if waitable:
-            import RPi.GPIO as GPIO
 
-            # set up flashing LED
-            self._led_pin = _cfg.get('led_pin')
-            GPIO.setwarnings(False)
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(self._led_pin, GPIO.OUT)
-            self._counter = itertools.count()
-            self._toggle = itertools.cycle([True, False])
-            self._log.info('ready: waitable pushbutton on GPIO pin {:d} using RPi.GPIO'.format(self._pin))
+        # configuration: ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+        match self._impl:
+            case 'gpio' | 'lgpio': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-        if self._impl == 'gpio':
+                # import RPi.GPIO as GPIO (already done)
 
-            import RPi.GPIO as GPIO
+                if waitable:
+                    # set up flashing LED
+                    self._led_pin = _cfg.get('led_pin')
+                    GPIO.setwarnings(False)
+                    GPIO.setmode(GPIO.BCM)
+                    GPIO.setup(self._led_pin, GPIO.OUT)
+                    self._counter = itertools.count()
+                    self._toggle = itertools.cycle([True, False])
+                    self._log.info('ready: waitable pushbutton on GPIO pin {:d} using RPi.GPIO'.format(self._pin))
 
-            GPIO.setwarnings(False)
-            GPIO.cleanup()
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(self._pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-            _edge_detect = _cfg.get('edge_detect')
-            if _edge_detect == 'falling':
-                self._edge_detect = GPIO.FALLING # triggered when turned on
-            elif _edge_detect == 'rising':
-                self._edge_detect = GPIO.RISING # triggered when turned off
-            elif _edge_detect == 'both':
-                self._edge_detect = GPIO.BOTH # triggered when turned on or off
-            else:
-                raise ValueError("unrecognised edge detect: '{}'".format(_edge_detect))
-            self._log.info("ready: pushbutton on GPIO pin {:d} using RPi.GPIO with {} edge detect.".format(self._pin, _edge_detect))
+                GPIO.setwarnings(False)
+                GPIO.cleanup()
+                GPIO.setmode(GPIO.BCM)
+                _edge_detect = _cfg.get('edge_detect')
+                GPIO.setup(self._pin, GPIO.IN, pull_up_down=GPIO.PUD_UP) 
+                match _edge_detect:
+                    case 'falling':
+                        self._edge_detect = GPIO.FALLING # triggered when turned on
+                    case 'rising':
+                        self._edge_detect = GPIO.RISING # triggered when turned off
+                    case 'both':
+                        self._edge_detect = GPIO.BOTH # triggered when turned on or off
+                    case _:
+                        raise ValueError("unrecognised edge detect: '{}'".format(_edge_detect))
+                self._log.info("ready: pushbutton on GPIO pin {:d} using RPi.GPIO with {} edge detect.".format(self._pin, _edge_detect))
 
-        elif self._impl == 'gpiod':
+            case 'gpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-            if not self._momentary:
-                # if latching, we need to check that it's not already triggered
-                if not self.gpiod_get_value(pin=self._pin):
-                    Player.play(Sound.GWOLP)
-                    raise RuntimeError('cannot start, toggle switch is not enabled.')
+                if not self._momentary:
+                    # if latching, we need to check that it's not already triggered
+                    if not self.gpiod_get_value(pin=self._pin):
+                        Player.play(Sound.GWOLP)
+                        raise RuntimeError('cannot start, toggle switch is not enabled.')
 
-            # monitoring is established by add_callback()
+                # monitoring is established by add_callback()
 
-        elif self._impl == 'ioe':
+            case 'ioe': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-            import ioexpander as io
+                import ioexpander as io
 
-            _i2c_address = _cfg.get('i2c_address')
-            self._ioe = io.IOE(i2c_addr=_i2c_address)
-            self._ioe.set_mode(self._pin, io.IN_PU)
-            self._log.info('ready: pushbutton on IO Expander pin {:d}'.format(self._pin))
+                _i2c_address = _cfg.get('i2c_address')
+                self._ioe = io.IOE(i2c_addr=_i2c_address)
+                self._ioe.set_mode(self._pin, io.IN_PU)
+                self._log.info('ready: pushbutton on IO Expander pin {:d}'.format(self._pin))
 
-        elif self._impl == 'pigpio':
+            case 'pigpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-            import pigpio
-            from hardware.pigpiod_util import PigpiodUtility
+                import pigpio
+                from hardware.pigpiod_util import PigpiodUtility
 
-            if not PigpiodUtility.is_pigpiod_running():
-                _pigpiod_util = PigpiodUtility()
-                _pigpiod_util.ensure_running()
+                if not PigpiodUtility.is_pigpiod_running():
+                    _pigpiod_util = PigpiodUtility()
+                    _pigpiod_util.ensure_running()
 
-            self._pi = pigpio.pi()  # initialize pigpio
-            if self._pi is None:
-                raise Exception('unable to instantiate pigpio.pi().')
-            elif self._pi._notify is None:
-                raise Exception('can\'t connect to pigpio daemon; did you start it?')
-            if not self._pi.connected:
-                raise RuntimeError("Failed to connect to pigpio daemon")
-            # set the GPIO pin mode
-            self._pi.set_mode(self._pin, pigpio.INPUT)
-            self._pi.set_pull_up_down(self._pin, pigpio.PUD_UP)
-            self._log.info('ready: pushbutton on GPIO pin {:d} using pigpio.'.format(self._pin))
+                self._pi = pigpio.pi()  # initialize pigpio
+                if self._pi is None:
+                    raise Exception('unable to instantiate pigpio.pi().')
+                elif self._pi._notify is None:
+                    raise Exception('can\'t connect to pigpio daemon; did you start it?')
+                if not self._pi.connected:
+                    raise RuntimeError("Failed to connect to pigpio daemon")
+                # set the GPIO pin mode
+                self._pi.set_mode(self._pin, pigpio.INPUT)
+                self._pi.set_pull_up_down(self._pin, pigpio.PUD_UP)
+                self._log.info('ready: pushbutton on GPIO pin {:d} using pigpio.'.format(self._pin))
 
-        elif self._impl == 'gpiozero':
+            case 'gpiozero': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-            from gpiozero import Button
+                from gpiozero import Button
 
-            self._button = Button(self._pin, pull_up=True)  # create a Button object for the specified pin
-            self._button.when_pressed = self.__gpiozero_button_pressed  # set the internal callback
-            self._log.info('ready: pushbutton on GPIO pin {:d} using gpiozero.'.format(self._pin))
+                self._button = Button(self._pin, pull_up=True)  # create a Button object for the specified pin
+                self._button.when_pressed = self.__gpiozero_button_pressed  # set the internal callback
+                self._log.info('ready: pushbutton on GPIO pin {:d} using gpiozero.'.format(self._pin))
 
-        else:
-            raise Exception('unrecognised source: {}'.format(self._impl))
+            case _: # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                raise Exception('unrecognised source: {}'.format(self._impl))
+
+        self._log.info('button ready on pin {} using {} implementation.'.format(self._pin, self._impl))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def add_callback(self, callback_method, bouncetime_ms=300):
+    def add_callback(self, callback_method, bouncetime_ms=700):
         '''
         Set up a callback on the button's pin. This only works with the GPIO,
-        gpiod, or gpiozero implementations. The 'bouncetime_ms ' argument is
-        only used with GPIO.
+        lgpio, gpiod, or gpiozero implementations. The 'bouncetime_ms ' argument
+        is only used with GPIO.
         '''
         if not callable(callback_method):
             raise TypeError('provided callback was not callable.')
-        if self._impl == 'gpio':
-            try:
-                # set up the event detection on pin
-                GPIO.add_event_detect(self._pin, self._edge_detect, callback=callback_method, bouncetime=bouncetime_ms)
-                self._log.info('added callback on GPIO pin {:d}'.format(self._pin))
-            except Exception as e:
-                self._log.error('{} error adding callback: {}\n{}'.format(type(e), e, traceback.format_exc()))
-        elif self._impl == 'gpiod':
-            _debounce_time_ms = 300
-            self._stop_event = threading.Event()
-            _is_daemon = True
-            self._gpiod_monitor_thread = threading.Thread(target=self._monitor_gpiod, args=(self._pin, _debounce_time_ms, callback_method, self._stop_event), daemon=_is_daemon)
-            self._gpiod_monitor_thread.start()
-        elif self._impl == 'pigpio':
-            self._pigpio_callback = self._pi.callback(self._pin, pigpio.RISING_EDGE, self.__pigpio_callback)
-            self._callbacks.append(callback_method)
-        elif self._impl == 'gpiozero':
-            self._callbacks.append(callback_method)
-        else:
-            raise Exception('{} implementation does not support callbacks.'.format(self._impl))
+
+        match self._impl:
+            case 'gpio' | 'lgpio': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                try:
+                    # set up the event detection on pin
+                    GPIO.add_event_detect(self._pin, self._edge_detect, callback=callback_method, bouncetime=bouncetime_ms)
+                    self._log.info('added callback on GPIO pin {:d} with bounce time of {}ms'.format(self._pin, bouncetime_ms))
+                except Exception as e:
+                    self._log.error('{} error adding callback: {}\n{}'.format(type(e), e, traceback.format_exc()))
+
+            case 'gpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                _debounce_time_ms = 500
+                self._stop_event = threading.Event()
+                _is_daemon = True
+                self._gpiod_monitor_thread = threading.Thread(target=self._monitor_gpiod, args=(self._pin, _debounce_time_ms, callback_method, self._stop_event), daemon=_is_daemon)
+                self._gpiod_monitor_thread.start()
+
+#           case 'ioe': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+            case 'pigpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                self._pigpio_callback = self._pi.callback(self._pin, pigpio.RISING_EDGE, self.__pigpio_callback)
+                self._callbacks.append(callback_method)
+
+            case 'gpiozero': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                self._callbacks.append(callback_method)
+
+            case _: # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                raise Exception('{} implementation does not support callbacks.'.format(self._impl))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def __pigpio_callback(self, gpio, level, tick):
@@ -286,16 +299,25 @@ class Button(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def pushed(self):
         '''
-        Returns True if the button is pushed (low).
+        Returns True if the button is pushed (low). This is not supported
+        on all implementations.
         '''
-        if self._impl == 'gpio':
-            _value = not GPIO.input(self._pin)
-            time.sleep(0.1)
-            return _value
-        elif self._impl == 'ioe':
-            return self._ioe.input(self._pin) == 0
-        elif self._impl == 'gpiozero':
-            return self._button.is_pressed
+        match self._impl:
+            case 'gpio' | 'lgpio': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                _value = not GPIO.input(self._pin)
+                time.sleep(0.1)
+                return _value
+
+            case 'ioe': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                return self._ioe.input(self._pin) == 0
+
+            case 'gpiozero': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                return self._button.is_pressed
+
+#           case 'gpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+#           case 'pigpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+            case _: # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                raise Exception('pushed() method not supported on {} implementation.'.format(self._impl))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def wait(self):
@@ -308,21 +330,24 @@ class Button(Component):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def close(self):
-        if self._impl == 'gpio':
-            GPIO.cleanup(self._pin)
-        elif self._impl == 'gpiozero':
-            self._close_gpzio()
-        elif self._impl == 'gpiod':
-            self._log.debug('cancelling gpiod callback…')
-            if self._gpiod_monitor_thread:
-                self.cancel()
-        elif self._impl == 'pigpio':
-            if self._pigpio_callback:
-                self._log.debug('cancelling pigpio callback…')
-                self._pigpio_callback.cancel()
-            if self._pi:
-                self._log.debug('stopping pigpio pi…')
-                self._pi.stop()
+        match self._impl:
+            case 'gpio' | 'lgpio': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                GPIO.cleanup(self._pin)
+            case 'gpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                self._log.debug('cancelling gpiod callback…')
+                if self._gpiod_monitor_thread:
+                    self.cancel()
+            case 'ioe': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                pass
+            case 'pigpiod': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                if self._pigpio_callback:
+                    self._log.debug('cancelling pigpio callback…')
+                    self._pigpio_callback.cancel()
+                if self._pi:
+                    self._log.debug('stopping pigpio pi…')
+                    self._pi.stop()
+            case 'gpiozero': # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                self._close_gpzio()
         self._callbacks.clear()
         Component.close(self) # calls disable
 

@@ -20,13 +20,13 @@ from core.message import Message
 from core.message_bus import MessageBus
 from core.message_factory import MessageFactory
 from core.subscriber import Subscriber
-#from behave.behaviour_manager import BehaviourManager
-from behave.trigger_behaviour import TriggerBehaviour
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Behaviour(ABC, Subscriber):
     '''
-    An abstract class providing the basis for a behaviour.
+    An abstract class providing the basis for a behaviour, characterised
+    as either 'servo' or 'ballistic'.
+
     The loop callback is registered during class construction.
 
     :param name:             the name of this behaviour
@@ -53,13 +53,22 @@ class Behaviour(ABC, Subscriber):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
+    def is_ballistic(self):
+        '''
+        Returns True if the Behaviour is ballistic, False if servo.
+        '''
+        raise NotImplementedError('is_ballistic() must be implemented in all subclasses.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
     def message_factory(self):
         return self._message_factory
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):
         '''
-        Overrides the method in Subscriber.
+        Overrides the method in Subscriber. Note that in this implementation
+        no message filtering occurs, and all messages are passed to execute().
         '''
         if message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected. [3]')
@@ -70,75 +79,21 @@ class Behaviour(ABC, Subscriber):
         # now process message...
         if not self.suppressed:
             self.execute(message)
-#       self._log.debug('processed message {}'.format(message.name))
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def trigger_behaviour(self):
-        '''
-        An abstract method (though unmarked) that returns the trigger behaviour
-        (Enum) for this Behaviour, i.e., what should occur when the trigger
-        event in the argument occurs.
-        '''
-        return TriggerBehaviour.NONE
-#       raise NotImplementedError('trigger_behavior() must be implemented in subclasses.')
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @abstractmethod
-    def trigger_event(self):
-        '''
-        This returns the event used to trigger (toggle enable/disable) the
-        behaviour manually, used only during testing; the Behaviour would
-        normally be enabled or disabled through other means.
-        The method should be implemented as a @property.
-        '''
-        raise NotImplementedError('trigger_event() must be implemented in subclasses.')
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def on_trigger(self, message):
-        '''
-        Alter this Behaviour based on its designated trigger event, which is
-        to suppress, release, toggle, or execute the activity.
-        '''
-        if not isinstance(message, Message):
-            raise ValueError('expected Message, not {}.'.format(type(_event)))
-        _event = message.event
-        _trigger_behaviour = self.trigger_behaviour
-        if _trigger_behaviour is TriggerBehaviour.SUPPRESS:
-            self._log.info('on trigger: SUPPRESS')
-            self.suppress()
-        elif _trigger_behaviour is TriggerBehaviour.RELEASE:
-            self._log.info('on trigger: RELEASE')
-            self.release()
-        elif _trigger_behaviour is TriggerBehaviour.TOGGLE:
-            self._log.info('on trigger: TOGGLE')
-            if self.suppressed:
-                self.release()
-            else:
-                self.suppress()
-        elif _trigger_behaviour is TriggerBehaviour.EXECUTE:
-            self._log.info('on trigger: EXECUTE')
-            if self.is_active:
-                self.execute(message)
-            else:
-                self._log.warning('behaviour {} not active.'.format(self.name))
-        elif _trigger_behaviour is TriggerBehaviour.IGNORE:
-            self._log.info('on trigger: IGNORE')
-            pass
-        else:
-            raise Exception('no trigger behaviour for event: {}'.format(_event.name))
+        self._log.debug('processed message {}'.format(message.name))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @abstractmethod
     def execute(self, message):
         '''
-        The method called by process_message(). This does nothing in this
-        abstract class and is meant to be extended by subclasses. It is not
-        called when the behaviour is suppressed.
+        The method called by process_message() when an incoming message is
+        filtered and should execute some kind of action (servo or ballistic).
+
+        This does nothing in this abstract class and is meant to be extended
+        by subclasses. It is not called when the behaviour is suppressed.
 
         :param message:  the Message passed along by the message bus
         '''
-        raise NotImplementedError('execute() must be implemented in subclasses.')
+        raise NotImplementedError('execute() must be implemented in all subclasses.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def enable(self):

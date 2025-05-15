@@ -23,8 +23,7 @@ from core.event import Event, Group
 from core.util import Util
 from core.subscriber import Subscriber
 from behave.behaviour import Behaviour
-from behave.trigger_behaviour import TriggerBehaviour
-#from hardware.motor_controller import MotorController
+from behave.roam import Roam # for STOPPED constant
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Avoid(Behaviour):
@@ -32,7 +31,8 @@ class Avoid(Behaviour):
     CLASS_NAME = 'avoid'
     '''
     Implements an avoidance behaviour, using a macro to execute a ballistic
-    series of movements.
+    series of movements. This subscribes to Event.ROAM, awaiting a 'stopped'
+    message, upon which the behaviour is released.
 
     :param config:          the application configuration
     :param message_bus:     the asynchronous message bus
@@ -40,8 +40,8 @@ class Avoid(Behaviour):
     :param level:           the optional log level
     '''
     def __init__(self, config, message_bus=None, message_factory=None, level=Level.INFO):
-        Behaviour.__init__(self, 'avoid', config, message_bus, message_factory, suppressed=False, enabled=True, level=level)
-        self.add_events([Event.by_group(Group.BEHAVIOUR)])
+        Behaviour.__init__(self, 'avoid', config, message_bus, message_factory, suppressed=True, enabled=True, level=level)
+        self.add_event(Event.ROAM)
         _cfg = self._config['krzos'].get('behaviour').get('avoid')
         # any config here
         _component_registry = globals.get('component-registry')
@@ -56,16 +56,9 @@ class Avoid(Behaviour):
         return Avoid.CLASS_NAME
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def get_trigger_behaviour(self):
-        return TriggerBehaviour.EXECUTE
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
-    def trigger_event(self):
-        '''
-        This returns the event used to enable/disable the behaviour manually.
-        '''
-        return Event.AVOID
+    def is_ballistic(self):
+        return True
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def callback(self):
@@ -76,6 +69,14 @@ class Avoid(Behaviour):
     @property
     def name(self):
         return 'avoid'
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def release(self):
+        '''
+        Releases (un-suppresses) this Component.
+        '''
+        Subscriber.release(self)
+        self._log.info('🎲 released.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):
@@ -89,15 +90,16 @@ class Avoid(Behaviour):
         if message.gcd:
             raise GarbageCollectedError('cannot process message: message has been garbage collected.')
         _event = message.event
-        if _event.group is Group.BEHAVIOUR:
-            if _event is Event.ROAM:
-                self._log.info(Fore.WHITE + '💮 ROAM message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))
+        if _event is Event.ROAM:
+            self._log.info(Fore.WHITE + '💮 ROAM message {}; '.format(message.name) + Fore.YELLOW + "event: '{}'; value: {}".format(_event.name, _event.value))
+            if _event.value == Roam.STOPPED:
                 # send suppress message to Roam
                 _message = self.message_factory.create_message(Event.AVOID, 'suppress')
                 self._queue_publisher.put(_message)
-                self._log.info(Fore.WHITE + "💮 published AVOID message: {}".format(_message))
+                self._log.info(Fore.WHITE + "💮 💮 💮  published AVOID message: {}".format(_message))
+                self.release()
             else:
-                self._log.info(Fore.WHITE + '💮 message {}; '.format(message.name) + Fore.YELLOW + 'event: {}'.format(_event.name))
+                self._log.info(Fore.BLUE + "ignored ROAM message with value: '{}'".format(_event.value))
         await Subscriber.process_message(self, message)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

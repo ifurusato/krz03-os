@@ -68,10 +68,10 @@ from behave.behaviour_manager import BehaviourManager
 from behave.macro_processor import MacroProcessor
 from behave.avoid import Avoid
 from behave.roam import Roam
+from behave.idle import Idle
 #from behave.swerve import Swerve
 #from behave.moth import Moth
 #from behave.sniff import Sniff
-#from behave.idle import Idle
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class KRZOS(Component, FiniteStateMachine):
@@ -166,6 +166,9 @@ class KRZOS(Component, FiniteStateMachine):
 
         _args['log_enabled']    = arguments.log
         self._log.info('write log enabled:    {}'.format(_args['log_enabled']))
+
+        _args['motors_enabled'] = arguments.motors
+        self._log.info('😃 motors enabled:      {}'.format(_args['motors_enabled']))
 
         _args['json_dump_enabled'] = arguments.json
         self._log.info('json enabled:         {}'.format(_args['json_dump_enabled']))
@@ -262,15 +265,17 @@ class KRZOS(Component, FiniteStateMachine):
 
         _enable_pushbutton= _cfg.get('enable_pushbutton')
         if _enable_pushbutton:
-            self._pushbutton = Button(self._config, 'trig', pin=17, momentary=True)
+            self._pushbutton = Button(self._config, name='trig', pin=17, momentary=True)
+            self._pushbutton.add_callback(self._await_start, 500)
             if _enable_tinyfx_controller:
                 Player.play(Sound.BEEP)
-            self._pushbutton.add_callback(self._await_start)
 
         _enable_killswitch= _cfg.get('enable_killswitch') or 'k' in _pubs
         if _enable_killswitch:
-            self._killswitch = Button(self._config, 'kill', pin=18, momentary=False)
-            self._killswitch.add_callback(self.shutdown)
+            self._killswitch = Button(self._config, name='kill', pin=18, momentary=False)
+            self._killswitch.add_callback(self.shutdown, 500)
+
+        # GPIO 21 is reserved for krzosd
 
         _enable_eyeballs = _cfg.get('enable_eyeballs')
         if _enable_eyeballs:
@@ -284,10 +289,12 @@ class KRZOS(Component, FiniteStateMachine):
         # create motor controller ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
         _enable_motor_controller = _cfg.get('enable_motor_controller')
-        if _enable_motor_controller:
+        if _args['motors_enabled'] and _enable_motor_controller:
             if not _i2c_scanner.has_hex_address(['0x44']):
                 raise Exception('motor 2040 not available on I2C bus.')
             self._motor_controller = DifferentialDrive(self._config, level=self._level)
+            # before disabling the message bus, first stop the motors on system shutdown
+            self._message_bus.add_callback_on_stop(self._motor_controller.stop)
 
         # create behaviours ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
@@ -305,7 +312,7 @@ class KRZOS(Component, FiniteStateMachine):
             if _behaviour_cfg.get('enable_roam_behaviour'):
                 self._roam  = Roam(self._config, self._message_bus, self._message_factory, self._motor_controller, self._distance_sensors)
 
-            _ = '''
+            _unused = '''
             _bcfg = self._config['krzos'].get('behaviour')
             # create and register behaviours (listed in priority order)
 
@@ -316,9 +323,9 @@ class KRZOS(Component, FiniteStateMachine):
                 self._moth   = Moth(self._config, self._message_bus, self._message_factory, self._motor_controller, self._level)
             if _bcfg.get('enable_sniff_behaviour'):
                 self._sniff  = Sniff(self._config, self._message_bus, self._message_factory, self._motor_controller, self._level)
-            if _bcfg.get('enable_idle_behaviour'):
-                self._idle   = Idle(self._config, self._message_bus, self._message_factory, self._level)
             '''
+            if _behaviour_cfg.get('enable_idle_behaviour'):
+                self._idle   = Idle(self._config, self._message_bus, self._message_factory, self._level)
 
         if _args['gamepad_enabled'] or _cfg.get('enable_gamepad_publisher') or 'g' in _pubs:
             from hardware.gamepad_publisher import GamepadPublisher
@@ -679,6 +686,7 @@ def parse_args(passed_args=None):
     parser.add_argument('--docs',         '-d', action='store_true', help='show the documentation message and exit')
     parser.add_argument('--configure',    '-c', action='store_true', help='run configuration (included by -s)')
     parser.add_argument('--start',        '-s', action='store_true', help='start krzos')
+    parser.add_argument('--motors',       '-m', action='store_true', help='enable motors')
     parser.add_argument('--json',         '-j', action='store_true', help='dump YAML configuration as JSON file')
     parser.add_argument('--gamepad',      '-g', action='store_true', help='enable bluetooth gamepad control')
     parser.add_argument('--pubs',         '-P', help='enable publishers as identified by first character')
@@ -742,7 +750,8 @@ def main(argv):
                 if _krzos.has_await_pushbutton():
                     while _krzos.has_await_pushbutton():
                         if next(_counter) % 20 == 0:
-                            _log.info(Fore.YELLOW + 'waiting for pushbutton…')
+#                           _log.info(Fore.YELLOW + 'waiting for pushbutton…')
+                            _log.info(Fore.YELLOW + 'waiting for pushbutton on pin {}…'.format(_krzos._pushbutton.pin))
                         time.sleep(0.1)
                     match _krzos.state:
                         case State.INITIAL: # expected state

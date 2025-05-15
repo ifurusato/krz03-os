@@ -28,7 +28,6 @@ from core.event import Event, Group
 from core.fsm import State
 from behave.behaviour import Behaviour
 from core.publisher import Publisher
-from behave.trigger_behaviour import TriggerBehaviour
 
 from hardware.sound import Sound
 from hardware.player import Player
@@ -87,6 +86,11 @@ class Idle(Behaviour, Publisher):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
+    def is_ballistic(self):
+        return False
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
     def is_idle(self):
         return self._is_idle
 
@@ -108,22 +112,6 @@ class Idle(Behaviour, Publisher):
     def suppress(self):
         Component.suppress(self)
         self._log.debug('suppressed.')
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def trigger_behaviour(self):
-        return TriggerBehaviour.IGNORE
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @property
-    def trigger_event(self):
-        '''
-        This returns the event used to enable/disable the behaviour manually.
-
-        Note: the priority of this event determines the priority of this
-        Behaviour when compared to other Behaviours.
-        '''
-        return Event.IDLE
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def start(self):

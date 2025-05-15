@@ -24,7 +24,7 @@ from core.component import Component
 from core.util import Util
 from core.event import Event, Group
 from core.message import Message
-from core.fsm import FiniteStateMachine, State
+from core.fsm import FiniteStateMachine, State, InvalidStateError
 from core.message_bus import MessageBus
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -190,6 +190,8 @@ class Subscriber(Component, FiniteStateMachine):
         try:
 
 #           self._log.debug('consume() called on {}.'.format(self.name))
+            if not self._message_bus.is_running:
+                raise InvalidStateError('message bus is not running.')
             _peeked_message = await self._message_bus.peek_message()
             if not _peeked_message:
                 raise QueueEmptyOnPeekError('peek returned none.')

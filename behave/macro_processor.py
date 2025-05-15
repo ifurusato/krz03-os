@@ -27,7 +27,7 @@ class MacroProcessor(Component):
     line-by-line executed as commands.
 
     :param config:            the application configuration
-    :param motor_controller:  the robot's motor controller
+    :param motor_controller:  the optional robot's motor controller
     :param eyeballs:          the eyeballs display
     :param level:             the logging level
     '''
@@ -76,7 +76,8 @@ class MacroProcessor(Component):
                     elif command == 'play':
                         sound = parts[1]
                         self._log.info(Style.DIM + "play '{}'…".format(sound))
-                        self._motor_ctrl.play(parts[1])
+                        if self._motor_ctrl:
+                            self._motor_ctrl.play(parts[1])
                     elif command.startswith("eyeballs"):
                         pm = PalpebralMovement.from_name(parts[1])
                         arg1 = None if len(parts) < 2 else parts[1]
@@ -91,13 +92,15 @@ class MacroProcessor(Component):
                     elif command.startswith("lights"):
                         if parts[1] == 'on':
                             self._log.info(Style.DIM + "lights on…")
-                            self._motor_ctrl.lights(True)
+                            if self._motor_ctrl:
+                                self._motor_ctrl.lights(True)
                         elif parts[1] == 'off':
                             self._log.info(Style.DIM + "lights off…")
-                            self._motor_ctrl.lights(False)
+                            if self._motor_ctrl:
+                                self._motor_ctrl.lights(False)
                         else: # ignored
                             self._log.warning("unrecognised command '{}'.".format(command))
-                    else:
+                    elif self._motor_ctrl:
                         try:
                             port_speed = float(parts[1]) if len(parts) > 1 else 0.0
                             stbd_speed = float(parts[2]) if len(parts) > 2 else 0.0

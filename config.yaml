@@ -29,7 +29,7 @@ krzos:
         enable_pushbutton:                 True            # enable pushbutton
         enable_eyeballs  :                 True            # enable eyeballs
         # subscribers ......................................
-        enable_distance_subscriber:        True            # enable Distance Sensors Subscriber
+        enable_distance_subscriber:       False            # enable Distance Sensors Subscriber
         enable_sound_subscriber:           True            # enable sounds for various events
     behaviour:
         enable_behaviours:                True             # enable BehaviourManager (Behaviours enabled individually)
@@ -171,10 +171,10 @@ krzos:
             pin:                             18            # GPIO or IO Expander pin used
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
-            impl:                       'gpiod'            # either 'gpio', 'gpiod', 'ioe', 'gpiozero' or 'pigpio'
-            edge_detect:               'rising'            # either 'falling', 'rising' or 'both'
+            impl:                       'gpiod'            # either 'gpio', 'lpgio', 'gpiod', 'ioe', 'gpiozero' or 'pigpio'
+            edge_detect:              'falling'            # either 'falling', 'rising' or 'both'
             momentary:                     True            # button or toggle?
-            pin:                             17            # GPIO or IO Expander pin used
+            pin:                             18            # default GPIO or IO Expander pin used
             led_pin:                         13            # GPIO pin for LED on wait()
         rtof:                                              # ranging time of flight sensor (VL53L5CX)
             enabled:                       True            # GPIO or IO Expander pin used

@@ -55,13 +55,13 @@ class BehaviourManager(Subscriber):
         if not isinstance(level, Level):
             raise ValueError('wrong type for log level argument: {}'.format(type(level)))
         _cfg = config['krzos'].get('behaviour').get('behaviour_manager')
-        _autoload = _cfg.get('autoload', False) 
         self._level            = level
         self._active_behaviour = None
         self._was_suppressed   = None
         self._clip_event_list  = True #_cfg.get('clip_event_list') # used for printing only
         self._clip_length      = 42   #_cfg.get('clip_length')
         self._behaviours       = {}
+        _autoload = _cfg.get('autoload', False)
         if _autoload:
             self._find_behaviours()
         self._log.info('ready.')
@@ -157,20 +157,23 @@ class BehaviourManager(Subscriber):
         STORAGE POLICY
 
         Note that suppressing the BehaviourManager (or alternately calling
-        this method, which calls this method) will suppress all existing
-        Behaviours and store their respective suppression states. If there
-        is a set of stored states upon releasing the BehaviourManager, those
-        states will be restored.
+        this method) will suppress all existing servo Behaviours and stores
+        their respective suppression states. If there is a set of stored
+        states upon releasing the BehaviourManager, those states will be
+        restored.
+
+        Ballistic behaviours are not stored.
         '''
         self._log.info('suppress all behaviours…')
         self._was_suppressed = {}
         for _key, _behaviour in self._behaviours.items():
-            self._was_suppressed[_behaviour] = _behaviour.suppressed
-            if not _behaviour.suppressed:
-                _behaviour.suppress()
-                self._log.info('{} behaviour suppressed.'.format(_behaviour.name))
-            else:
-                self._log.info('{} behaviour not suppressed (was not active).'.format(_behaviour.name))
+            if not _behaviour.is_ballistic:
+                self._was_suppressed[_behaviour] = _behaviour.suppressed
+                if not _behaviour.suppressed:
+                    _behaviour.suppress()
+                    self._log.info('{} behaviour suppressed.'.format(_behaviour.name))
+                else:
+                    self._log.info('{} behaviour not suppressed (was not active).'.format(_behaviour.name))
         if not store_states:
             self._was_suppressed = None
 
@@ -187,20 +190,20 @@ class BehaviourManager(Subscriber):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def release_all_behaviours(self):
         '''
-        Release (un-suppress) all registered behaviours.
+        Release (un-suppress) all registered servo behaviours. 
 
-        If the suppressed state of each Behaviour has been stored this will
-        determine whether a given Behaviour is released.
+        Ballistic behaviours are not released.
         '''
         if not self.closed:
             self._log.info('release all behaviours…')
             for _key, _behaviour in self._behaviours.items():
-                if self._was_suppressed:
-                    if not self._was_suppressed[_behaviour]:
+                if not _behaviour.is_ballistic:
+                    if self._was_suppressed:
+                        if not self._was_suppressed[_behaviour]:
+                            _behaviour.release()
+                    else:
                         _behaviour.release()
-                else:
-                    _behaviour.release()
-                self._log.info('{} behaviour released.'.format(_behaviour.name))
+                    self._log.info('{} behaviour released.'.format(_behaviour.name))
             self._was_suppressed = None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -223,27 +226,17 @@ class BehaviourManager(Subscriber):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def register_behaviour(self, behaviour):
         '''
-        Register a Behaviour with the manager, referenced by its trigger
-        Event type.
+        Register a Behaviour with the manager, referenced by its name.
 
         This is called by the Behaviour's constructor and should not be
         called directly.
         '''
-        if behaviour.trigger_event not in self._behaviours:
+        if behaviour.name not in self._behaviours:
             self._behaviours[behaviour.name] = behaviour
-            self.add_event(behaviour.trigger_event)
-            self._log.info("🍕 added behaviour '{}' linked to trigger event '{}' to manager.".format(behaviour.name, behaviour.trigger_event))
+            self._log.info("added behaviour '{}' to manager.".format(behaviour.name))
         else:
             self._log.warning("behaviour '{}' already registered with manager.".format(behaviour.name))
             raise Exception("behaviour '{}' already registered with manager.".format(behaviour.name)) # TEMP
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _get_behavior_for_trigger_event(self, event):
-        '''
-        Return the behaviour corresponding to the (trigger) event type, null
-        if no such behaviour has been registered with the manager.
-        '''
-        return self._behaviours.get(event)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     async def process_message(self, message):
@@ -264,68 +257,6 @@ class BehaviourManager(Subscriber):
         self._log.debug('post-processing message {}'.format(message.name))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def _alter_behaviour(self, message):
-        '''
-        Alters the Behaviour associated with the Message's event.
-
-        This gets a bit complicated in that only one Behaviour can be running at
-        a time, but Behaviours can be disabled and/or suppressed, specifically
-        so that a different Behaviour can execute.
-        '''
-        if not isinstance(message, Message):
-            raise ValueError('expected Message argument, not {}'.format(type(message)))
-        _event = message.event
-        # get behaviour for event type
-        _behaviour = self._get_behavior_for_trigger_event(_event)
-        if _behaviour is None:
-            self._log.warning("🌺🌺 🌺🌺 cannot act: no behaviour associated with event '{}', from {:d} registered behaviours:".format(
-                    _event.name, len(self._behaviours)))
-            self.print_info()
-            return
-#       _trigger_behaviour = _behaviour.trigger_behaviour
-#       self._log.info('designated trigger behaviour: ' + Fore.YELLOW + '{}'.format(_trigger_behaviour.name))
-        if self._active_behaviour is None: # no current active behaviour so just release this one
-            self._log.info('💔 no current behaviour; releasing behaviour (suppressed? {}) '.format(_behaviour.suppressed) + Fore.YELLOW + '{}'.format(_behaviour.name))
-            self._active_behaviour = _behaviour
-            _behaviour.on_trigger(message)
-
-        elif self._active_behaviour is _behaviour:
-            # if the current active behaviour is already this one, we ignore the message
-            self._log.info('💔 the requested behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name) + Fore.CYAN + ' is already executing.')
-            _behaviour.on_trigger(message)
-
-        elif self._active_behaviour.suppressed:
-            self._log.info('💔 current behaviour was suppressed; releasing behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name))
-            self._active_behaviour = _behaviour
-            _behaviour.on_trigger(message)
-
-        else:
-            self._log.info('💔 there is a behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name)
-                    + Fore.CYAN + ' already running; comparing…')
-            _compare = _event.compare_to_priority_of(self._active_behaviour.trigger_event)
-            if _compare == 1:
-                self._log.info('requested behaviour ' + Fore.YELLOW + '{}'.format(_event.name) + Fore.CYAN
-                        + ' is HIGHER priority than existing behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
-                # the current active behaviour is a lower priority so we suppress the existing and release the new one
-                self._log.info('💔 suppressing old behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
-                self._active_behaviour.suppress()
-                self._log.info('💔 setting new behaviour ' + Fore.YELLOW + '{}'.format(_behaviour.name) + Fore.CYAN + ' as active…')
-                self._active_behaviour = _behaviour
-                self._log.info('💔 releasing new behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name))
-                self._active_behaviour.release()
-                self._log.info('done.')
-            elif _compare == -1:
-                # the current active behaviour is a higher priority so we ignore the request to alter it
-                self._log.info('💔 requested behaviour ' + Fore.YELLOW + '{}'.format(_event.name) + Fore.CYAN
-                        + ' is LOWER priority than existing behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name)
-                        + Fore.CYAN + ' (no change)')
-            else: # _compare == 0:
-                # same priority, no change
-                self._log.info('💔 requested behaviour ' + Fore.YELLOW + '{}'.format(_event.name) + Fore.CYAN
-                        + ' has the SAME priority as existing behaviour ' + Fore.YELLOW + '{}'.format(self._active_behaviour.name)
-                        + Fore.CYAN + ' (no change)')
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def print_info(self):
         '''
         Print information about the currently registered Behaviours.
@@ -339,14 +270,11 @@ class BehaviourManager(Subscriber):
                 _event_list = Util.ellipsis(_behaviour.print_events(), self._clip_length)
             else:
                 _event_list = _behaviour.print_events()
-            print(Fore.YELLOW + 'trigger: {}'.format(_behaviour.trigger_behaviour))
             self._log.info(Fore.YELLOW + '\t{}'.format(_behaviour.name)
                     + Fore.CYAN + ' {}enabled: '.format((' ' * max(0, (10 - len(_behaviour.name)))))
                     + Fore.YELLOW + '{}\t'.format(_behaviour.enabled)
                     + Fore.CYAN + 'suppressed: '
                     + Fore.YELLOW + '{}\t'.format(_behaviour.suppressed)
-#                   + Fore.CYAN + 'trigger: '
-#                   + Fore.YELLOW + '{}\t'.format(_behaviour.trigger_behaviour)
                     + Fore.CYAN + 'listening for: '
                     + Fore.YELLOW + '{}'.format(_event_list))
 
@@ -356,7 +284,7 @@ class BehaviourManager(Subscriber):
         Enable the behaviour manager and all behaviours.
         '''
         self._log.info('enabling behaviour manager and all behaviours…')
-        self.release_all_behaviours()
+#       self.release_all_behaviours()
         self.enable_all_behaviours()
         Subscriber.enable(self)
 

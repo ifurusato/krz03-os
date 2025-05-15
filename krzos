@@ -1,5 +1,5 @@
 #!/bin/sh
 
-krzos.py -s
-#krzos.py -s -g
+krzos.py -s -m
+#krzos.py -s -g -m
 

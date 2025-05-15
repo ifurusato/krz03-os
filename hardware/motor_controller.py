@@ -141,7 +141,8 @@ class MotorController(Component):
         Writes the payload argument to the Motor 2040.
         '''
         if not self.enabled:
-            raise MotorControllerError('cannot write payload: motor controller not enabled.')
+            self._log.warning('cannot write payload: motor controller disabled.')
+            return
         now = dt.datetime.now()
         if self._last_send_time:
             elapsed = now - self._last_send_time
@@ -154,7 +155,6 @@ class MotorController(Component):
                 )
                 return Response.SKIPPED
         try:
-
             if verbose:
                 self._log.debug("writing payload: " + Fore.WHITE + "'{}'".format(payload.to_string()))
             # send over I2C
@@ -180,6 +180,7 @@ class MotorController(Component):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):
+        self._log.info("motor controller disable.")
         Component.disable(self)
         if self._i2cbus:
             self._i2cbus.close()
