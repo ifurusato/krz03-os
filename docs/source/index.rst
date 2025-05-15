@@ -3,15 +3,34 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-krzos documentation
-===================
+====================
+KRZOS Documentation
+====================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
-
+Welcome to the KRZOS documentation!
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
+   core
+   hardware
+   behave
+   krzos
+   krzosd
+   modules
+
+.. automodule:: krzos
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. automodule:: krzosd
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Add your content using ``reStructuredText`` syntax. See the
+`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
+documentation for details.
 

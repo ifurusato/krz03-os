@@ -56,8 +56,8 @@ class Icm20948(Component):
     heading, as well as making raw accelerometer and gyroscope values available.
 
     :param config:          the application configuration
-    :param rgbmatrix        the optional RgbMatrix to indicate calibration
-    :param level            the log level
+    :param rgbmatrix:       the optional RgbMatrix to indicate calibration
+    :param level:           the log level
     '''
     def __init__(self, config, rgbmatrix=None, level=Level.INFO):
         self._log = Logger('icm20948', level)

@@ -191,13 +191,18 @@ class DigitalPotentiometer(Component):
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def scale_value(self, value):
         '''
+        Scales the value as per the formula:
+
+        .. math::
+
                    (out_max - out_min)(value - in_min)
             f(x) = -----------------------------------  + out_min
                             in_max - in_min
 
-            where e.g.:  a = 0.0, b = 1.0, min = 0, max = 330.
+        where e.g.:  a = 0.0, b = 1.0, min = 0, max = 330.
+
+        We permit in_min to be zero, but none of the others.
         '''
-        # we permit in_min to be zero, but none of the others
         if self._in_max == 0.0 or self._out_max == 0.0:
             raise Exception('input or output range not set.')
         return (( self._out_max - self._out_min ) * ( value - self._in_min ) / ( self._in_max - self._in_min )) + self._out_min

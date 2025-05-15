@@ -230,26 +230,26 @@ class Convert:
         until about 5cm. Values over 150 clearly indicate the robot is less than
         10cm from the target. Here's a sampled output:
 
-            0cm = unreliable
-            5cm = 226.5
-          7.5cm = 197.0
-           10cm = 151.0
-           20cm =  92.0
-           30cm =  69.9
-           40cm =  59.2
-           50cm =  52.0
-           60cm =  46.0
-           70cm =  41.8
-           80cm =  38.2
-           90cm =  35.8
-          100cm =  34.0
-          110cm =  32.9
-          120cm =  31.7
-          130cm =  30.7 *
-          140cm =  30.7 *
-          150cm =  29.4 *
+        0cm   = unreliable
+        5cm   = 226.5
+        7.5cm = 197.0
+        10cm  = 151.0
+        20cm  =  92.0
+        30cm  =  69.9
+        40cm  =  59.2
+        50cm  =  52.0
+        60cm  =  46.0
+        70cm  =  41.8
+        80cm  =  38.2
+        90cm  =  35.8
+        100cm =  34.0
+        110cm =  32.9
+        120cm =  31.7
+        130cm =  30.7†
+        140cm =  30.7†
+        150cm =  29.4†
 
-        * Maximum range on IR is about 130cm, after which there is diminishing
+        † Maximum range on IR is about 130cm, after which there is diminishing
           stability/variability, i.e., it's hard to determine if we're dealing
           with a level of system noise rather than data. Different runs produce
           different results, with values between 28 - 31 on a range of any more

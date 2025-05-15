@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-10
-# modified: 2024-11-09
+# modified: 2025-05-15
 #
 # Checks for the existence of a set of expected I2C devices on the KRZ03.
 #
@@ -24,27 +24,16 @@ from core.logger import Logger, Level
 from core.util import Util
 from core.config_loader import ConfigLoader
 from hardware.i2c_scanner import I2CScanner, DeviceNotFound
-#from hardware.screen import Screen
-#from hardware.monitor import Monitor
-#from hardware.irq_clock import IrqClock
-#import hardware.ThunderBorg3
-#from hardware.ThunderBorg3 import ThunderBorg, ScanForThunderBorg, SetNewAddress
 from hardware.pigpiod_util import PigpiodUtility as PigUtil
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-EXPECT_GPS = True
 BLINK_ON_COMPLETE = True
 MOTOR_2040        = True
 TINY_FX           = True
-IO_EXPANDER       = False
-INVENTOR_HAT      = False
-PICON_ZERO        = False
 CONFIRM_PIGPIOD   = False
 
 _pin = None
-_tb1 = None
-_tb2 = None
 
 try:
 
@@ -58,12 +47,8 @@ try:
     0x0E   Digital Pot - stbd       (optional)
     0x0F   Rotary Encoder - port    (optional)
     0x10   GPS
-    0x16   Inventor HAT - aft       (optional)
-    0x17   Inventor HAT - fwd       (optional)
     0x18   IO Expander
     0x1D   LSM303D
-    0x22   Picon Zero - aft         (optional)
-    0x23   Picon Zero - fwd         (optional)
     0x29   VL53L1CX or VL53L5CX
     0x38   BH1745                   (optional)
     0x44   Motor 2040               (optional)
@@ -113,39 +98,11 @@ try:
             _log.warning('Motor 2040 not found at address 0x45.')
         else:
             _log.info(Fore.GREEN + 'Motor 2040 found at address 0x45.')
-    elif INVENTOR_HAT:
-        #   0x16   Inventor HAT - aft
-        if not _i2c_scanner.has_hex_address(['0x16']):
-            _log.warning('Aft Inventor HAT not found at address 0x16.')
-        else:
-            _log.info(Fore.GREEN + 'Aft Inventor HAT found at address 0x16.')
-        #   0x17   Inventor HAT - fwd
-        if not _i2c_scanner.has_hex_address(['0x17']):
-            _log.warning('Fwd Inventor HAT not found at address 0x17.')
-        else:
-            _log.info(Fore.GREEN + 'Fwd Inventor HAT found at address 0x17.')
-    elif PICON_ZERO:
-        #   0x22   Picon Zero - aft
-        if not _i2c_scanner.has_hex_address(['0x22']):
-            _log.warning('Aft Picon Zero not found at address 0x22.')
-        else:
-            _log.info(Fore.GREEN + 'Aft Picon Zero found at address 0x22.')
-        #   0x23   Picon Zero - fwd
-        if not _i2c_scanner.has_hex_address(['0x23']):
-            _log.warning('Fwd Picon Zero not found at address 0x23.')
-        else:
-            _log.info(Fore.GREEN + 'Fwd Picon Zero found at address 0x23.')
     #   0x48   ADS1015
     if not _i2c_scanner.has_hex_address(['0x48']):
         _log.warning('ADS1015 not found at address 0x48.')
     else:
         _log.info(Fore.GREEN + 'ADS1015 found at address 0x48.')
-    if IO_EXPANDER:
-        #   0x18   IO Expander
-        if not _i2c_scanner.has_hex_address(['0x18']):
-            _log.warning('IO Expander not found at address 0x18.')
-        else:
-            _log.info(Fore.GREEN + 'IO Expander found at address 0x18.')
     #   0x1D   LSM303D
     if not _i2c_scanner.has_hex_address(['0x1D']):
         _log.info(Style.DIM + 'LM303D not found at address 0x1D.')

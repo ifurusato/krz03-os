@@ -27,7 +27,7 @@ class TimeOfFlight(Component):
     A wrapper class around a VL53L1CX Time of Flight distance sensor.
 
     :param config:          the application configuration
-    :param level            the log level
+    :param level:           the log level
     '''
     def __init__(self, config, level=Level.INFO):
         self._log = Logger('tof', level)

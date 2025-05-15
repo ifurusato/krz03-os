@@ -139,6 +139,10 @@ then:
     with:         sudo pip3 install gpiodevice --break-system-packages
 * PAA5100JE:    https://github.com/pimoroni/pmw3901-python
     with:         sudo pip3 install pmw3901 --break-system-packages
+* dill:         https://pypi.org/project/dill/
+    with:         sudo pip3 install dill --break-system-packages
+* evdev:        https://pypi.org/project/evdev/  
+    with:         sudo pip3 install evdev --break-system-packages
 
 for the VL53L5CX and 1.3" TFT display (used for its demo):
 

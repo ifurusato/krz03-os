@@ -33,13 +33,13 @@ class NearOpticalFlowSensor(Component):
 
     Connections:
 
-      * 3-5V to any 5V or 3V pin
-      * CS to BCM 7
-      * SCK to BCM 11
-      * MOSI to BCM 10
-      * MISO to BCM 9
-      * INT to BCM 19
-      * GND to any ground pin
+    * 3-5V to any 5V or 3V pin
+    * CS to BCM 7
+    * SCK to BCM 11
+    * MOSI to BCM 10
+    * MISO to BCM 9
+    * INT to BCM 19
+    * GND to any ground pin
 
     Values are kept internally as floats, returned as ints.
 
@@ -47,7 +47,7 @@ class NearOpticalFlowSensor(Component):
     the value will likely vary.
 
     :param config:          the application configuration
-    :param level            the log level
+    :param level:           the log level
     '''
     def __init__(self, config, level=Level.INFO):
         self._log = Logger('nofs', level)

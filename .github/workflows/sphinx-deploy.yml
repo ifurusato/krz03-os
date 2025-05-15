@@ -1,38 +1,47 @@
-name: Deploy Sphinx docs to GitHub Pages
+name: Build and Deploy Documentation
 
 on:
   push:
     branches:
+      - main  # Trigger on changes to the main branch
+  pull_request:
+    branches:
       - main
-
-permissions:
-  contents: write  # Required to push to gh-pages
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout code
+      - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install sphinx sphinx-rtd-theme
 
-      - name: 🛠️ Build the docs (separate source dir)
+      - name: Generate `.rst` files for directories
+        run: |
+          sphinx-apidoc -o docs/source/ behave core hardware motor2040 tinyfx --force
+
+      - name: Generate `.rst` files for root-level files
+        run: |
+          sphinx-apidoc -o docs/source/ . --force krzos.py krzosd.py stop_motors.py
+
+      - name: Build Documentation
         run: |
           sphinx-build -b html docs/source docs/_build/html
 
-      - name: 🚀 Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/_build/html
+          publish_branch: gh-pages
 
