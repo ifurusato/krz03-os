@@ -135,9 +135,6 @@ class KRZOS(Component, FiniteStateMachine):
         self._log.info('oid: {}'.format(id(self)))
         self._log.info('initialised.')
 
-
-
-
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def configure(self, arguments):
         '''
@@ -256,10 +253,15 @@ class KRZOS(Component, FiniteStateMachine):
         if _enable_tinyfx_controller:
             if not _i2c_scanner.has_hex_address(['0x45']):
                 raise Exception('tinyfx not available on I2C bus.')
+
             from hardware.tinyfx_controller import TinyFxController
+
             self._log.info('configure tinyfx controller…')
-            self._tinyfx = TinyFxController(self._config)
-            self._tinyfx.enable()
+            if self._component_registry.has(TinyFxController.NAME):
+                self._tinyfx = self._component_registry.get(TinyFxController.NAME)
+            else:
+                self._tinyfx = TinyFxController(self._config)
+                self._tinyfx.enable()
             self._log.info('instantiate sound player…')
             Player.instance(self._tinyfx)
 

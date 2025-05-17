@@ -48,15 +48,18 @@ def restore_file(file_path, backup_path):
 
 def clean_generated_files():
     '''
-    Clean the generated files in the docs/source and docs/_static/_templates.
+    Clean the generated files in the docs/source/, docs/_static/_templates,
+    and docs/_build/html/ directories.
     '''
-    _log.info("cleaning up old .rst files and other generated files…")
+    _log.info("cleaning up generated source files…")
     for root, dirs, files in os.walk(SOURCE_DIR):
         for file in files:
             if file.endswith(".rst") and file != "modules.rst":
                 os.remove(os.path.join(root, file))
-#   shutil.rmtree(os.path.join(SOURCE_DIR, "_static"), ignore_errors=True)
     shutil.rmtree(os.path.join(SOURCE_DIR, "_templates"), ignore_errors=True)
+    _log.info("cleaning up generated build files…")
+    shutil.rmtree(BUILD_DIR)
+#   shutil.rmtree(os.path.join(SOURCE_DIR, "_static"), ignore_errors=True)
 
 def generate_rst_for_dir(directory):
     '''

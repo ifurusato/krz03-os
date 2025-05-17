@@ -7,11 +7,12 @@
 #
 # author:   Murray Altheim
 # created:  2021-06-29
-# modified: 2024-07-13
+# modified: 2025-05-17
 #
-# MissingComponentError at bottom
+# MissingComponentError and ComponentRegistry at bottom
 #
 
+import uuid
 from threading import Lock
 from collections import OrderedDict
 from core.logger import Logger
@@ -61,6 +62,7 @@ class Component(object):
             globals.put('component-registry', self._registry)
         self._registry   = globals.get('component-registry')
         self._registry.add(logger.name, self)
+        self._uuid       = uuid.uuid4()
         self._enabled    = enabled
         self._closed     = False
 
@@ -73,6 +75,14 @@ class Component(object):
         Return the name of this Component's class.
         '''
         return type(self).__name__
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    @property
+    def uuid(self):
+        '''
+        Return the unique identifier of this Component.
+        '''
+        return self._uuid
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     @property
@@ -193,6 +203,27 @@ class ComponentRegistry(object):
         else:
             self._dict[name] = component
             self._log.info('added component \'{}\' to registry ({:d} total).'.format(name, len(self._dict)))
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def has(self, name):
+        '''
+        Returns True if the name is found in the registry.
+        '''
+        return name in self._dict
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def remove(self, name):
+        '''
+        Remove a component from the registry by name. Logs a warning if the
+        name is not found.
+        '''
+        if name in self._dict:
+            removed = self._dict.pop(name)
+            self._log.info("removed component '{}' from registry ({} remaining).".format(name, len(self._dict)))
+            return removed
+        else:
+            self._log.warning("cannot remove '{}'; not found in registry.".format(name))
+            return None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def get(self, name):

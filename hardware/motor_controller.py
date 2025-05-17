@@ -42,9 +42,10 @@ class MotorController(Component):
         self._log = Logger('motor_ctrl', level)
         Component.__init__(self, self._log, suppressed=False, enabled=False)
         _cfg = config['krzos'].get('hardware').get('motor_controller') 
+        self._i2c_bus_number    = _cfg.get('i2c_bus_number') # 1
         self._i2c_slave_address = _cfg.get('i2c_address') # 0x44
         self._config_register   = _cfg.get('config_register') # 1
-        self._bus_number        = _cfg.get('bus_number') # 1
+        self._min_send_int_ms   = _cfg.get('minimum_send_interval_ms') # 70ms
         self._i2cbus            = None
         self._ping_test         = False
         # set up for sound
@@ -58,7 +59,7 @@ class MotorController(Component):
         else:
             self._log.warning('tinyFX already existed.')
         self._last_send_time = None  # timestamp of last send
-        self._min_send_interval = dt.timedelta(milliseconds=100)  # 100ms minimum send interval
+        self._min_send_interval = dt.timedelta(milliseconds=self._min_send_int_ms)
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -69,7 +70,7 @@ class MotorController(Component):
         '''
         Component.enable(self)
         try:
-            self._i2cbus = SMBus(self._bus_number)
+            self._i2cbus = SMBus(self._i2c_bus_number)
             if self._ping_test:
                 _response = self.write_payload(self.get_payload('stop', 0.0, 0.0, 0.0), verbose=False)
                 if _response is Response.OKAY:
@@ -141,7 +142,7 @@ class MotorController(Component):
         Writes the payload argument to the Motor 2040.
         '''
         if not self.enabled:
-            self._log.warning('cannot write payload: motor controller disabled.')
+            self._log.debug('cannot write payload: motor controller disabled.')
             return
         now = dt.datetime.now()
         if self._last_send_time:

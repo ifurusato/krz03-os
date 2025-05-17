@@ -15,10 +15,18 @@ sys.path.insert(0, os.path.abspath('/home/pi/workspaces/workspace-krzos/krzos'))
 project   = 'krzos'
 copyright = '©2025, Ichiro Furusato'
 author    = 'Ichiro Furusato'
-release   = '0.1.0'
+
+version   = ''
+release   = ''
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
+
+language = 'en'
+exclude_patterns = []
+templates_path = ['_templates']
+source_suffix = '.rst'
+master_doc = 'index'
 
 # mock the root-level modules so that Sphinx can process them without executing any code
 autodoc_mock_imports = [
@@ -40,16 +48,10 @@ extensions = [
     'sphinx_rtd_theme',
 ]
 
-language = 'en'
-exclude_patterns = []
-templates_path = ['_templates']
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 #html_theme = 'alabaster'
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-
-master_doc = 'index'
 

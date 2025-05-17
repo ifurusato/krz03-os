@@ -103,7 +103,6 @@ class Roam(Behaviour):
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def callback(self):
-        print('🍀 roam callback.')
         self._log.info('roam callback.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -125,7 +124,7 @@ class Roam(Behaviour):
         _event = message.event
         if _event is Event.AVOID:
             if _event.value == 'suppress':
-                self._log.info(Fore.WHITE + "🍀 🍀 🍀 processing AVOID message with event: '{}'; value: {}".format(_event.name, _event.value))
+                self._log.info(Fore.WHITE + "🍀 processing AVOID message with event: '{}'; value: {}".format(_event.name, _event.value))
                 self.suppress()
                 # TODO what to do?
             else:
@@ -177,7 +176,7 @@ class Roam(Behaviour):
         except asyncio.CancelledError:
             self._log.info("roam loop cancelled.")
         except Exception as e:
-            self._log.error('🌭 {} encountered in roam loop: {}\n{}'.format(type(e), e, traceback.format_exc()))
+            self._log.error('{} encountered in roam loop: {}\n{}'.format(type(e), e, traceback.format_exc()))
             self.disable()
         finally:
             self._log.info("roam loop stopped.")
@@ -251,7 +250,7 @@ class Roam(Behaviour):
         '''
         Called when it's clear that the robot has stopped.
         '''
-        self._log.info(Fore.WHITE + "🌼 stoppage   🌼  🌼  🌼")
+        self._log.info(Fore.WHITE + "🌼 stoppage")
 #       self._differential.play('boink')
         # notify Roam that the robot has stopped
         _message = self.message_factory.create_message(Event.ROAM, Roam.STOPPED)
@@ -284,7 +283,7 @@ class Roam(Behaviour):
         Suppresses this Component.
         '''
         Behaviour.suppress(self)
-        self._log.info("🐱 roam suppressed.")
+        self._log.info("roam suppressed.")
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def disable(self):

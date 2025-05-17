@@ -72,7 +72,7 @@ class BehaviourManager(Subscriber):
         Loads a dictionary with instantiated Behaviours found in the current
         directory.
         '''
-        self._log.info(Fore.WHITE + '💩 finding behaviours…')
+        self._log.info('finding behaviours…')
         current_dir = os.path.dirname(os.path.abspath(__file__))
         for filename in os.listdir(current_dir):
             if filename.endswith(".py") and filename != os.path.basename(__file__):
@@ -112,7 +112,7 @@ class BehaviourManager(Subscriber):
         '''
         for _key, _behaviour in self._behaviours.items():
             _behaviour.start()
-            self._log.info('🐸 started behaviour {}'.format(_behaviour.name))
+            self._log.info('started behaviour {}'.format(_behaviour.name))
         Subscriber.start(self)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -133,7 +133,7 @@ class BehaviourManager(Subscriber):
         '''
         Disable all registered behaviours.
         '''
-        self._log.info('💙 disable all behaviours…')
+        self._log.info('disable all behaviours…')
         for _key, _behaviour in self._behaviours.items():
             _behaviour.disable()
             self._log.info('{} behaviour disabled.'.format(_behaviour.name))
@@ -265,7 +265,6 @@ class BehaviourManager(Subscriber):
         self._log.info('  suppressed:\t' + Fore.YELLOW + '{}'.format(self.suppressed))
         self._log.info('  behaviours:')
         for _key, _behaviour in self._behaviours.items():
-            print("🐳 type of key: {}".format(type(_key)))
             if self._clip_event_list:
                 _event_list = Util.ellipsis(_behaviour.print_events(), self._clip_length)
             else:
@@ -293,7 +292,7 @@ class BehaviourManager(Subscriber):
         '''
         Disable the behaviour manager and all behaviours.
         '''
-        self._log.info('💙 disabling behaviour manager and all behaviours…')
+        self._log.info('disabling behaviour manager and all behaviours…')
         self.suppress_all_behaviours()
         self.disable_all_behaviours()
         Subscriber.disable(self)

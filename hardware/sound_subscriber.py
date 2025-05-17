@@ -44,15 +44,6 @@ class SoundSubscriber(Subscriber):
                 Group.BEHAVIOUR,
                 Group.REMOTE
             ])) 
-#       self.add_events([ Group.SYSTEM,
-#               Group.GAMEPAD,
-#               Group.STOP,
-#               Group.IMU,
-#               Group.BUMPER,
-#               Group.INFRARED,
-#               Group.BEHAVIOUR,
-#               Group.REMOTE
-#           ])
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈

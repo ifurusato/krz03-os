@@ -44,6 +44,7 @@ User=pi
 Type=simple
 ExecStart=/usr/bin/python3 /home/pi/workspaces/workspace-krzos/krzos/krzosd.py &> /dev/null
 Restart=on-success
+#Restart=on-failure
 #PidFile=/home/pi/ros/.krzosd.pid
 
 [Install]

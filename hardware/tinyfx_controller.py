@@ -25,11 +25,13 @@ from core.logger import Logger, Level
 from hardware.response import Response
 
 class TinyFxController(Component):
+    NAME = 'tinyfx-ctrl'
     '''
     Connects with a Tiny FX over I2C.
     '''
     def __init__(self, config=None, level=Level.INFO):
-        self._log = Logger('tinyfx-ctrl', level)
+        self._log = Logger(TinyFxController.NAME, level)
+        self._log.info('🍏 instantiating TinyFxController…')
         Component.__init__(self, self._log, suppressed=False, enabled=False)
         _cfg = config['krzos'].get('hardware').get('tinyfx-controller')
         self._i2c_address        = _cfg.get('i2c_address')
