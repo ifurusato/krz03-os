@@ -61,7 +61,7 @@ class PigpiodUtility:
         try:
             start_time = dt.now()
             subprocess.run(['sudo', 'systemctl', 'start', 'pigpiod'], check=True)
-            PigpiodUtility.wait_for_daemon('pigpiod', timeout=10)
+            PigpiodUtility.wait_for_daemon()
             end_time = dt.now()
             elapsed_time_ms = (end_time - start_time).total_seconds() * 1000
             _log.info(Fore.GREEN + f'pigpiod service started, elapsed time: {elapsed_time_ms:.2f} ms')
@@ -71,7 +71,7 @@ class PigpiodUtility:
             _log.info("The 'systemctl' command is not found. Ensure it is installed and accessible.")
 
     @staticmethod
-    def wait_for_daemon(service_name, timeout=10):
+    def wait_for_daemon(service_name='pigpiod', timeout=10):
         _log = Logger('pig-util', Level.INFO)
         deadline = dt.now() + timedelta(seconds=timeout)
         while dt.now() < deadline:
@@ -110,8 +110,9 @@ class PigpiodUtility:
             _log.info("The 'systemctl' command is not found. Ensure it is installed and accessible.")
 
     @staticmethod
-    def wait_for_daemon_to_stop(service_name, timeout=10):
+    def wait_for_daemon_to_stop(service_name='pigpiod', timeout=10):
         _log = Logger('pig-util', Level.INFO)
+        _log.info(Fore.YELLOW + "waiting for pigpiod to stop…")
         deadline = dt.now() + timedelta(seconds=timeout)
         while dt.now() < deadline:
             result = subprocess.run(["systemctl", "is-active", service_name], capture_output=True, text=True)

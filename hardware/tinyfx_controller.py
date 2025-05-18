@@ -222,7 +222,7 @@ class TinyFxController(Component):
         '''
         Write a completion code to the I2C bus.
         '''
-        self._log.info("writing completion code…")
+        self._log.debug("writing completion code…")
         self._i2cbus.write_byte_data(self._i2c_address, self._config_register, 0xFF)
         self._log.debug("write complete.")
 

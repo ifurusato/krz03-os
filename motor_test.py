@@ -57,14 +57,13 @@ def main():
         _args = parse_args()
 
         start_time = dt.now()
-        payload = _motor_ctrl.get_payload(_args.command, _args.port, _args.stbd, _args.duration)
-        _response = _motor_ctrl.write_payload(payload)
+        _response = _motor_ctrl.send_payload(_args.command, _args.port, _args.stbd, _args.duration)
         elapsed_ms = (dt.now() - start_time).total_seconds() * 1000.0
 
         if _response.value <= Response.OKAY.value:
-            _log.info("response: {}; {}ms elapsed.".format(_response.name, elapsed_ms))
+            _log.info("response: {}; {:5.2f}ms elapsed.".format(_response.name, elapsed_ms))
         else:
-            _log.error("error response: {}; {}ms elapsed.".format(_response.name, elapsed_ms))
+            _log.error("error response: {}; {:5.2f}ms elapsed.".format(_response.name, elapsed_ms))
 
     except KeyboardInterrupt:
         print("Program interrupted by user (Ctrl+C). Exiting gracefully.")

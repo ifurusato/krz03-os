@@ -30,7 +30,6 @@ from hardware.tinyfx_controller import TinyFxController
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class MotorController(Component):
-    VALIDATE_ARGS = True
     '''
     A motor controller connected over I2C to a Motor 2040. This class must
     be explicitly enabled prior to use.
@@ -48,6 +47,7 @@ class MotorController(Component):
         self._min_send_int_ms   = _cfg.get('minimum_send_interval_ms') # 70ms
         self._i2cbus            = None
         self._ping_test         = False
+        self._last_payload      = None
         # set up for sound
         _component_registry = globals.get('component-registry')
         self._tinyfx = _component_registry.get('krzos')
@@ -72,7 +72,7 @@ class MotorController(Component):
         try:
             self._i2cbus = SMBus(self._i2c_bus_number)
             if self._ping_test:
-                _response = self.write_payload(self.get_payload('stop', 0.0, 0.0, 0.0), verbose=False)
+                _response = self._write_payload(Payload.create('stop', 0.0, 0.0, 0.0), verbose=False)
                 if _response is Response.OKAY:
                     self._log.info('motor controller enabled; response: ' + Fore.GREEN + '{}'.format(_response.name))
                 else:
@@ -113,37 +113,31 @@ class MotorController(Component):
     def send_payload(self, command, port_speed, stbd_speed, duration):
         '''
         Generates a payload and sends it to the Motor 2040. This is a shortcut
-        that simply obtains the payload from get_payload() and sends it to the
-        Motor 2040 via write_payload().
+        that simply obtains the payload from Payload.create() and sends it to
+        the Motor 2040 via _write_payload().
+
+        If a previous payload exists and the arguments are withing tolerance of
+        it, the method exits, doing nothing.
         '''
-        _payload = self.get_payload(command, port_speed, stbd_speed, duration)
-        return self.write_payload(_payload)
+        if self._last_payload is not None:
+            if self._last_payload.values_equal(command, port_speed, stbd_speed, duration):
+                self._log.info(Fore.BLUE + 'a. NOT sending redundant payload: {}'.format(self._last_payload))
+                return
+        _payload = Payload.create(command, port_speed, stbd_speed, duration)
+        return self._write_payload(_payload)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    @staticmethod
-    def get_payload(command, port_speed, stbd_speed, duration):
-        '''
-        Generates a payload provides the requisite arguments.
-        '''
-        if MotorController.VALIDATE_ARGS:
-            if not isinstance(command, str):
-                raise ValueError('expected string for command, not {}'.format(type(command)))
-            if not isinstance(port_speed, float):
-                raise ValueError('expected float for port_speed, not {}'.format(type(port_speed)))
-            if not isinstance(stbd_speed, float):
-                raise ValueError('expected float for stbd_speed, not {}'.format(type(stbd_speed)))
-            if not isinstance(duration, float):
-                raise ValueError('expected float for duration, not {}'.format(type(duration)))
-        return Payload(command, port_speed, stbd_speed, duration)
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def write_payload(self, payload, verbose=True):
+    def _write_payload(self, payload, verbose=True):
         '''
         Writes the payload argument to the Motor 2040.
         '''
         if not self.enabled:
             self._log.debug('cannot write payload: motor controller disabled.')
             return
+        if self._last_payload is not None and self._last_payload == payload:
+            self._log.info(Fore.BLUE + 'b. NOT sending redundant payload: {}'.format(self._last_payload))
+            return
+        self._last_payload = payload
         now = dt.datetime.now()
         if self._last_send_time:
             elapsed = now - self._last_send_time

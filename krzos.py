@@ -571,29 +571,52 @@ class KRZOS(Component, FiniteStateMachine):
         else:
             try:
                 self._log.info('closing…')
-                Component.close(self) # will call disable()
+#               Component.disable(self)
                 self._closing = True
-                _registry = self._component_registry.get_registry()
+
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + '🌸 a. closing behaviours…')
+                self._behaviour_mgr.close_all_behaviours()
+
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + '🌸 b. closing subscribers and publisher…')
                 # closes all components that are not a publisher, subscriber, the message bus or krzos itself…
-                while len(_registry) > 0:
-                    _name, _component = _registry.popitem(last=True)
+                for _component in list(self._component_registry):
                     if not isinstance(_component, Publisher) and not isinstance(_component, Subscriber) \
                             and _component != self and _component != self._message_bus:
-                        self._log.info(Style.DIM + 'closing component \'{}\' ({})…'.format(_name, _component.classname))
+                        self._log.info(Style.BRIGHT + 'closing component \'{}\' ({})…'.format(_component.name, _component.classname))
                         _component.close()
+                        self._component_registry.remove_component(_component)
                 time.sleep(0.1)
-                if self._message_bus and not self._message_bus.closed:
-                    self._log.info('closing message bus from krzos…')
-                    self._message_bus.close()
-                    self._log.info('message bus closed.')
-                while not Component.close(self): # will call disable()
-                    self._log.info('closing component…')
+
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + '🌸 c. closing other components…')
+                # closes any remaining non-message bus or krzos…
+                for _component in list(self._component_registry):
+                    if _component != self and _component != self._message_bus:
+                        self._log.info(Style.BRIGHT + 'closing component \'{}\' ({})…'.format(_component.name, _component.classname))
+                        _component.close()
+                        self._component_registry.remove_component(_component)
+
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + '🌸 d. waiting for components to close…; {} are still open.'.format(self._component_registry.count_open_components()))
+                self.wait_for_components_to_close()
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + '🌸 e. finished waiting for components to close; {} are still open.'.format(self._component_registry.count_open_components()))
+
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + '🌸 f. closing krzos…')
+                Component.close(self) # will call disable()
                 FiniteStateMachine.close(self)
+
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + '🌸 g. closing the message bus…')
+                self._log.info(Fore.MAGENTA + Style.BRIGHT + 'closing message bus…')
+                if self._message_bus and not self._message_bus.closed:
+                    self._log.info(Fore.MAGENTA + Style.BRIGHT + 'closing message bus from krzos…')
+                    self._message_bus.close()
+                    self._log.info(Fore.MAGENTA + Style.BRIGHT + 'message bus closed.')
+
                 # stop using logger here
-                print(Fore.CYAN + '\n-- application closed.\n' + Style.RESET_ALL)
+                print(Fore.MAGENTA + '\n🌸 h. application closed.\n' + Style.RESET_ALL)
+
             except Exception as e:
                 print(Fore.RED + 'error closing application: {}\n{}'.format(e, traceback.format_exc()) + Style.RESET_ALL)
             finally:
+                PigpiodUtility.wait_for_daemon_to_stop()
                 self._log.close()
                 self._closing = False
                 if REPORT_REMAINING_FRAMES:
@@ -611,6 +634,34 @@ class KRZOS(Component, FiniteStateMachine):
                     else:
                         print(Fore.WHITE + 'no threads remain upon closing.' + Style.RESET_ALL)
                 sys.exit(0)
+
+    def wait_for_components_to_close(self, check_interval=0.1, timeout=3.0):
+        """
+        Waits until all non-Publisher, non-Subscriber components (excluding
+        the application and the message bus) report that they are closed.
+        
+        :param check_interval:     Seconds between checks.
+        :param timeout:            Optional timeout in seconds. None means wait indefinitely.
+        :raises TimeoutError:      If timeout is exceeded before all components close.
+        """
+        start_time = time.time()
+        while True:
+            remaining = [
+                c for c in self._component_registry
+                if not isinstance(c, Publisher)
+                and not isinstance(c, Subscriber)
+                and c != self
+                and c != self._message_bus
+                and not c.closed()
+            ]
+            if not remaining:
+                self._log.info("all relevant components have closed.")
+                break
+            if timeout is not None and (time.time() - start_time) > timeout:
+                names = ', '.join(c.name for c in remaining)
+                raise TimeoutError(f"timeout waiting for components to close: {names}")
+            time.sleep(check_interval)
+            print('🌸 ping')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def export_config(self):

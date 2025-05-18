@@ -157,6 +157,8 @@ krzos:
     subscriber:
         distance_sensors:
             verbose:                       True            # noisy sensor output
+        sound_subscriber:
+            play_sounds:                  False            # enable sounds on events
     hardware:
         battery:
             enable_battery_messaging:     False            # if True we enable low battery messages to be sent

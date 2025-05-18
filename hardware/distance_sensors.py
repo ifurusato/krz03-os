@@ -53,7 +53,7 @@ class Easing(Enum):
                 9      strong          very flat early, sharp drop at end         conservative; waits to respond
                 20     very strong     stays almost flat until ~80%               very late response; very cautious
                 '''
-                log_scaling_factor = 5
+                log_scaling_factor = 7
                 return math.log1p(normalised * log_scaling_factor) / math.log1p(log_scaling_factor)
             case Easing.SIGMOID:
                 sigmoid_sharpness = 6   # reduce sharpness to make the deceleration more gradual (was 4)
@@ -98,7 +98,7 @@ class DistanceSensors(Component):
         self._min_distance     = _cfg.get('min_distance', 80)
         self._default_distance = _cfg.get('max_distance', 300)
         _easing_value          = _cfg.get('easing', 'logarithmic')
-        self._easing           = Easing.SIGMOID # Easing.from_string(_easing_value)
+        self._easing           = Easing.LINEAR # Easing.from_string(_easing_value)
         # sensors ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
         self._port_sensor = DistanceSensor(config, Orientation.PORT)
         self._cntr_sensor = DistanceSensor(config, Orientation.CNTR)

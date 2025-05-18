@@ -577,7 +577,7 @@ class MessageBus(Component):
             if len(tasks) > 0:
                 self._log.info(Fore.MAGENTA + 'nacking outstanding tasks:')
                 for task in tasks:
-                    self._log.info(Fore.MAGENTA + '🍄 task: {}'.format(task.get_name()))
+                    self._log.info(Fore.MAGENTA + 'task: {}'.format(task.get_name()))
                     # stop each loop…
                     coro = task.get_coro()
                     instance = getattr(coro, '__self__', None)
@@ -585,7 +585,7 @@ class MessageBus(Component):
                         continue # skip tasks that belong to this MessageBus
                     # call disable() if available
                     if hasattr(instance, 'disable'):
-                        self._log.info(Fore.MAGENTA + '🍄 task: {}, instance: {}'.format(task.get_name(), instance))
+                        self._log.info(Fore.MAGENTA + 'task: {}, instance: {}'.format(task.get_name(), instance))
                         try:
                             await instance.disable()
                         except Exception as e:

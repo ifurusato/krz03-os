@@ -44,6 +44,8 @@ class SoundSubscriber(Subscriber):
                 Group.BEHAVIOUR,
                 Group.REMOTE
             ])) 
+        _cfg = config['krzos'].get('subscriber').get('sound_subscriber')
+        self._play_sounds = _cfg.get('play_sounds', False)
         self._log.info('ready.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -72,17 +74,21 @@ class SoundSubscriber(Subscriber):
                 _value = int(message.payload.value)
                 if _value > 0:
                     self._log.info(Style.BRIGHT + 'BUMPER: message {}; '.format(message.name) + Fore.YELLOW + 'event: {}; '.format(_event.name) + 'value: {}'.format(_value))
-                    Player.instance().play(Sound.HONK)
+                    if self._play_sounds:
+                        Player.instance().play(Sound.HONK)
             case Group.INFRARED:    #  6, "infrared" 
                 if _event is Event.INFRARED_PORT:
                     self._log.info(Fore.RED   + 'port infrared: {:d}mm'.format(int(message.payload.value)))
-                    Player.instance().play(Sound.DIT_A)
+                    if self._play_sounds:
+                        Player.instance().play(Sound.DIT_A)
                 elif _event is Event.INFRARED_CNTR:
                     self._log.info(Fore.BLUE  + 'center infrared: {:d}mm'.format(int(message.payload.value)))
-                    Player.instance().play(Sound.DIT_B)
+                    if self._play_sounds:
+                        Player.instance().play(Sound.DIT_B)
                 elif _event is Event.INFRARED_STBD:
                     self._log.info(Fore.GREEN + 'starboard infrared: {:d}mm'.format(int(message.payload.value)))
-                    Player.instance().play(Sound.DIT_C)
+                    if self._play_sounds:
+                        Player.instance().play(Sound.DIT_C)
             case Group.IMU:         #  7, "imu" 
                 self._log.info(Style.DIM + 'IMU: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
             case Group.BEHAVIOUR:   # 11, "behaviour" 

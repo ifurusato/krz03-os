@@ -231,7 +231,7 @@ class Roam(Behaviour):
     def _accelerate(self):
         self._log.info("accelerate…")
         if self._differential:
-            self._differential.send_payload('acce', self._default_speed, self._default_speed, 2.0)
+            self._differential.send_payload('acce', self._default_speed, self._default_speed, None)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def _decelerate(self):

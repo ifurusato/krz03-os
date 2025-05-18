@@ -7,14 +7,16 @@
 #
 # author:   Murray Altheim
 # created:  2025-05-01
-# modified: 2025-05-03
+# modified: 2025-05-18
 
-# ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class Payload:
-    PACKET_LENGTH    = 15  # 14-byte payload + 1-byte CRC
-    DEFAULT_SPEED    = 0.5
-    DEFAULT_DURATION = 0.0
+    VALIDATE_ARGS      = True
+    PACKET_LENGTH      = 15  # 14-byte payload + 1-byte CRC
+    DEFAULT_SPEED      = 0.5
+    DEFAULT_DURATION   = 0.0
+    SPEED_TOLERANCE    = 0.05
+    DURATION_TOLERANCE = 0.1
     '''
     The Payload class encapsulates a fixed-length binary message format designed
     for efficient, error-checked communication between devices, particularly over
@@ -47,6 +49,30 @@ class Payload:
         self._port = self._validate_speed(port, "port")
         self._stbd = self._validate_speed(stbd, "stbd")
         self._duration = self._validate_duration(duration)
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
+    @staticmethod
+    def create(command, port_speed, stbd_speed, duration):
+        '''
+        Factory method that generates a payload provides the requisite arguments.
+        '''
+        def _or_default(value, default):
+            return default if value is None else value
+
+        port_speed = _or_default(port_speed, Payload.DEFAULT_SPEED)
+        stbd_speed = _or_default(stbd_speed, Payload.DEFAULT_SPEED)
+        duration   = _or_default(duration,   Payload.DEFAULT_DURATION)
+        if Payload.VALIDATE_ARGS:
+            if not isinstance(command, str):
+                raise ValueError('expected string for command, not {}'.format(type(command)))
+            if not isinstance(port_speed, float):
+                raise ValueError('expected float for port_speed, not {}'.format(type(port_speed)))
+            if not isinstance(stbd_speed, float):
+                raise ValueError('expected float for stbd_speed, not {}'.format(type(stbd_speed)))
+            if not isinstance(duration, float):
+                raise ValueError('expected float for duration, not {}'.format(type(duration)))
+        return Payload(command, port_speed, stbd_speed, duration)
 
     @property
     def command(self):
@@ -198,5 +224,38 @@ class Payload:
             raise ValueError("Expected 30 nibbles (4-bit values)")
         bytes_out = bytearray((nibbles[i] << 4) | nibbles[i + 15] for i in range(15))
         return cls.from_bytes(bytes_out)
+
+    def values_equal(self, command, port, stbd, duration):
+        '''
+        Compare the current values to a set of incoming values, using the same tolerances.
+        '''
+        return (
+            self._command == command
+            and self.isclose(self._port, port, abs_tol=self.SPEED_TOLERANCE)
+            and self.isclose(self._stbd, stbd, abs_tol=self.SPEED_TOLERANCE)
+            and self.isclose(self._duration, duration, abs_tol=self.DURATION_TOLERANCE)
+        )
+
+    def __eq__(self, other):
+        '''
+        Check if another Payload instance is equal to this one.
+        Uses tolerances for float comparisons: 0.05 for speeds, 0.1 for duration.
+        '''
+        if not isinstance(other, Payload):
+            return NotImplemented
+        def floats_equal(a, b, tol):
+            if a is None or b is None:
+                return a is b  # True if both are None, otherwise False
+            return self.isclose(a, b, abs_tol=tol)
+        return (
+            self._command == other._command
+            and floats_equal(self._port, other._port, self.SPEED_TOLERANCE)
+            and floats_equal(self._stbd, other._stbd, self.SPEED_TOLERANCE)
+            and floats_equal(self._duration, other._duration, self.DURATION_TOLERANCE)
+        )
+
+    @staticmethod
+    def isclose(a, b, abs_tol=1e-9):
+        return abs(a - b) <= abs_tol
 
 #EOF
