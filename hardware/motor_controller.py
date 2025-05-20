@@ -45,6 +45,7 @@ class MotorController(Component):
         self._i2c_slave_address = _cfg.get('i2c_address') # 0x44
         self._config_register   = _cfg.get('config_register') # 1
         self._min_send_int_ms   = _cfg.get('minimum_send_interval_ms') # 70ms
+        self._enable_movement   = _cfg.get('enable_movement', True)
         self._i2cbus            = None
         self._ping_test         = False
         self._last_payload      = None
@@ -133,6 +134,9 @@ class MotorController(Component):
         '''
         if not self.enabled:
             self._log.debug('cannot write payload: motor controller disabled.')
+            return
+        if not self._enable_movement:
+            self._log.info("movement disabled; command: '{}' ignored.".format(payload.command))
             return
         if self._last_payload is not None and self._last_payload == payload:
             self._log.info(Fore.BLUE + 'b. NOT sending redundant payload: {}'.format(self._last_payload))

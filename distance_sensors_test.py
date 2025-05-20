@@ -19,6 +19,7 @@ from core.logger import Logger, Level
 from core.orientation import Orientation
 from core.config_loader import ConfigLoader
 
+RAW      = False
 WEIGHTED = True
 
 async def main():
@@ -38,7 +39,14 @@ async def main():
     try:
         print("measuring distances…")
         while True:
-            if WEIGHTED:
+            if RAW:
+
+#               _port, _cntr, _stbd = _sensors.all
+                trio = _sensors.all
+#               print("port: {:10.2f};   cntr: {:10.2f};   stbd: {:10.2f}".format(*trio))
+                print("port: {};   cntr: {};   stbd: {}".format(*trio))
+
+            elif WEIGHTED:
 
                 _port, _stbd = _sensors.get_weighted_averages()
                 print("port: {:4.2f};\t stbd: {:4.2f}".format(_port, _stbd))

@@ -195,7 +195,7 @@ class Roam(Behaviour):
             self._log.debug("polling…")
             # get weighted averages for each motor
             port_avg, stbd_avg = self._sensors.get_weighted_averages()
-            self._log.info(Style.DIM + "port: {:4.2f};\t stbd: {:4.2f}".format(port_avg, stbd_avg))
+            self._log.debug(Style.DIM + "port: {:4.2f};\t stbd: {:4.2f}".format(port_avg, stbd_avg))
             # get current speeds
             current_port_speed, current_stbd_speed = self._differential.get_speeds()
             # apply motor commands

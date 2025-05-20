@@ -72,22 +72,21 @@ class SoundSubscriber(Subscriber):
                 self._log.info(Style.DIM + 'STOP: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
             case Group.BUMPER:      #  5, "bumper" 
                 _value = int(message.payload.value)
-                if _value > 0:
+                if _value > 0 and self._play_sounds:
                     self._log.info(Style.BRIGHT + 'BUMPER: message {}; '.format(message.name) + Fore.YELLOW + 'event: {}; '.format(_event.name) + 'value: {}'.format(_value))
-                    if self._play_sounds:
-                        Player.instance().play(Sound.HONK)
+                    Player.instance().play(Sound.HONK)
             case Group.INFRARED:    #  6, "infrared" 
                 if _event is Event.INFRARED_PORT:
-                    self._log.info(Fore.RED   + 'port infrared: {:d}mm'.format(int(message.payload.value)))
                     if self._play_sounds:
+                        self._log.info(Fore.RED   + 'port infrared: {:d}mm'.format(int(message.payload.value)))
                         Player.instance().play(Sound.DIT_A)
                 elif _event is Event.INFRARED_CNTR:
-                    self._log.info(Fore.BLUE  + 'center infrared: {:d}mm'.format(int(message.payload.value)))
                     if self._play_sounds:
+                        self._log.info(Fore.BLUE  + 'center infrared: {:d}mm'.format(int(message.payload.value)))
                         Player.instance().play(Sound.DIT_B)
                 elif _event is Event.INFRARED_STBD:
-                    self._log.info(Fore.GREEN + 'starboard infrared: {:d}mm'.format(int(message.payload.value)))
                     if self._play_sounds:
+                        self._log.info(Fore.GREEN + 'starboard infrared: {:d}mm'.format(int(message.payload.value)))
                         Player.instance().play(Sound.DIT_C)
             case Group.IMU:         #  7, "imu" 
                 self._log.info(Style.DIM + 'IMU: message {}; '.format(message.name) + Fore.YELLOW + ' event: {}'.format(_event.name))
