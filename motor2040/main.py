@@ -53,7 +53,7 @@ ERROR_LIMIT       = 10  # max errors before exiting main loop
 MAX_PAYLOAD_LENGTH = 12  # fixed-size payload with CRC
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Controller(object):
+class Controller:
     def __init__(self, level=Level.INFO):
         super().__init__()
         self._log = Logger('ctrl', level)

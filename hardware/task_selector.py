@@ -162,7 +162,7 @@ class TaskSelector(Component):
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Task(object):
+class Task:
     '''
     A struct containing a Task: its callable function, name and description.
     '''

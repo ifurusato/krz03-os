@@ -15,7 +15,7 @@
 #    print(Fore.RED + "That's all, folks!" + Style.RESET)
 #
 
-class Fore(object):
+class Fore:
 
     BLACK      = "\033[30m"
     RED        = "\033[31m"
@@ -39,7 +39,7 @@ class Fore(object):
         super().__init__()
         pass
 
-class Style(object):
+class Style:
 
     RESET_ALL  = "\033[0m"
     NORMAL     = "\033[22m"

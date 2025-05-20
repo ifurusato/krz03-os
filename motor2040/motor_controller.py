@@ -25,7 +25,7 @@ from response import (
 )
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class MotorController(object):
+class MotorController:
     NORMAL_DIR   = 0
     REVERSED_DIR = 1
     PFWD = 0

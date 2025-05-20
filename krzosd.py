@@ -63,7 +63,7 @@ print(Fore.BLUE + Style.BRIGHT + "application path: '{}'".format(APPLICATION_PAT
 PID_FILE              = WORK_DIR + '.krzosd.pid'
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class KrzosDaemon(object):
+class KrzosDaemon:
     '''
     Monitors a switch connected to a GPIO pin.
 
@@ -181,7 +181,7 @@ class KrzosDaemon(object):
         self._log.info(Fore.WHITE + 'krzosd closed.')
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class ToggleSwitch(object):
+class ToggleSwitch:
     def __init__(self, pin=GPIO_PIN, level=Level.INFO):
         self._log = Logger('switch', level)
         self._pin = pin

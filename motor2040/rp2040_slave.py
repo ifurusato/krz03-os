@@ -10,7 +10,7 @@ from RP2040_I2C_Registers import*
 from core.logger import Level, Logger
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class RP2040_Slave(object):
+class RP2040_Slave:
 
     I2C0_BASE = 0x40044000
     I2C1_BASE = 0x40048000

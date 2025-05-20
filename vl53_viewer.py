@@ -264,7 +264,7 @@ def getData(sensor):
 '''
    A wrapper around a Matrix 11x7 display.
 '''
-class Matrix(object):
+class Matrix:
     def __init__(self):
         self._matrix = Matrix11x7()
         self._brightness = 0.5

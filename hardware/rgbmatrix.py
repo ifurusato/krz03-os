@@ -38,7 +38,7 @@ from core.ranger import Ranger
 from hardware.color import Color
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class RgbMatrix(object):
+class RgbMatrix:
     '''
     This class provides access to a pair of Pimoroni 5x5 RGB LED Matrix displays,
     labeled port and starboard. It also includes several canned demonstrations,

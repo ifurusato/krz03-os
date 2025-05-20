@@ -68,7 +68,7 @@ ERROR_LIMIT       = 10     # max errors before exiting main loop
 PIR_SOUND          = 'cricket'
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Controller(object):
+class Controller:
     def __init__(self, level=Level.INFO):
         super().__init__()
         self._log = Logger('ctrl', level)

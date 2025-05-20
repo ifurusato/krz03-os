@@ -16,7 +16,7 @@ from ioexpander.encoder import Encoder
 from core.logger import Level, Logger
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class RotaryEncoder(object):
+class RotaryEncoder:
 
     I2C_ADDR = 0x0F  # 0x18 for IO Expander, 0x0F for the encoder breakout
 
@@ -85,7 +85,7 @@ class RotaryEncoder(object):
         self._ioe.clear_interrupt()
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class Selector(object):
+class Selector:
     '''
     Provided an incrementing or decrementing value, cycles through the values
     between 0 and the stated limit. This is similar to itertools.cycle() but

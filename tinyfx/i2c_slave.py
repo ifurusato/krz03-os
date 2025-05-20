@@ -24,7 +24,7 @@ from response import (
 )
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class I2CSlave(object):
+class I2CSlave:
     '''
     This class supports using an RP2040 as an I2C slave device. Default
     configuration is pin 24 for SDA, pin 25 for SCL. Constructor arguments

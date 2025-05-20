@@ -356,7 +356,7 @@ class Gamepad(Component):
         return None
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class GamepadScan(object):
+class GamepadScan:
     '''
     Returns the device with the most recently changed status from /dev/input/event{n}
     This can help you figure out which device is your gamepad, if if was connected

@@ -25,7 +25,7 @@ import core.globals as globals
 globals.init()
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Component(object):
+class Component:
     '''
     A basic component providing support for enable or disable, suppress or
     release, and close flags. The enable/disable and suppress/release differ
@@ -191,7 +191,7 @@ class Component(object):
         return True
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class ComponentRegistry(object):
+class ComponentRegistry:
     '''
     Maintains a registry of all Components, in the order in which they were created.
     '''

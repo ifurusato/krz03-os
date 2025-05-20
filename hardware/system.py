@@ -19,7 +19,7 @@ init()
 from core.logger import Level, Logger
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class System(object):
+class System:
     '''
     A collection of system control/info/statistical methods.
     '''

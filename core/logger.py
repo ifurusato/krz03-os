@@ -59,7 +59,7 @@ class Level(Enum):
             raise NotImplementedError
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Logger(object):
+class Logger:
 
     __suppress       = False
     __color_debug    = Fore.BLUE   + Style.DIM
@@ -372,7 +372,7 @@ class Logger(object):
                     + message + Fore.WHITE + Style.BRIGHT + _R + Util.repeat(_H, _hyphen_width-1)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class LogStats(object):
+class LogStats:
     '''
     Provides a simple count for each call to the Logger.
     '''

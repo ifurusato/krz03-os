@@ -30,7 +30,7 @@ init()
 from core.logger import Level, Logger
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class I2CScanner(object):
+class I2CScanner:
     '''
     Scans the I²C bus, returning a list of devices.
     '''

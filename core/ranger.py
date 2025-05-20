@@ -11,7 +11,7 @@
 #
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Ranger(object):
+class Ranger:
     '''
     A simple range converter class, e.g.:
 

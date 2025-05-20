@@ -94,7 +94,7 @@ from core.config_loader import ConfigLoader
 '''
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class GamepadFinder(object):
+class GamepadFinder:
 
     _NOT_AVAILABLE_ERROR = 'gamepad device not found (not configured, paired, powered or otherwise available)'
 
@@ -145,7 +145,7 @@ class GamepadFinder(object):
             raise ConnectionError('unable to connect to input device path {}: {}'.format(self._device_path, e))
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class GamepadScan(object):
+class GamepadScan:
     '''
     Returns the device with the most recently changed status from /dev/input/event{n}
     This can help you figure out which device is your gamepad, if if was connected

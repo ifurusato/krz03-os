@@ -22,7 +22,7 @@ from core.logger import Logger, Level
 from core.orientation import Orientation
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class PID(object):
+class PID:
     '''
     The PID controller itself.
 

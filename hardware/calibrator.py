@@ -28,7 +28,7 @@ from hardware.sound import Sound
 from hardware.player import Player
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Calibrator(object):
+class Calibrator:
     '''
     A ballistic behaviour that rotates the robot horizontally in place,
     the requirement for calibrating the ICM20948 IMU.

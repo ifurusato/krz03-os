@@ -13,7 +13,7 @@ import json
 from core.util import Util
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Sound(object):
+class Sound:
     def __init__(self, index, name, mnemonic, duration, filename, description):
         self._index    = index
         self._name     = name

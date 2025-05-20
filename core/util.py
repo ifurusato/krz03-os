@@ -20,7 +20,7 @@ from colorama import init, Fore, Style
 init()
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Util(object):
+class Util:
     '''
     A collection of static utility methods.
     '''

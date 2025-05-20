@@ -25,7 +25,7 @@ Level = enum(DEBUG=10, INFO=20, WARN=30, ERROR=40)
 # e.g., levels = (Level.ONE, Level.TWO)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Logger(object):
+class Logger:
 
     __color_debug    = Fore.BLUE   + Style.DIM
     __color_info     = Fore.CYAN   + Style.NORMAL

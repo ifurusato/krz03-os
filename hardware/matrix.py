@@ -31,7 +31,7 @@ except ImportError:
     raise Exception('This script requires the matrix11x7 module\nInstall with: pip3 install --user matrix11x7')
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Matrices(object):
+class Matrices:
 
     LEFT  = 0
     RIGHT = 1
@@ -290,7 +290,7 @@ class Matrices(object):
             self._stbd_matrix.clear()
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class Matrix(object):
+class Matrix:
     '''
     This class provides access to a Pimoroni 11x7 LED Matrix display, whose
     LEDs are all white. This is located at the default 0x75 address.
