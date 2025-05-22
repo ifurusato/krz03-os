@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-13
-# modified: 2025-05-03
+# modified: 2025-05-22
 #
 # MotorControllerError at bottom.
 
@@ -123,7 +123,8 @@ class MotorController(Component):
         if self._last_payload is not None:
             if self._last_payload.values_equal(command, port_speed, stbd_speed, duration):
                 self._log.info(Fore.BLUE + 'a. NOT sending redundant payload: {}'.format(self._last_payload))
-                return
+                return Response.SKIPPED
+        print(Fore.GREEN + "🍀 command: '{}'".format(command) + Style.RESET_ALL)
         _payload = Payload.create(command, port_speed, stbd_speed, duration)
         return self._write_payload(_payload)
 
@@ -134,13 +135,13 @@ class MotorController(Component):
         '''
         if not self.enabled:
             self._log.debug('cannot write payload: motor controller disabled.')
-            return
+            return Response.RUNTIME_ERROR
         if not self._enable_movement:
             self._log.info("movement disabled; command: '{}' ignored.".format(payload.command))
-            return
+            return Response.RUNTIME_ERROR
         if self._last_payload is not None and self._last_payload == payload:
             self._log.info(Fore.BLUE + 'b. NOT sending redundant payload: {}'.format(self._last_payload))
-            return
+            return Response.SKIPPED
         self._last_payload = payload
         now = dt.datetime.now()
         if self._last_send_time:

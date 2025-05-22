@@ -1,7 +1,15 @@
-#!/micropython
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-#  RP2040_Slave (was: i2cSlave.py)
+# Copyright 2020-2025 by Murray Altheim. All rights reserved. This file is part
+# of the Robot Operating System project, released under the MIT License. Please
+# see the LICENSE file included as part of this package.
+#
+# author:   Murray Altheim
+# created:  2025-04-26
+# modified: 2025-05-22
+#
+# RP2040_Slave (was: i2cSlave.py)
 #
 
 from machine import mem32

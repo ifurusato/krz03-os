@@ -224,7 +224,7 @@ krzos:
             i2c_address:                   0x44            # I2C address of the Motor 2040
             config_register:                  1            # register on the RP2040
             minimum_send_interval_ms:        70            # minimal amount of time between sends to controller
-            enable_movement:              False            # enable movement commands to be sent to Motor 2040
+            enable_movement:               True            # enable movement commands to be sent to Motor 2040
         tinyfx-controller:
             i2c_address:                   0x45
             bus_number:                       1

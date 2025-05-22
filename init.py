@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-05-10
-# modified: 2025-05-15
+# modified: 2025-05-22
 #
 # Checks for the existence of a set of expected I2C devices on the KRZ03.
 #
@@ -25,13 +25,16 @@ from core.util import Util
 from core.config_loader import ConfigLoader
 from hardware.i2c_scanner import I2CScanner, DeviceNotFound
 from hardware.pigpiod_util import PigpiodUtility as PigUtil
+from hardware.tinyfx_driver import TinyFxDriver
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
+RUNNING_LIGHTS    = False
 BLINK_ON_COMPLETE = True
 MOTOR_2040        = True
 TINY_FX           = True
 CONFIRM_PIGPIOD   = False
+driver            = None
 
 _pin = None
 
@@ -156,6 +159,10 @@ try:
             GPIO.output(_pin, GPIO.LOW)
             time.sleep(0.3)
 
+    if RUNNING_LIGHTS:
+        driver = TinyFxDriver(_config)
+        driver.command('on')
+
     _log.info("done.")
 
 except KeyboardInterrupt:
@@ -165,5 +172,7 @@ except Exception as e:
 finally:
     if _pin and BLINK_ON_COMPLETE:
         GPIO.cleanup(_pin)
+    if driver:
+        driver.close()
 
 #EOF
