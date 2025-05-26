@@ -7,243 +7,188 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-14
-# modified: 2025-04-27
+# modified: 2025-05-03
 #
+# Wraps an I2C Slave to pass payloads to a Controller class.
 
-import machine
+import sys
 import utime
-from RP2040_Slave import i2c_slave
+from machine import Pin
+from rp2040_slave import RP2040_Slave
 
-import itertools
+from core.logger import Level, Logger
 from colors import*
-from stringbuilder import StringBuilder
-from response import (
-    RESPONSE_INIT, RESPONSE_OKAY, RESPONSE_BAD_ADDRESS, RESPONSE_BAD_REQUEST,
-    RESPONSE_OUT_OF_SYNC, RESPONSE_INVALID_CHAR, RESPONSE_SOURCE_TOO_LARGE,
-    RESPONSE_UNVALIDATED, RESPONSE_EMPTY_PAYLOAD, RESPONSE_PAYLOAD_TOO_LARGE
-)
+from colorama import Fore, Style
+from payload import Payload
+from response import*
 
-# ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class I2CSlave:
+    ERROR_LIMIT = 10  # max errors before exiting main loop
+    RESPONSE_32 = True
+    BATCH_WRITE = True
     '''
-    This class supports using an RP2040 as an I2C slave device. Default
-    configuration is pin 24 for SDA, pin 25 for SCL. Constructor arguments
-    can be specified to suit any RP2040 board.
-
-    The receive mode permits strings of up to 32 characters, composed of
-    ASCII characters between SPACE (20) and '~' (126).
-
-    I2C requests return a response code in the form of a single byte.
-
-    This also provides an optional callback method that calls status()
-    with an RGB value and optional message.
-
-    Values are for the Pimoroni TinyFX.
-
-    :param: i2c_id        the I2C bus identifier; default is 0
-    :param: sda           the SDA pin; default is 16
-    :param: scl           the SCL pin; default is 17
-    :param: i2c_address   the I2C address of the device; default is 0x45
-    :param: blink         if True, will periodically call status()
-                          to indicate the loop is operating.
-    :param: callback      the optional callback method
+    Wraps an RP2040_Slave to provide a processing loop and a connection
+    to a Controller to handle I2C transactions.
     '''
-    # default constants:
-    I2C_ID      = 0
-    SDA_PIN     = 16
-    SCL_PIN     = 17
-    I2C_ADDRESS = 0x45
-    MAX_CHARS   = 32
-
-    def __init__(self, i2c_id=I2C_ID, sda=SDA_PIN, scl=SCL_PIN, i2c_address=I2C_ADDRESS, blink=True, callback=None):
+    def __init__(self, i2c_bus_id=None, sda=None, scl=None, i2c_address=None, display=None, controller=None, level=Level.INFO):
         super().__init__()
-        self._blink = blink
-        self._callback = callback
-        self._enabled = False
-        self._counter = itertools.count()
-        print("starting I2C slave…")
-        self.s_i2c = i2c_slave(i2cID=i2c_id, sda=sda, scl=scl, slaveAddress=i2c_address)
-        # initial conditions
-        self._index = 0
-        self._payload = ''
-        self._response = RESPONSE_INIT
-        self._currentTransaction = self.s_i2c.I2CTransaction(0x00, [])
-        self._state = self.s_i2c.I2CStateMachine.I2C_START
-        # indicate startup…
-        for i in range(3):
-            self.status(None, COLOR_CYAN)
-            utime.sleep_ms(50)
-            self.status(None, COLOR_BLACK)
-            utime.sleep_ms(50)
-        utime.sleep_ms(333)
-        print("ready.")
+        self._log = Logger('i2c_slave', level)
+        self._log.debug("I2C slave starting…")
+        self._display    = display
+        self._controller = controller
+        self.s_i2c       = RP2040_Slave(i2c_id=i2c_bus_id, sda=sda, scl=scl, i2c_address=i2c_address)
+        self.state       = self.s_i2c.I2CStateMachine.I2C_START
+        _data_buffer     = []
+        _address         = 0x00
+        self._currentTransaction = self.s_i2c.I2CTransaction(_address, _data_buffer)
+        self._errors     = 0
+        self._enabled    = False
+        self._log.info('ready.')
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
     def enable(self):
-        if self._enabled:
-            print("already enabled.")
-            return
+        self._log.info("enabling controller…")
         self._enabled = True
-        self._loop()
+        self._controller.enable()
+        self._i2c_loop()
 
     def disable(self):
-        if not self._enabled:
-            print("already disabled.")
-            return
+        self._log.debug("disabling controller…")
         self._enabled = False
+        self._controller.disable()
+        self._log.info("disabled.")
 
-    def _loop(self):
-        print("starting loop…")
-        while self._enabled:
+    def show_color(self, color):
+        '''
+        Show the color on the color display.
+        '''
+        if self._display:
+            self._display.show_color(color)
+
+    def _i2c_loop(self):
+        self._log.info("starting main loop…")
+        response = RESPONSE_INIT
+        while self._enabled and self._controller.enabled:
             try:
-                self._state = self.s_i2c.handle_event()
-                if self._state == None:
-                    pass
-                elif self._state == self.s_i2c.I2CStateMachine.I2C_START:
-                    self.status('start', COLOR_MAGENTA)
-                elif self._state == self.s_i2c.I2CStateMachine.I2C_RECEIVE:
-                    self.status('rx', COLOR_YELLOW)
-                    '''
-                    Receive data from the master. The first byte is 0x00, followed by a byte
-                    indicating the count of bytes in the payload, then the data bytes followed
-                    by 0x01 to validate, then 0xff to finish.
-                    '''
-                    if self._currentTransaction.address == 0x00:
-                        # first byte received is the register address
-                        _register_address = self.s_i2c.Read_Data_Received()
-                        self._currentTransaction.address = _register_address
-
-                    _valid = False
-                    self._index = 0
-                    _sb = StringBuilder()
-                    _expected_length = 0
-
-                    # read all data byte received until Rx FIFO is empty
-                    while self.s_i2c.Available():
-                        _data_rx = self.s_i2c.Read_Data_Received()
-                        _int_value = int(_data_rx)
-                        if _data_rx == 0x00:
-                            pass
-                        elif _data_rx == 0x01:
-                            _valid = True
-                        elif _data_rx == 0xFF:
-                            self.status('eor', COLOR_MAGENTA)
-                            break
-                        else:
-                            if self._index == 0:
-                                _expected_length = _int_value
-                                if _expected_length > self.MAX_CHARS:
-                                    self.status('error', COLOR_ORANGE)
-                                    raise I2CSlaveError(RESPONSE_SOURCE_TOO_LARGE, "WARNING: packet failed with {:d} chars, exceeded maximum length of {:d}.".format(
-                                            _expected_length, self.MAX_CHARS))
-                            elif _sb.length() < _expected_length:
-                                if ( _int_value >= 32 ) and ( _int_value < 127 ):
-                                    _sb.append(chr(_data_rx))
-                                else:
-                                    self.status('error', COLOR_RED)
-                                    raise I2CSlaveError(RESPONSE_INVALID_CHAR, "invalid character received: '0x{:02X}' (int: '{:d}'); buf length: {:d}; sb: '{}'".format(
-                                            _data_rx, _int_value, _sb.length(), _sb.to_string()))
-                            else:
-                                self.status('error', COLOR_RED)
-                                raise I2CSlaveError(RESPONSE_OUT_OF_SYNC, "out of sync: '0x{:02X}' (int: '{:d}'); buf length: {:d}; sb: '{}'".format(
-                                        _data_rx, _int_value, _sb.length(), _sb.to_string()))
-                        self._index = self._index + 1
-                        self._currentTransaction.data_byte.append(_data_rx)
-
-                    if _sb.length() > 0:
-                        if _valid:
-                            if _expected_length != _sb.length():
-                                self.status('error', COLOR_RED)
-                                raise I2CSlaveError(RESPONSE_PAYLOAD_TOO_LARGE, "package failed with expected length: {:d}; actual length: {:d}.".format(
-                                        _expected_length, _sb.length()))
-                            else:
-                                self._payload = self.process_buffer(_sb)
-                        else:
-                            self.status('error', COLOR_RED)
-                            raise I2CSlaveError(RESPONSE_UNVALIDATED, "unvalidated buffer: '{}'".format(_sb.to_string()))
-
-                    # end of receive loop
-                    self.status('rxd', COLOR_YELLOW_GREEN)
-
-                elif self._state == self.s_i2c.I2CStateMachine.I2C_REQUEST:
-                    if len(self._payload) > 0:
-                        self.status('okay', COLOR_GREEN)
-                        self._response = RESPONSE_OKAY
-                    else:
-                        self.status('nop', COLOR_RED)
-                        self._response = RESPONSE_EMPTY_PAYLOAD
-                    # otherwise use existing response
-                    while (self.s_i2c.is_Master_Req_Read()):
-#                       self.s_i2c.Slave_Write_Data(self._response)
-                        self.write_response(self._response)
-                elif self._state == self.s_i2c.I2CStateMachine.I2C_FINISH:
-                    self.reset()
-
-                if self._blink: # is alive indicator
-                    if next(self._counter) % 1000 == 0:
-                        self.status(None, COLOR_DARK_CYAN)
-                        utime.sleep_ms(4)
-                        self.status(None, COLOR_BLACK)
-
-            except KeyboardInterrupt:
-                break
-            except I2CSlaveError as se:
-                _msg = 'I2C slave error {} on transaction: {}'.format(se.code, str(se))
-                self.status(_msg, COLOR_RED)
-                print(_msg)
-                # empty buffer
-                while self.s_i2c.Available():
-                    _data_rx = self.s_i2c.Read_Data_Received()
-                self.reset()
-                while (self.s_i2c.is_Master_Req_Read()):
-                    print("sending error response: {}".format(str(se)))
-#                   self.s_i2c.Slave_Write_Data(se.code)
-                    self.write_response(se.code)
+                if self._errors > self.ERROR_LIMIT:
+                    self._log.error("reached error limit.")
+                    self.show_color(COLOR_RED)
+                    self.disable()
+                    return
+                self.state = self.s_i2c.handle_event()
+                if self.state == self.s_i2c.I2CStateMachine.I2C_START:
+                    response = self._handle_start()
+                if self.state == self.s_i2c.I2CStateMachine.I2C_RECEIVE:
+                    start_time = utime.ticks_ms()
+                    response = self._handle_receive()
+                if self.state == self.s_i2c.I2CStateMachine.I2C_REQUEST:
+                    response = self._handle_request(response)
+                    # report how fast the request was handled
+                    _elapsed_ms = utime.ticks_diff(utime.ticks_ms(), start_time)
+                    self._log.info("request returned: {}ms elapsed.".format(_elapsed_ms))
+                if self.state == self.s_i2c.I2CStateMachine.I2C_FINISH:
+                    response = self._handle_finish()
+                    # report how fast the complete process took
+                    _elapsed_ms = utime.ticks_diff(utime.ticks_ms(), start_time)
+                    self._log.info(Style.DIM + "request complete: {}ms elapsed.".format(_elapsed_ms))
+                    self.reset_transaction()
             except Exception as e:
-                print('Exception raised: {}'.format(e))
+                self._log.error("{} raised in I2C transaction: {}".format(type(e), e))
+                sys.print_exception(e)
+                self.reset_transaction()
+                self._errors += 1
+            utime.sleep(0.01) # minimal delay to prevent a tight loop
+        self._log.info("main loop stopped.")
 
-    def write_response(self, response):
-        '''
-        Writes the single byte response to the I2C bus.
-        '''
-        print("🠊 response: '0x{:02X}'".format(response))
-        self.s_i2c.Slave_Write_Data(response)
+    def _handle_start(self):
+        return RESPONSE_STARTED
 
-    def status(self, message, color):
-        '''
-        If the callback has been provided, it is called with a message (which may
-        be None) and an RGB color tuple to display the color on the NeoPixel.
-        '''
-        if self._callback:
-            self._callback(message, color)
-            if not self._blink:
-                # callback but no blink so we need to un-blink the LED  
-                utime.sleep_ms(10)
-                self._callback(None, COLOR_BLACK)
+    def _handle_receive(self):
+        rx_step         = 0
+        rx_count        = 0
+        expected_length = 0
+        while self.s_i2c.Available():
+            byte = self.s_i2c.Read_Data_Received()
+            if rx_step == 0:
+                if byte == 0x01: # start marker
+                    rx_step = 1
+                    rx_count = 0
+                else:
+                    self._log.debug(f"Ignoring unexpected byte: {byte}")
+            elif rx_step == 1:
+                expected_length = byte
+                rx_step = 2
+                self._currentTransaction.reset()
+            elif rx_step == 2:
+                self._currentTransaction.append_data_byte(byte)
+                rx_count += 1
+                if rx_count >= expected_length:
+                    rx_step = 3
+            elif rx_step == 3:
+                if byte == 0x01:  # end marker
+#                   self._log.debug("received end marker.")
+                    if self._controller:
+                        self._controller.validated()
+#                   return RESPONSE_OKAY
+                    return RESPONSE_VALIDATED
+                else:
+                    self._log.error(f"Invalid end marker: {byte}")
+                    return RESPONSE_UNVALIDATED
+        return RESPONSE_BAD_REQUEST
 
-    def process_buffer(self, buffer):
-        '''
-        Receives the packet sent by the master, returning the contents as a string.
-        This can be expanded to further process the value.
-        '''
-        __payload = buffer.to_string()
-        self.status("payload: '{}'".format(__payload), COLOR_GREEN)
-        return __payload
+    def _handle_request(self, response):
+        if self.RESPONSE_32:
+#           self._log.debug("writing MULTIBYTE response: '{}'…".format(response.description))
+            if response == RESPONSE_VALIDATED:
+                # if validated return OKAY
+                response = RESPONSE_OKAY
+            # create a Payload from the response description
+            response_payload = Payload(response.description)
+            # convert the Payload to bytes, which includes data and CRC
+            response_bytes = response_payload.to_bytes()
+            if self.BATCH_WRITE:
+                # This writes 8 bytes in a batch as soon as the FIFO has space, waiting only when
+                # the FIFO is full, not after every byte. More efficient than single byte writes.
+                fifo_size = 8
+                idx = 0
+                length = len(response_bytes)
+                while idx < length:
+                    # wait until FIFO not full to write at least one byte
+                    while not self.s_i2c.is_Master_Req_Read():
+                        utime.sleep_us(100)
+                    # write up to fifo_size bytes or remaining bytes
+                    bytes_to_write = min(fifo_size, length - idx)
+                    for i in range(bytes_to_write):
+                        self.s_i2c.Slave_Write_Data(response_bytes[idx + i])
+                    idx += bytes_to_write
+            else:
+                # send the response bytes over I2C
+                for byte in response_bytes:
+                    while not self.s_i2c.is_Master_Req_Read():
+                        utime.sleep_us(100)
+                    self.s_i2c.Slave_Write_Data(byte)
+        else:
+#           self._log.debug("writing 1 byte response: '{}' of 0x{:02X}…".format(response.description, response.value))
+            while self.s_i2c.is_Master_Req_Read():
+                self.s_i2c.Slave_Write_Data(response.value)
+#           self._log.debug("response written.")
+        return RESPONSE_COMPLETE
 
-    def reset(self):
-        self._index = 0
-        self._payload = ''
-        self._response = RESPONSE_INIT
+    def _handle_finish(self):
+        if self._currentTransaction.data_length() == Payload.PACKET_LENGTH:
+            payload = Payload.from_bytes(self._currentTransaction.data_as_bytes())
+            response = self._controller.process_payload(payload)
+#           self._log.debug("received response: '{}'".format(response.description))
+            return response
+        else:
+            self._log.error("expected {}, not {} bytes in payload.".format(
+                    Payload.PACKET_LENGTH, self._currentTransaction.data_length()))
+            return RESPONSE_PAYLOAD_WRONG_SIZE
+
+    def reset_transaction(self):
         self._currentTransaction.reset()
-        self._state = self.s_i2c.I2CStateMachine.I2C_START
-
-# ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-class I2CSlaveError(Exception):
-    def __init__(self, code, message):
-        super().__init__(message)
-        self._code = code
-
-    @property
-    def code(self):
-        return self._code
+        self._errors = 0
 
 #EOF

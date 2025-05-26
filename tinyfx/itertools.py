@@ -1,6 +1,3 @@
-#!/micropython
-# -*- coding: utf-8 -*-
-#
 # pycopy-lib version of itertools by Paul Sokolovsky
 # source: https://github.com/pfalcon/pycopy-lib/tree/master/itertools
 

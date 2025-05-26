@@ -22,13 +22,6 @@ from hardware.controller import Controller
 from hardware.payload import Payload
 from hardware.response import*
 
-def x_parse_args():
-    # create the argument parser
-    parser = argparse.ArgumentParser(description="Process command and optional speeds/duration.")
-    # command (required) and optional arguments with defaults
-    parser.add_argument("command", type=str, help="The command to execute.")
-    return parser.parse_args()
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Process command and optional speeds/duration.")
     # first positional argument: the base command

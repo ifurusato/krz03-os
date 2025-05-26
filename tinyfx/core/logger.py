@@ -8,7 +8,7 @@
 # author:   Murray Altheim
 # created:  2020-01-14
 # modified: 2025-04-26
-#
+
 # this is a simplification of the MROS Logger class, just using print statements
 # and not supporting log-to-file, log suppression, the notice() or critical()
 # levels, etc.

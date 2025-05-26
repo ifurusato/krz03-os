@@ -6,21 +6,18 @@
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
-# created:  2024-11-23
-# modified: 2024-11-23
-#
+# created:  2025-05-24
+# modified: 2025-05-24
 
 from machine import Pin
 
-class PassiveInfrared(object):
-    def __init__(self, pin=26):
-        self._pir_pin = Pin(pin, Pin.IN, Pin.PULL_UP)
+from abstract_display import AbstractDisplay
 
-    @property
-    def triggered(self):
-        '''
-        Returns True if triggered.
-        '''
-        return int(self._pir_pin.value()) == 1
+class PicoDisplay(AbstractDisplay):
+    def __init__(self):
+        self._led = Pin(25, Pin.OUT)
+
+    def show_color(self, color):
+        self._led.value(0 if color == (0, 0, 0) else 1)
 
 #EOF
