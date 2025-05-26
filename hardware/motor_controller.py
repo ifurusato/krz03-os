@@ -158,17 +158,29 @@ class MotorController(Component):
             if verbose:
                 self._log.debug("writing payload: " + Fore.WHITE + "'{}'".format(payload.to_string()))
             # send over I2C
-            self._i2cbus.write_block_data(self._i2c_slave_address, self._config_register, list(payload.to_bytes()))
+            _data = list(payload.to_bytes())
+            print("🍄 data type: {}; data: '{}'; payload: {}".format(type(_data), _data, payload.to_string()))
+            self._i2cbus.write_block_data(self._i2c_slave_address, self._config_register, _data)
             if verbose:
                 self._log.info("payload written: " + Fore.WHITE + "'{}'".format(payload.to_string()))
             # read 1-byte response
             _read_data = self._i2cbus.read_byte_data(self._i2c_slave_address, self._config_register)
+            print("🍄 _read_data type: {}; int: {}; hex: '0x{:02X}'".format(type(_read_data), int(_read_data), _read_data))
             # convert response byte to status enum or meaning
             _response = Response.from_value(_read_data)
-            if _response.value <= Response.OKAY.value:
-                self._log.debug("response: {}".format(_response.name))
+            if _response is None:
+                self._log.warning("a. response is None.")
+            elif _response == Response.OKAY:
+                self._log.info("b. response: {}".format(_response.name))
+            elif isinstance(_response, Response):
+                self._log.info("c. response: {}".format(_response.name))
+            elif _response == Response.OKAY.value:
+                self._log.info("d. response: {}".format(_response.name))
+            elif isinstance(_response, int) and 0 <= x <= 255:
+                self._log.info("e. response: {}".format(_response))
             else:
-                self._log.error("error response: {}".format(_response.name))
+                self._log.error("f. error response: '{}'; type: {}".format(_response, type(_response)))
+
             self._last_send_time = now # update only on success
             return _response
         except TimeoutError as te:

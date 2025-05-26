@@ -1,3 +1,3 @@
-/dev/ttyACM0  : TinyFX
-/dev/ttyACM1  : Motor 2040
-/dev/ttyACM2  : ItsyBitsy RP2040
+/dev/ttyACM0  : ItsyBitsy RP2040
+/dev/ttyACM1  : TinyFX
+/dev/ttyACM2  : Motor 2040

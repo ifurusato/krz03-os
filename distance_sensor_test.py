@@ -19,7 +19,7 @@ from core.logger import Logger, Level
 from core.orientation import Orientation
 from core.config_loader import ConfigLoader
 
-# begin ....................................................
+# begin ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
 _config = ConfigLoader(Level.INFO).configure()
 

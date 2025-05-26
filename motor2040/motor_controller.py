@@ -6,26 +6,24 @@
 # see the LICENSE file included as part of this package.
 #
 # author:   Murray Altheim
-# created:  2025-04-25
-# modified: 2025-05-07
+# created:  2025-05-25
+# modified: 2025-05-25
 #
 
-import uasyncio as asyncio
-
+import sys
 import utime
+from math import ceil as ceiling
+from machine import Timer
+import uasyncio as asyncio
 from motor import FAST_DECAY, SLOW_DECAY, Motor, motor2040
 from colorama import Fore, Style
 
 from colors import*
 from core.logger import Level, Logger
-from response import (
-    RESPONSE_INIT, RESPONSE_OKAY, RESPONSE_BAD_REQUEST, RESPONSE_OUT_OF_SYNC,
-    RESPONSE_INVALID_CHAR, RESPONSE_PAYLOAD_TOO_LARGE, 
-    RESPONSE_BUSY, RESPONSE_RUNTIME_ERROR, RESPONSE_UNKNOWN_ERROR
-)
+from controller import Controller
+from response import*
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class MotorController:
+class MotorController(Controller):
     NORMAL_DIR   = 0
     REVERSED_DIR = 1
     PFWD = 0
@@ -36,48 +34,48 @@ class MotorController:
     '''
     A motor controller for four motors.
 
-    :param led:         the optional RGB LED
-    :param level:       the log level
+    Extends Controller with motor-specific and other commands.
     '''
-    def __init__(self, led=None, level=Level.INFO):
-        super().__init__()
-        self._log = Logger('motor_ctrl', level)
-        self._led = led
+    def __init__(self, display=None, level=Level.INFO):
+        super().__init__(display=display, level=level)
+        self._log = Logger('motor', level)
+        self._motor_speed = 0
+        self._motor_enabled = False
+
         # create motors
-        self._motor_pfwd = Motor(motor2040.MOTOR_A)
+        self._motor_pfwd = Motor(motor2040.MOTOR_A, direction=MotorController.NORMAL_DIR)
         self._motor_sfwd = Motor(motor2040.MOTOR_B, direction=MotorController.REVERSED_DIR)
-        self._motor_paft = Motor(motor2040.MOTOR_C)
+        self._motor_paft = Motor(motor2040.MOTOR_C, direction=MotorController.NORMAL_DIR)
         self._motor_saft = Motor(motor2040.MOTOR_D, direction=MotorController.REVERSED_DIR)
 
-        self._motor_pfwd.speed_scale(1.5)
+        self._motor_pfwd.speed_scale(1.5) # this motor is a bit slow
 
         self._motor_pfwd_scale = self._motor_pfwd.speed_scale()
         self._motor_sfwd_scale = self._motor_sfwd.speed_scale()
         self._motor_paft_scale = self._motor_paft.speed_scale()
         self._motor_saft_scale = self._motor_saft.speed_scale()
-        print("🌸 speed scale; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_scale, self._motor_sfwd_scale, self._motor_paft_scale, self._motor_saft_scale))
+        self._log.info("speed scale; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_scale, self._motor_sfwd_scale, self._motor_paft_scale, self._motor_saft_scale))
 
         self._motor_pfwd_zeropoint = self._motor_pfwd.zeropoint()
         self._motor_sfwd_zeropoint = self._motor_sfwd.zeropoint()
         self._motor_paft_zeropoint = self._motor_paft.zeropoint()
         self._motor_saft_zeropoint = self._motor_saft.zeropoint()
-        print("🌸 zero point; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_zeropoint, self._motor_sfwd_zeropoint, self._motor_paft_zeropoint, self._motor_saft_zeropoint))
+        self._log.info("zero point; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_zeropoint, self._motor_sfwd_zeropoint, self._motor_paft_zeropoint, self._motor_saft_zeropoint))
 
         # motor.deadzone(deadzone)
         # _deadzone = motor.deadzone() # default 0.05
-
 #       self._motor_pfwd.zeropoint(0.0) 
 #       self._motor_sfwd.zeropoint(0.0)
 #       self._motor_paft.zeropoint(0.0)
 #       self._motor_saft.zeropoint(0.0)
 
-        self._motor_pfwd_speed = 0.0
-        self._motor_sfwd_speed = 0.0 
-        self._motor_paft_speed = 0.0
-        self._motor_saft_speed = 0.0
-        self._acceleration_delay = 0.1   # for acceleration or any loops
-        self._deceleration_delay = 0.2   # for acceleration or any loops
-        self._delta              = 0.025 # iterative delta
+        self._motor_pfwd_speed   = 0.0
+        self._motor_sfwd_speed   = 0.0 
+        self._motor_paft_speed   = 0.0
+        self._motor_saft_speed   = 0.0
+        self._acceleration_delay = 0.08  # for acceleration or any loops
+        self._deceleration_delay = 0.15  # for acceleration or any loops
+        self._delta              = 0.020 # iterative delta
         self._processing_task    = None
         self._log.info('ready.')
 
@@ -85,6 +83,7 @@ class MotorController:
     def enable(self):
         self._enabled = True
         self.motor_enable()
+        super().enable()
         self._log.info('enabled.')
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -92,131 +91,169 @@ class MotorController:
         self._log.info('shutting down motor controller…')
         self._enabled = False
         self.motor_disable()
+        super().disable()
         self._log.info('disabled.')
 
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def show_color(self, color):
+    async def handle_command(self, command):
         '''
-        Display the color on the RGB LED in GRB order.
+        Extended async processor for motor-specific commands.
         '''
-        if self._led:
-            self._led.set_rgb(0, color[0], color[1], color[2])
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def process_payload(self, payload):
-        '''
-        Immediately returns and delegates payload processing to an async task.
-        '''
-        if self._processing_task is None:
-            self._processing_task = asyncio.create_task(self._async_process_payload(payload))
-            self._log.debug('task created.')
-            # ensure the event loop is running
-            asyncio.get_event_loop().run_forever() # keep the event loop running
-            self._log.info(Style.DIM + 'payload processing complete (0x4F).')
-            return RESPONSE_OKAY #                 0x4F
-        elif self._processing_task.done():
-            self._processing_task = None
-            print('🤖 TASK IS DONE; returning RESPONSE_OUT_OF_SYNC 0x73 --------------------------------- ')
-            return RESPONSE_OUT_OF_SYNC #          0x73
-        else:
-            self._log.warning("Another task is already running. Skipping new payload (0x79).")
-            return RESPONSE_BUSY #                 0x79
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-
-    async def _async_process_payload(self, payload):
-        '''
-        Async motor command processor. Dispatches commands and handles delays.
-        '''
-        self._log.debug("process payload '{}'…".format(payload.to_string()))
+#       self._log.debug("handling command: '{}'".format(command))
         try:
-            self.show_color(COLOR_YELLOW)
-            _command, _speed, _stbd_speed, _duration = payload.values
-            self._log.info("payload: cmd: '{}'; port: {}; stbd: {}; duration: {}".format(_command, _speed, _stbd_speed, _duration))
-            if _command.startswith('enab'):
-                self.enable()
-            elif _command.startswith('disa'):
-                self.disable()
-            elif _command.startswith('stop'):
-                self.stop()
-            elif _command.startswith('coas'):
-                self.coast()
-            elif _command.startswith('brak'):
-                self.brake()
-            elif _command.startswith('slow'):
-                self.slow_decay()
-            elif _command.startswith('fast'):
-                self.fast_decay()
-            elif _command.startswith('acce'):
-                self.accelerate(_speed)
-            elif _command.startswith('dece'):
-                self.decelerate(0.0)
-            elif _command.startswith('forw'):
-                self.forward(_speed, _stbd_speed)
-            elif _command.startswith('reve'):
-                self.reverse(_speed, _stbd_speed)
-            elif _command.startswith('crab'):
-                self.crab(_speed)
-            elif _command.startswith('rota'):
-                self.rotate(_speed)
-            elif _command.startswith('wait'):
+
+            # asynchronous wait ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+            if command.startswith('wait'):
+                self.show_color(COLOR_VIOLET)
+                _duration = self._parse_duration(command, default=5)
                 self._log.info("waiting for {:.2f} seconds.".format(_duration))
                 await asyncio.sleep(_duration)
-                _duration = None # not again later
-            elif _command == 'pfwd':
-                self.pfwd(_speed)
-            elif _command == 'sfwd':
-                self.sfwd(_speed)
-            elif _command == 'paft':
-                self.paft(_speed)
-            elif _command == 'saft':
-                self.saft(_speed)
+                self.show_color(COLOR_DARK_VIOLET)
             else:
-                self._log.error("unknown command: '{}'".format(_command))
-
-            if _duration != None and _duration > 0.0:
-                await asyncio.sleep(_duration)
-                self.stop()
-#               self._motor_pfwd.speed(0.0)
-#               self._motor_sfwd.speed(0.0)
-#               self._motor_paft.speed(0.0)
-#               self._motor_saft.speed(0.0)
-
-            self.show_color(COLOR_GREEN)
+                # parse command into arguments
+                command, _port_speed, _stbd_speed, _duration = self.parse_command(command)
+                if command.startswith('help'):
+                    self.help()
+                elif command.startswith('enab'):
+                    self.enable()
+                elif command.startswith('disa'):
+                    self.disable()
+                elif command.startswith('stop'):
+                    self.stop()
+                elif command.startswith('coas'):
+                    self.coast()
+                elif command.startswith('brak'):
+                    self.brake()
+                elif command.startswith('slow'):
+                    self.slow_decay()
+                elif command.startswith('fast'):
+                    self.fast_decay()
+                elif command.startswith('acce'):
+                    self.accelerate(_port_speed)
+                elif command.startswith('dece'):
+                    self.decelerate(0.0)
+                elif command.startswith('go'):
+                    self.go(_port_speed, _stbd_speed)
+                elif command.startswith('crab'):
+                    self.crab(_port_speed)
+                elif command.startswith('rota'):
+                    self.rotate(_port_speed)
+                elif command.startswith('wait'):
+                    self._log.info("waiting for {:.2f} seconds.".format(_duration))
+                    await asyncio.sleep(_duration)
+                    _duration = None # not again later
+                # set some colors ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                elif command == 'red':
+                    self.show_color(COLOR_RED)
+                elif command == 'green':
+                    self.show_color(COLOR_GREEN)
+                elif command == 'blue':
+                    self.show_color(COLOR_BLUE)
+                elif command == 'black':
+                    self.show_color(COLOR_BLACK)
+                # start and stop a timer ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+                elif command == 'start-timer':
+                    self.startTimer()
+                elif command == 'stop-timer':
+                    self.stopTimer()
+                else:
+                    # delegate to base class if not processed ┈┈┈┈┈┈┈┈
+                    await super().handle_command(command)
+                if _duration != None and _duration > 0.0:
+#                   self._log.info("processing duration: {:.2f}s".format(_duration))
+                    await asyncio.sleep(_duration)
+                    self.stop()
 
         except Exception as e:
-            self._log.error("motor task error: {}".format(e))
+            self._log.error("MotorController error: {}".format(e))
+            sys.print_exception(e)
             self.show_color(COLOR_RED)
             return RESPONSE_UNKNOWN_ERROR
         finally:
             self._processing_task = None
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def help(self):
-        print(Fore.CYAN + '''
-motor2040 commands:
+    def parse_command(self, command):
+        """
+        Parses a command string into:
+        - base command (str),
+        - port_speed (float),
+        - stbd_speed (float),
+        - duration (float)
 
-    enable            enable all motors
-    disable           disable all motors
-    stop              stop all motors
-    coast             coast all motors to stop
-    brake             brake all motors to stop
-    slow-decay        mode change
-    fast-decay        mode change
-    accelerate        accelerate from zero to speed
-    decelerate        decelerate from speed to zero
-    all [speed] [duration]     set speed of all motors
-    crab [speed] [duration]    set crab speed
-    rotate [speed] [duration]  set rotation speed
-    pfwd [speed] [duration]    set speed of port-forward motor
-    sfwd [speed] [duration]    set speed of stbd-forward motor
-    paft [speed] [duration]    set speed of port-aft motor
-    saft [speed] [duration]    set speed of stbd-aft motor
-
-where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
-    ''' + Style.RESET_ALL)
+        Returns a tuple: (command, port_speed, stbd_speed, duration)
+        """
+        DEFAULT_SPEED    = 0.5
+        DEFAULT_DURATION = 0.0
+        parts = command.strip().split()
+        if not parts:
+            raise ValueError("Empty command")
+        # base command like "go", "stop", etc.
+        _command = parts[0].lower()
+        # parse optional arguments if present
+        try:
+            _port_speed = float(parts[1]) if len(parts) > 1 else DEFAULT_SPEED
+            _stbd_speed = float(parts[2]) if len(parts) > 2 else DEFAULT_SPEED
+            _duration   = float(parts[3]) if len(parts) > 3 else DEFAULT_DURATION
+        except ValueError:
+            raise ValueError("Command arguments must be valid float values")
+        # validate ranges
+        if not -1.0 <= _port_speed <= 1.0:
+            raise ValueError("port speed out of range (-1.0 to 1.0)")
+        if not -1.0 <= _stbd_speed <= 1.0:
+            raise ValueError("starboard speed out of range (-1.0 to 1.0)")
+        if not 0.0 <= _duration <= 99.0:
+            raise ValueError("duration out of range (0.0 to 99.0)")
+        return _command, _port_speed, _stbd_speed, _duration
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def _parse_duration(self, arg, default=5):
+        try:
+            parts = arg.strip().split()
+            if len(parts) >= 2:
+                return int(parts[1])
+        except ValueError:
+            pass
+        return default
+
+    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def validated(self):
+#       self._log.debug("validated.")
+        if self._timer:
+            self.stopTimer()
+        super().validated()
+
+    # help ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def help(self):
+        print(Fore.CYAN + '''
+motor controller commands:
+
+    help                  prints this help
+   
+    enable                enable all motors
+    disable               disable all motors
+    stop                  stop all motors
+    coast                 coast all motors to stop
+    brake                 brake all motors to stop
+    slow-decay            mode change
+    fast-decay            mode change
+    accelerate            accelerate from zero to speed
+    decelerate            decelerate from speed to zero
+    go [speed] [dur]      set differential speed of all motors
+    crab [speed] [dur]    set crab speed of all motors
+    rotate [speed] [dur]  set rotation speed of all motors
+
+    start                 start a timer that blinks the LED
+    stop                  stop the timer
+    red                   set the RGB LED to red
+    green                 set the RGB LED to green
+    blue                  set the RGB LED to blue
+    black                 set the RGB LED to black (off)
+    wait [n]              asynchronously wait n seconds (default 5)
+
+    ''' + Style.RESET_ALL)
+
+    # motor control ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
     def motor_enable(self):
         self._motor_pfwd.enable()
         self._motor_sfwd.enable()
@@ -306,17 +343,18 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
         unspecified the default is zero). This assumes all motors are
         currently operating at the same speed (we use PFWD as the exemplar).
         '''
-        _current_speed = self._motor_pfwd_speed
-        _delta = -1.0 * self._delta
-        self._log.info('decelerate from current speed {} to target speed {} with delta {}.'.format(_current_speed, target_speed, _delta))
-        for _speed in MotorController._frange(_current_speed, target_speed, _delta):
-            self._log.debug('decelerate _speed: {}.'.format(_speed))
+#       self._log.info("decel speeds; pfwd: '{:.2f}'; sfwd: '{:.2f}'; paft: '{:.2f}'; saft: '{:.2f}'".format(self._motor_pfwd_speed, self._motor_sfwd_speed, self._motor_paft_speed, self._motor_saft_speed))
+        _current_speed = self._motor_pfwd_speed # we just choose one arbitrarily
+        self._log.info('decelerate from current speed {:.2f} to target speed {:.2f} with delta {:.2f}.'.format(_current_speed, target_speed, (-1.0 * self._delta)))
+        for _speed in MotorController._frange(_current_speed, target_speed, -1.0 * self._delta):
+#           self._log.info('decelerate _speed: {}.'.format(_speed))
             self.set_speed(MotorController.PFWD, _speed)
             self.set_speed(MotorController.SFWD, _speed)
             self.set_speed(MotorController.PAFT, _speed)
             self.set_speed(MotorController.SAFT, _speed)
             utime.sleep(self._deceleration_delay)
         # just to be safe, end at stopped
+#       self._log.info('calling stop from decel.')
         self.stop()
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -328,20 +366,12 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
         self.set_speed(MotorController.SAFT, speed)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def forward(self, port_speed=DEFAULT_SPEED, stbd_speed=DEFAULT_SPEED):
-        self._log.info('forward: port speed={}; stbd speed: {}.'.format(port_speed, stbd_speed))
+    def go(self, port_speed=DEFAULT_SPEED, stbd_speed=DEFAULT_SPEED):
+        self._log.info('🚙 go: port speed={}; stbd speed: {}.'.format(port_speed, stbd_speed))
         self.set_speed(MotorController.PFWD, port_speed)
         self.set_speed(MotorController.SFWD, stbd_speed)
         self.set_speed(MotorController.PAFT, port_speed)
         self.set_speed(MotorController.SAFT, stbd_speed)
-
-    # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
-    def reverse(self, port_speed=DEFAULT_SPEED, stbd_speed=DEFAULT_SPEED):
-        self._log.info('reverse: port speed={}; stbd speed: {}.'.format(port_speed, stbd_speed))
-        self.set_speed(MotorController.PFWD, -1.0 * port_speed)
-        self.set_speed(MotorController.SFWD, -1.0 * stbd_speed)
-        self.set_speed(MotorController.PAFT, -1.0 * port_speed)
-        self.set_speed(MotorController.SAFT, -1.0 * stbd_speed)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def crab(self, speed=DEFAULT_SPEED):
@@ -376,43 +406,61 @@ where 'speed' is 0.0-1.0 and 'duration' is the optional duration in seconds.
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def set_speed(self, motor_id, speed):
         if motor_id == MotorController.PFWD:
-            self._log.debug('pfwd motor set to {}'.format(speed))
+#           self._log.info('pfwd motor set to {:4.2f}'.format(speed))
             self._motor_pfwd_speed = speed
             self._motor_pfwd.speed(speed)
         elif motor_id == MotorController.SFWD:
-            self._log.debug('sfwd motor set to {}'.format(speed))
+#           self._log.info('sfwd motor set to {:4.2f}'.format(speed))
             self._motor_sfwd_speed = speed
             self._motor_sfwd.speed(speed)
         elif motor_id == MotorController.PAFT:
-            self._log.debug('paft motor set to {}'.format(speed))
+#           self._log.info('paft motor set to {:4.2f}'.format(speed))
             self._motor_paft_speed = speed
             self._motor_paft.speed(speed)
         elif motor_id == MotorController.SAFT:
-            self._log.debug('saft motor set to {}'.format(speed))
+#           self._log.info('saft motor set to {:4.2f}'.format(speed))
             self._motor_saft_speed = speed
             self._motor_saft.speed(speed)
         else:
             raise ValueError("unrecognised motor id '{}'".format(motor_id))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+
     @staticmethod
-    def _frange(start=0.0, stop=1.0, jump=0.1):
-        if jump == 0:
-            raise ValueError("jump argument cannot be zero.")
-        if (start < stop and jump < 0) or (start > stop and jump > 0):
-            raise ValueError("jump direction does not match the range.")
+    def _frange(start=0.0, stop=1.0, step=0.1):
+        if step == 0:
+            raise ValueError("step argument cannot be zero.")
+        if (start < stop and step < 0) or (start > stop and step > 0):
+            raise ValueError("step direction does not match the range.")
+        # Use math.ceil to ensure we include the stop (or slightly exceed it due to rounding)
+        nsteps = int(ceiling((stop - start) / step))
+        # generate list with rounding to avoid floating point precision issues
+        return [round(start + i * step, 10) for i in range(nsteps)]
 
-        # calculate the number of steps depending on whether the range is increasing or decreasing
-        if jump > 0:
-            nsteps = int((stop - start) / jump)
-            if (stop - start) % jump != 0:
-                nsteps += 1
+    # start and stop a timer ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
+    def startTimer(self):
+        if not self._timer:
+            self._log.info('timer: ' + Fore.GREEN + 'start')
+            self._timer = Timer()
+            self._timer.init(period=1000, mode=Timer.PERIODIC, callback=self._toggle_led)
         else:
-            nsteps = int((start - stop) / abs(jump))
-            if (start - stop) % abs(jump) != 0:
-                nsteps += 1
+            self._log.warning('timer already started.')
 
-        # generate the range with appropriate rounding
-        return [round(start + float(i) * jump, 10) for i in range(nsteps)]
+    def _toggle_led(self, arg):
+        self._on = not self._on
+        if self._on:
+            self.show_color(COLOR_DARK_CYAN)
+            utime.sleep_ms(50)
+            self.show_color(COLOR_BLACK)
+        else:
+            pass
+
+    def stopTimer(self):
+        if self._timer:
+            self._log.info('timer: ' + Fore.GREEN + 'stop')
+            self._timer.deinit()
+        else:
+            self._log.warning('timer already stopped.')
+        self._timer = None
 
 #EOF

@@ -7,7 +7,7 @@
 #
 # author:   Murray Altheim
 # created:  2024-08-13
-# modified: 2025-05-26
+# modified: 2025-05-24
 #
 
 import argparse
@@ -22,19 +22,11 @@ from hardware.controller import Controller
 from hardware.payload import Payload
 from hardware.response import*
 
-def x_parse_args():
+def parse_args():
     # create the argument parser
     parser = argparse.ArgumentParser(description="Process command and optional speeds/duration.")
     # command (required) and optional arguments with defaults
     parser.add_argument("command", type=str, help="The command to execute.")
-    return parser.parse_args()
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Process command and optional speeds/duration.")
-    # first positional argument: the base command
-    parser.add_argument("command", type=str, help="The command to execute.")
-    # optional positional arguments (zero or more float arguments)
-    parser.add_argument("args", nargs="*", help="Optional arguments for the command (e.g., speeds, duration).")
     return parser.parse_args()
 
 def main():
@@ -44,18 +36,14 @@ def main():
 
     try:
 
-        _log.info('controller begin…')
-
-        _controller = Controller(i2c_bus=1, i2c_address=0x44)
-
-        start_time = dt.now()
-
         # parse the arguments
         _args = parse_args()
-        # combine into a single command string
-        _command_string = ' '.join([_args.command] + _args.args)
-#       _response = _controller.send_payload(_args.command)
-        _response = _controller.send_payload(_command_string)
+
+        _log.info('controller begin…')
+        _controller = Controller(i2c_bus=1, i2c_address=0x43)
+
+        start_time = dt.now()
+        _response = _controller.send_payload(_args.command)
         elapsed_ms = (dt.now() - start_time).total_seconds() * 1000.0
         if _response is None:
             raise ValueError('null response.')

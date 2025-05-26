@@ -21,17 +21,17 @@ from colors import*
 from colorama import Fore, Style
 from i2c_slave import I2CSlave
 #from controller import Controller
-from motor_controller import MotorController
+from demo_controller import DemoController
 from payload import Payload
 from response import*
 
 # constants ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-I2C_BUS_ID    = 0
-SDA_PIN       = 20 # pin 2 on ItsyBitsy/Pico
-SCL_PIN       = 21 # pin 3 on ItsyBitsy/Pico
-I2C_ADDRESS   = 0x44
-DISPLAY_TYPE  = 'ws2812' # 'neopixel' | 'ws2812' | 'pico'
+I2C_BUS_ID    = 1
+SDA_PIN       = 2
+SCL_PIN       = 3
+I2C_ADDRESS   = 0x43
+DISPLAY_TYPE  = 'neopixel' # | 'ws2812' | 'pico'
 START_COUNT   = 3
 
 # init ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -78,9 +78,9 @@ utime.sleep_ms(50)
 i2c_slave = None
 try:
     _log.info('start I2C slave…')
-    _controller = MotorController(display)
+    _controller = DemoController(display)
     i2c_slave = I2CSlave(i2c_bus_id=I2C_BUS_ID, sda=SDA_PIN, scl=SCL_PIN, i2c_address=I2C_ADDRESS, display=display, controller=_controller)
-    _controller.startTimer()
+    _controller.start()
     i2c_slave.enable()
     _log.warning('I2C slave started; it should have blocked.')
 except KeyboardInterrupt:
