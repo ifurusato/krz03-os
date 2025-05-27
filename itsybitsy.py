@@ -40,7 +40,7 @@ def main():
         _args = parse_args()
 
         _log.info('controller begin…')
-        _controller = Controller(i2c_bus=1, i2c_address=0x43)
+        _controller = Controller('itsy', i2c_bus=1, i2c_address=0x43)
 
         start_time = dt.now()
         _response = _controller.send_payload(_args.command)

@@ -71,7 +71,7 @@ class Controller:
         Display the color on the display device.
         '''
         if self._display:
-            self._log.debug(Style.DIM + 'show color: {}'.format(color.description))
+#           self._log.debug(Style.DIM + 'show color: {}'.format(color.description))
             self._display.show_color(color)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -83,7 +83,7 @@ class Controller:
             raise ValueError('expected Payload not {}'.format(type(payload)))
         if self._processing_task is None:
             self._processing_task = asyncio.create_task(self.handle_command(payload.command))
-            self._log.debug('task created.')
+#           self._log.debug('task created.')
             # ensure the event loop is running
             asyncio.get_event_loop().run_forever() # keep the event loop running
 #           self._log.debug('payload processing complete.')

@@ -170,6 +170,15 @@ krzos:
             loop_delay_sec:                  60            # sample loop delay (sec)
         killswitch:                                        # application kill switch
             pin:                             18            # GPIO or IO Expander pin used
+        micro_controller:                                  # control over multiple microcontrollers
+            bus_number:                       1            # I2C bus number
+            name_0:                      'itsy'
+            name_1:                     'motor'
+            name_2:                     'tinyfx'
+            i2c_address_0:                 0x43            # I2C address of controller 0
+            i2c_address_1:                 0x44            # I2C address of controller 1
+            i2c_address_2:                 0x45            # I2C address of controller 2
+            clear_on_close:               False            # turn off RGB LED upon closing
         button:                                            # GPIO or IO Expander-based simple button or switch
             i2c_address:                   0x18            # I2C address of the IO Expander (if used)
             impl:                       'gpiod'            # either 'gpio', 'lpgio', 'gpiod', 'ioe', 'gpiozero' or 'pigpio'

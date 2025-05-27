@@ -25,11 +25,11 @@ from core.util import Util
 from core.config_loader import ConfigLoader
 from hardware.i2c_scanner import I2CScanner, DeviceNotFound
 from hardware.pigpiod_util import PigpiodUtility as PigUtil
-from hardware.tinyfx_driver import TinyFxDriver
+#from hardware.tinyfx_driver import TinyFxDriver
 
 # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
 
-RUNNING_LIGHTS    = False
+#RUNNING_LIGHTS   = False
 BLINK_ON_COMPLETE = True
 MOTOR_2040        = True
 TINY_FX           = True
@@ -159,9 +159,9 @@ try:
             GPIO.output(_pin, GPIO.LOW)
             time.sleep(0.3)
 
-    if RUNNING_LIGHTS:
-        driver = TinyFxDriver(_config)
-        driver.command('on')
+#   if RUNNING_LIGHTS:
+#       driver = TinyFxDriver(_config)
+#       driver.command('on')
 
     _log.info("done.")
 
@@ -172,7 +172,7 @@ except Exception as e:
 finally:
     if _pin and BLINK_ON_COMPLETE:
         GPIO.cleanup(_pin)
-    if driver:
-        driver.close()
+#   if driver:
+#       driver.close()
 
 #EOF

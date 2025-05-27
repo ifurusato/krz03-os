@@ -77,9 +77,10 @@ utime.sleep_ms(50)
 
 i2c_slave = None
 try:
+    _name = 'itsy'
     _log.info('start I2C slave…')
     _controller = DemoController(display)
-    i2c_slave = I2CSlave(i2c_bus_id=I2C_BUS_ID, sda=SDA_PIN, scl=SCL_PIN, i2c_address=I2C_ADDRESS, display=display, controller=_controller)
+    i2c_slave = I2CSlave(name=_name, i2c_bus_id=I2C_BUS_ID, sda=SDA_PIN, scl=SCL_PIN, i2c_address=I2C_ADDRESS, display=display, controller=_controller)
     _controller.start()
     i2c_slave.enable()
     _log.warning('I2C slave started; it should have blocked.')

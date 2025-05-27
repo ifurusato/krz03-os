@@ -27,12 +27,15 @@ class Controller:
     A generalised controller connected to an I2C slave.
 
     No argument defaults.
+    :param name:          the Controller name (required)
     :param i2c_bus:       the I2C bus ID (0 or 1)
     :param i2c_address:   the I2C address
     :param level:         the logging level
     '''
-    def __init__(self, i2c_bus=None, i2c_address=None, level=Level.INFO):
-        self._log = Logger('controller', level)
+    def __init__(self, name=None, i2c_bus=None, i2c_address=None, level=Level.INFO):
+        if name is None:
+            raise ValueError('controller name is required.')
+        self._log = Logger('ctrl:{}'.format(name), level)
         self._i2c_address = i2c_address
         self._config_register = 1
         try:
@@ -43,7 +46,7 @@ class Controller:
         self._last_payload      = None
         self._last_send_time = None  # timestamp of last send
         self._min_send_interval = dt.timedelta(milliseconds=70) # 70ms
-        self._log.info('ready.')
+        self._log.info('ready on address 0x{:02X}.'.format(i2c_address))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def send_payload(self, command):
@@ -57,7 +60,7 @@ class Controller:
             if self._last_payload.command == command:
                 self._log.info(Style.DIM + 'ignoring redundant payload: {}'.format(self._last_payload))
                 return RESPONSE_SKIPPED
-        self._log.info("send payload: " + Fore.GREEN + "'{}'".format(command))
+        self._log.debug("send payload: " + Fore.GREEN + "'{}'".format(command))
         return self._write_payload(Payload(command))
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -83,7 +86,7 @@ class Controller:
             _data = list(payload.to_bytes())
 #           self._log.debug("data type: {}; data: '{}'".format(type(_data), _data))
             self._i2cbus.write_block_data(self._i2c_address, self._config_register, _data)
-            self._log.info("payload written: " + Fore.GREEN + "'{}'".format(payload.command))
+            self._log.debug("payload written: " + Fore.GREEN + "'{}'".format(payload.command))
 
             # read response Payload from I2C bus
             _response = None
@@ -114,7 +117,7 @@ class Controller:
             elif not isinstance(_response, Response):
                 raise ValueError('expected Response, not {}.'.format(type(_response)))
             elif _response == RESPONSE_OKAY:
-                self._log.info("response: " + Fore.GREEN + "'{}'".format(_response.description))
+                self._log.debug("response: " + Fore.GREEN + "'{}' to command: {}".format(_response.description, payload.command))
             else:
                 self._log.warning("response: " + Fore.RED + "'{}'".format(_response.description))
             self._last_send_time = now # update only on success

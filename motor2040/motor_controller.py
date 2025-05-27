@@ -54,13 +54,13 @@ class MotorController(Controller):
         self._motor_sfwd_scale = self._motor_sfwd.speed_scale()
         self._motor_paft_scale = self._motor_paft.speed_scale()
         self._motor_saft_scale = self._motor_saft.speed_scale()
-        self._log.info("speed scale; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_scale, self._motor_sfwd_scale, self._motor_paft_scale, self._motor_saft_scale))
+#       self._log.info("speed scale; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_scale, self._motor_sfwd_scale, self._motor_paft_scale, self._motor_saft_scale))
 
         self._motor_pfwd_zeropoint = self._motor_pfwd.zeropoint()
         self._motor_sfwd_zeropoint = self._motor_sfwd.zeropoint()
         self._motor_paft_zeropoint = self._motor_paft.zeropoint()
         self._motor_saft_zeropoint = self._motor_saft.zeropoint()
-        self._log.info("zero point; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_zeropoint, self._motor_sfwd_zeropoint, self._motor_paft_zeropoint, self._motor_saft_zeropoint))
+#       self._log.info("zero point; pfwd: '{}'; sfwd: '{}'; paft: '{}'; saft: '{}'".format(self._motor_pfwd_zeropoint, self._motor_sfwd_zeropoint, self._motor_paft_zeropoint, self._motor_saft_zeropoint))
 
         # motor.deadzone(deadzone)
         # _deadzone = motor.deadzone() # default 0.05
@@ -137,10 +137,7 @@ class MotorController(Controller):
                     self.crab(_port_speed)
                 elif command.startswith('rota'):
                     self.rotate(_port_speed)
-                elif command.startswith('wait'):
-                    self._log.info("waiting for {:.2f} seconds.".format(_duration))
-                    await asyncio.sleep(_duration)
-                    _duration = None # not again later
+
                 # set some colors ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
                 elif command == 'red':
                     self.show_color(COLOR_RED)
@@ -148,8 +145,15 @@ class MotorController(Controller):
                     self.show_color(COLOR_GREEN)
                 elif command == 'blue':
                     self.show_color(COLOR_BLUE)
+                elif command == 'cyan':
+                    self.show_color(COLOR_CYAN)
+                elif command == 'magenta':
+                    self.show_color(COLOR_MAGENTA)
+                elif command == 'yellow':
+                    self.show_color(COLOR_YELLOW)
                 elif command == 'black':
                     self.show_color(COLOR_BLACK)
+
                 # start and stop a timer ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
                 elif command == 'start-timer':
                     self.startTimer()
@@ -367,7 +371,7 @@ motor controller commands:
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
     def go(self, port_speed=DEFAULT_SPEED, stbd_speed=DEFAULT_SPEED):
-        self._log.info('🚙 go: port speed={}; stbd speed: {}.'.format(port_speed, stbd_speed))
+        self._log.info('go: port speed={}; stbd speed: {}.'.format(port_speed, stbd_speed))
         self.set_speed(MotorController.PFWD, port_speed)
         self.set_speed(MotorController.SFWD, stbd_speed)
         self.set_speed(MotorController.PAFT, port_speed)

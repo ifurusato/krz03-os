@@ -57,6 +57,12 @@ class DemoController(Controller):
                 self.show_color(COLOR_GREEN)
             elif command == 'blue':
                 self.show_color(COLOR_BLUE)
+            elif command == 'cyan':
+                self.show_color(COLOR_CYAN)
+            elif command == 'magenta':
+                self.show_color(COLOR_MAGENTA)
+            elif command == 'yellow':
+                self.show_color(COLOR_YELLOW)
             elif command == 'black':
                 self.show_color(COLOR_BLACK)
 

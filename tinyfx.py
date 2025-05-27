@@ -39,7 +39,7 @@ def main():
 
         _log.info('controller begin…')
 
-        _controller = Controller(i2c_bus=1, i2c_address=0x45)
+        _controller = Controller('tinyfx', i2c_bus=1, i2c_address=0x45)
 
         start_time = dt.now()
 

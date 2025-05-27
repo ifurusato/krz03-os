@@ -70,7 +70,7 @@ class TinyFxController(Controller):
     def play(self, key):
         for name, filename in _sounds:
             if name == key:
-                self._log.info("play key: '{}' from file: ".format(key) + Fore.YELLOW + "'{}'".format(filename))
+#               self._log.debug("play key: '{}' from file: ".format(key) + Fore.YELLOW + "'{}'".format(filename))
                 self._tinyfx.wav.play_wav(filename)
 
     # ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈
@@ -81,13 +81,11 @@ class TinyFxController(Controller):
 #       self._log.debug("handling command: '{}'".format(command))
         try:
             if command.startswith('help'):
-                _thread.start_new_thread(self.help, ())
+                self.help()
             elif command.startswith('play'):
                 parts = command.strip().split()
                 if len(parts) >= 2:
                     name = parts[1]
-#                   self._log.debug("play sound: " + Fore.GREEN + "{}".format(name))
-#                   _thread.start_new_thread(self.play, (name,))
                     self.play(name)
                 else:
                     self._log.warning("no sound name provided.")
@@ -153,6 +151,12 @@ class TinyFxController(Controller):
                 self.show_color(COLOR_GREEN)
             elif command == 'blue':
                 self.show_color(COLOR_BLUE)
+            elif command == 'cyan':
+                self.show_color(COLOR_CYAN)
+            elif command == 'magenta':
+                self.show_color(COLOR_MAGENTA)
+            elif command == 'yellow':
+                self.show_color(COLOR_YELLOW)
             elif command == 'black':
                 self.show_color(COLOR_BLACK)
 
