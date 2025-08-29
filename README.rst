@@ -5,10 +5,11 @@ KRZOS: Operating System for the KRZ03 Robot
 **KRZOS** provides the core functionality of the *KRZ03 Robot*, a Raspberry
 Pi-based robot OS written in Python 3.
 
-* **Important**
-    As of 2025-08-30 the KRZ03 project has been retired, as development is
+* **Notice**
+    As of 2025-08-30 the KRZ03 project has been retired, with development
     now focused on its successor, the KRZ04. This repository was previous
-    named "krzos" but has been renamed "krz03".
+    named "krzos" but has been renamed "krz03-os", with the KRZ04 taking
+    over the krzos repository name.
 
 .. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03-deck.jpg
    :width: 1200px
