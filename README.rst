@@ -5,9 +5,10 @@ KRZOS: Operating System for the KRZ03 Robot
 **KRZOS** provides the core functionality of the *KRZ03 Robot*, a Raspberry
 Pi-based robot OS written in Python 3.
 
-* **Important** \ As of 2025-08-30 the KRZ03 project has been retired, as 
-    development is now focused on its successor, the KRZ04. This repository 
-    was previous named "krzos" but has been renamed "krz03".
+* **Important**
+    As of 2025-08-30 the KRZ03 project has been retired, as development is
+    now focused on its successor, the KRZ04. This repository was previous
+    named "krzos" but has been renamed "krz03".
 
 .. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03-deck.jpg
    :width: 1200px
@@ -23,7 +24,7 @@ Background
 
 The *KRZOS* library provides essential support designed as the basis of a
 `Behaviour-Based Robot (BBR) <https://en.wikipedia.org/wiki/Behavior-based_robotics>`_.
-This library is relatively "low-level" and, in theory, could be used for any Python 3 
+This library is relatively "low-level" and, in theory, could be used for any Python 3
 based robot.
 
 
@@ -32,30 +33,30 @@ Functional Description
 
 The basic function is for sensors or other data sources to act as "Publishers" in a
 "Publish-Subscribe" model, firing messages onto an asynchronous message bus. Messages
-contain an Event type and a data payload. Subscribers to the message bus can filter 
+contain an Event type and a data payload. Subscribers to the message bus can filter
 which event types they are interested in. The flow of messages are thus filtered
 by the Subscribers, who pass on to an Arbitrator messages they have consumed. Once all
 Subscribers have acknowledged a message it is passed to a Garbage Collector (a specialised
 Subscriber).
 
-Subscribers can themselves act upon received messages, though generally these types of 
+Subscribers can themselves act upon received messages, though generally these types of
 reactions are typically reflected as direct outputs such as lighting and sound effects,
 or used to monitor sensor thresholds, which upon reaching may themselves publish messages
 to that effect, such as low battery warnings, or high-priority bumper events.
 
 The robot's movement is not controlled by Subscribers but by higher-level Behaviours,
-which are all Subscribers and sometimes even Publishers. Some Behaviours are characterised 
-as "servo", meaning they may execute continually (when active) and their effect on the 
+which are all Subscribers and sometimes even Publishers. Some Behaviours are characterised
+as "servo", meaning they may execute continually (when active) and their effect on the
 robot may be intermixed with other Behaviours. Some Behaviours are "ballistic", meaning
 they take over the complete function of the robot during the duration of their activity,
 like a human reflex action, a hand touching a hot stove.
 
-For example, a Roam (servo) Behaviour may be running, with the robot moving freely across 
-the landscape. It subscribes to a DistanceSensorsPublisher which publishes proximity and 
-bumper events, and also monitors a MotorControllerPublisher for motor change events. If 
+For example, a Roam (servo) Behaviour may be running, with the robot moving freely across
+the landscape. It subscribes to a DistanceSensorsPublisher which publishes proximity and
+bumper events, and also monitors a MotorControllerPublisher for motor change events. If
 Roam receives a message either indicating a bumper has been triggered or the motors have
 stopped (due to being too close to an obstacle), Roam is suppressed and an Avoid (ballistic)
-Behaviour is released. The robot will begin whatever the Avoid Behaviour entails, perhaps 
+Behaviour is released. The robot will begin whatever the Avoid Behaviour entails, perhaps
 stopping, backing up while turning clockwise, then suppressing itself and releasing Roam
 to proceed again on a new trajectory.
 
@@ -111,12 +112,12 @@ Sensors include:
 Requirements
 ************
 
-This library requires Python 3.8.5 or newer. It's currently being written using 
-Python 3.11.2. Some portions (modules) of the KRZOS code will only run on a 
-Raspberry Pi, though KRZOS Core should function independently of the various Pi 
+This library requires Python 3.8.5 or newer. It's currently being written using
+Python 3.11.2. Some portions (modules) of the KRZOS code will only run on a
+Raspberry Pi, though KRZOS Core should function independently of the various Pi
 libraries.
 
-KRZOS requires installation of a number of dependencies (support libraries). 
+KRZOS requires installation of a number of dependencies (support libraries).
 There is currently no dependency management set up for this project.
 
 First:
@@ -145,7 +146,7 @@ then:
     with:         sudo pip3 install icm20948 --break-system-packages
 * pyquaternion: https://pypi.org/project/pyquaternion/
 *   with:         sudo pip3 install pyquaternion --break-system-packages
-* IO Expander:  https://pypi.org/project/pimoroni-ioexpander/  
+* IO Expander:  https://pypi.org/project/pimoroni-ioexpander/
     with:         sudo pip3 install pimoroni-ioexpander --break-system-packages
 * gpiodevice:   https://pypi.org/project/gpiodevice/
     with:         sudo pip3 install gpiodevice --break-system-packages
@@ -153,7 +154,7 @@ then:
     with:         sudo pip3 install pmw3901 --break-system-packages
 * dill:         https://pypi.org/project/dill/
     with:         sudo pip3 install dill --break-system-packages
-* evdev:        https://pypi.org/project/evdev/  
+* evdev:        https://pypi.org/project/evdev/
     with:         sudo pip3 install evdev --break-system-packages
 
 for the VL53L5CX and 1.3" TFT display (used for its demo):
@@ -169,7 +170,7 @@ for the VL53L5CX and 1.3" TFT display (used for its demo):
 * matplotlib
     with:        sudo pip3 install matplotlib --break-system-packages
 
-The pimoroni-iopxpander library supports the Pimoroni Breakout Garden 
+The pimoroni-iopxpander library supports the Pimoroni Breakout Garden
 IO Expander as well as the Encoder and Potentiometer.
 
 The original PiconZero library has been included and significantly refactored as
@@ -183,11 +184,11 @@ To improve performance, if you don't need the avahi-daemon, disable it:
 Status
 ******
 
-* 2025-08-30: the KRZ03 project has been retired, as development is now focused on its 
+* 2025-08-30: the KRZ03 project has been retired, as development is now focused on its
   successor, the KRZ04.
 
-* 2023-2024: Early days. The Phase 0 hardware is largely complete and migration and 
-  conversion of the `KROS-Core <https://github.com/ifurusato/kros-core/tree/main>`_ is 
+* 2023-2024: Early days. The Phase 0 hardware is largely complete and migration and
+  conversion of the `KROS-Core <https://github.com/ifurusato/kros-core/tree/main>`_ is
   being used as the basis of MROS, which was forked to create KRZOS.
 
 
