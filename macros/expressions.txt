@@ -1,0 +1,72 @@
+# macro to test eyeballs and sounds
+
+lights on
+
+play glince
+eyeballs normal
+wait 1.0
+
+play muskogee
+eyeballs happy
+wait 1.0
+
+play cricket
+eyeballs wink
+wait 1.0
+
+play glitch
+eyeballs blush
+wait 1.0
+
+play itiz
+eyeballs look-port
+wait 1.0
+
+play izit
+eyeballs look-stbd
+wait 1.0
+
+play twit
+eyeballs look-up
+wait 1.0
+
+play tweak
+eyeballs look-down
+wait 1.0
+
+play gwolp
+eyeballs confused
+wait 1.0
+
+play earpit
+eyeballs drugged
+wait 1.0
+
+play twiddle-pop
+eyeballs sad
+wait 1.0
+
+play tsk-tsk-tsk
+eyeballs blank
+wait 1.0
+
+play wow
+eyeballs wow
+wait 3.0
+
+play pizzle
+eyeballs dead fade
+wait 2.0
+
+play sigh
+eyeballs sleepy
+wait 1.0
+
+play skid-fzzt
+eyeballs clear
+wait 1.0
+
+lights off
+
+stop
+

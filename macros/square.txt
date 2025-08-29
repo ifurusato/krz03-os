@@ -1,0 +1,37 @@
+# macro to traverse a rough square
+
+wait 2.0
+
+# head north ............
+forw 0.5 0.5 0.0
+wait 3.0
+
+# turn east .............
+rota 0.7 0.7 0.0
+wait 0.5
+
+# head east .............
+forw 0.5 0.5 0.0
+wait 3.0
+
+# turn south ............
+rota 0.7 0.7 0.0
+wait 0.5
+
+# head south ............
+forw 0.5 0.5 0.0
+wait 3.0
+
+# turn west ............
+rota 0.7 0.7 0.0
+wait 0.5
+
+# head west ............
+forw 0.5 0.5 0.0
+wait 3.0
+
+# turn north ............
+rota 0.7 0.7 0.0
+wait 0.5
+
+stop

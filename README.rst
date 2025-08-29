@@ -5,9 +5,8 @@ KRZOS: Operating System for the KRZ03 Robot
 **KRZOS** provides the core functionality of the *KRZ03 Robot*, a Raspberry
 Pi-based robot OS written in Python 3.
 
-Note: this document is a work-in-progress and does not necessarily reflect the
-current state of the project.
-
+* Notice 2025-08-30: the KRZ03 project has been retired, as development is 
+  now focused on its successor, the KRZ04.
 
 .. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03-deck.jpg
    :width: 1200px
@@ -183,15 +182,12 @@ To improve performance, if you don't need the avahi-daemon, disable it:
 Status
 ******
 
-Early days. The Phase 0 hardware is largely complete and migration and conversion
-of the `KROS-Core <https://github.com/ifurusato/kros-core/tree/main>`_ is being used
-as the basis of MROS, which was forked to create KRZOS.
+* 2025-08-30: the KRZ03 project has been retired, as development is now focused on its 
+  successor, the KRZ04.
 
-.. note::
-
-   This project is currently in a very preliminary state.
-
-   The project is being exposed publicly so that those interested can follow its progress.
+* 2023-2024: Early days. The Phase 0 hardware is largely complete and migration and 
+  conversion of the `KROS-Core <https://github.com/ifurusato/kros-core/tree/main>`_ is 
+  being used as the basis of MROS, which was forked to create KRZOS.
 
 
 Support & Liability

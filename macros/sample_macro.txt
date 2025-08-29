@@ -1,0 +1,28 @@
+# macro to test forward and reverse motion
+
+wait 2.0
+
+eyeballs normal
+
+# Start forward
+forw 0.5 0.5
+
+play glince
+
+
+wait 5.0
+
+forw 0.4 0.6
+
+# Brief pause
+stop
+
+eyeballs blush
+wait 1.0
+
+# Reverse with turn
+reve 0.3 0.3
+
+# Full stop
+stop
+
