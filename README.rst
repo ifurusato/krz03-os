@@ -7,7 +7,8 @@ Pi-based robot OS written in Python 3.
 
 .. important::
     As of 2025-08-30 the KRZ03 project has been retired, as development is now
-    focused on its successor, the KRZ04.
+    focused on its successor, the KRZ04. This repository was previous named
+    "krzos" but has been renamed "krz03".
 
 .. figure:: https://service.robots.org.nz/wiki/attach/KRZ03/krz03-deck.jpg
    :width: 1200px
